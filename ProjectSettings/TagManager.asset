@@ -8,6 +8,7 @@ TagManager:
   - Road
   - Truck
   - TruckTrigger
+  - Water
   layers:
   - Default
   - TransparentFX
