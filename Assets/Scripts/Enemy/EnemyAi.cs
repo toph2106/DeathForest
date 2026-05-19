@@ -14,11 +14,15 @@ public class EnemyAI : MonoBehaviour
     bool walkPointSet;
     public float walkPointRange;
 
-    [Header("Status")]
-    public float sightRange;
-    public float attackRange;
+    [Header("Status Ranges")]
+    public float sightRange = 15f;
+    public float attackRange = 2f;
     public bool playerInSightRange;
     public bool playerInAttackRange;
+
+    [Header("Góc Nhìn Khử Góc Khuất (FOV)")]
+    public float viewAngle = 90f;
+    public LayerMask obstacleMask;
 
     [Header("Attack Settings")]
     public float timeBetweenAttacks = 2f;
@@ -32,35 +36,66 @@ public class EnemyAI : MonoBehaviour
 
     private void Update()
     {
-        // Kiểm tra xem người chơi có trong tầm nhìn hoặc tầm đánh không
+        // 1. Kiểm tra khoảng cách thô trước
         playerInSightRange = Physics.CheckSphere(transform.position, sightRange, whatIsPlayer);
         playerInAttackRange = Physics.CheckSphere(transform.position, attackRange, whatIsPlayer);
 
-        // Xử lý chuyển đổi trạng thái AI độc lập
+        // 2. Nếu ở trong tầm nhìn thô, check tiếp góc mắt và vật cản
+        if (playerInSightRange)
+        {
+            if (!IsPlayerInFieldOfView())
+            {
+                playerInSightRange = false; // Mất dấu nếu ở sau lưng hoặc khuất tường
+            }
+        }
+
+        // 3. Xử lý trạng thái di chuyển/tấn công độc lập
         if (!playerInSightRange && !playerInAttackRange) Patrolling();
         if (playerInSightRange && !playerInAttackRange) ChasePlayer();
         if (playerInSightRange && playerInAttackRange) AttackPlayer();
 
-        // ĐỒNG BỘ VẬN TỐC THỰC TẾ VÀO ANIMATOR
+        // 4. ĐỒNG BỘ ANIMATION DI CHUYỂN CHUẨN XÁC THEO TỐC ĐỘ THỰC TẾ
         if (anim != null && agent != null)
         {
-            // agent.velocity.magnitude sẽ lấy tốc độ thực tế của con quái
-            float currentSpeed = agent.velocity.magnitude;
-            anim.SetFloat("Speed", currentSpeed);
+            // Kiểm tra nếu quái đang bị dừng chân (để đánh) thì ép Speed về 0
+            if (agent.isStopped)
+            {
+                anim.SetFloat("Speed", 0f);
+            }
+            else
+            {
+                // Lấy vận tốc thực tế của cơ thể quái để truyền vào Animator
+                float currentSpeed = agent.velocity.magnitude;
+                anim.SetFloat("Speed", currentSpeed);
+            }
         }
+    }
+
+    private bool IsPlayerInFieldOfView()
+    {
+        Vector3 directionToPlayer = (player.position - transform.position).normalized;
+
+        if (Vector3.Angle(transform.forward, directionToPlayer) < viewAngle / 2)
+        {
+            float distanceToPlayer = Vector3.Distance(transform.position, player.position);
+
+            // Bắn tia kiểm tra vật cản (cách mặt đất 1 mét để tránh đụng cỏ)
+            if (!Physics.Raycast(transform.position + Vector3.up * 1f, directionToPlayer, distanceToPlayer, obstacleMask))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void Patrolling()
     {
-        // NHẢ THẮNG: Cho phép chân di chuyển và tính vận tốc để chạy animation Walk
         if (agent.isStopped) agent.isStopped = false;
 
         if (!walkPointSet) SearchWalkPoint();
         if (walkPointSet) agent.SetDestination(walkPoint);
 
         Vector3 distanceToWalkPoint = transform.position - walkPoint;
-
-        // Đã đến điểm tuần tra thì reset để tìm điểm mới
         if (distanceToWalkPoint.magnitude < 1f) walkPointSet = false;
     }
 
@@ -76,25 +111,18 @@ public class EnemyAI : MonoBehaviour
 
     private void ChasePlayer()
     {
-        // NHẢ THẮNG: Cực kỳ quan trọng để quái không bị trượt đơ sau khi vừa tấn công xong
         if (agent.isStopped) agent.isStopped = false;
-
         agent.SetDestination(player.position);
     }
 
     private void AttackPlayer()
     {
-        // ĐẠP THẮNG: Bắt quái đứng im tại chỗ để thực hiện đòn vung tay đánh
         agent.isStopped = true;
-
-        // Quay mặt về phía Player nhưng giữ trục Y thẳng (không bị ngửa lên/nghiêng xuống)
         transform.LookAt(new Vector3(player.position.x, transform.position.y, player.position.z));
 
         if (!alreadyAttacked)
         {
-            // Kích hoạt Trigger Attack trong Animator
             if (anim != null) anim.SetTrigger("Attack");
-
             alreadyAttacked = true;
             Invoke(nameof(ResetAttack), timeBetweenAttacks);
         }
@@ -105,12 +133,24 @@ public class EnemyAI : MonoBehaviour
         alreadyAttacked = false;
     }
 
-    // Vẽ các vòng tròn bán kính tầm nhìn trong giao diện Scene để dễ căn chỉnh thông số
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, sightRange);
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, attackRange);
+
+        Vector3 viewAngleA = DirFromAngle(-viewAngle / 2, false);
+        Vector3 viewAngleB = DirFromAngle(viewAngle / 2, false);
+        Gizmos.color = Color.blue;
+        Gizmos.DrawLine(transform.position, transform.position + viewAngleA * sightRange);
+        Gizmos.color = Color.blue;
+        Gizmos.DrawLine(transform.position, transform.position + viewAngleB * sightRange);
+    }
+
+    private Vector3 DirFromAngle(float angleInDegrees, bool angleIsGlobal)
+    {
+        if (!angleIsGlobal) angleInDegrees += transform.eulerAngles.y;
+        return new Vector3(Mathf.Sin(angleInDegrees * Mathf.Deg2Rad), 0, Mathf.Cos(angleInDegrees * Mathf.Deg2Rad));
     }
 }
