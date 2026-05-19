@@ -9,17 +9,19 @@ public class EnemyAI : MonoBehaviour
 
     private Animator anim;
 
-    // Tuần tra
+    [Header("Patrolling")]
     public Vector3 walkPoint;
     bool walkPointSet;
     public float walkPointRange;
 
-    // Trạng thái
-    public float sightRange, attackRange;
-    public bool playerInSightRange, playerInAttackRange;
+    [Header("Status")]
+    public float sightRange;
+    public float attackRange;
+    public bool playerInSightRange;
+    public bool playerInAttackRange;
 
-    // ---- THÊM BIẾN CHO ĐÒN ĐÁNH ----
-    public float timeBetweenAttacks = 2f; // Thời gian giãn cách giữa 2 đòn đánh
+    [Header("Attack Settings")]
+    public float timeBetweenAttacks = 2f;
     bool alreadyAttacked;
 
     private void Awake()
@@ -30,34 +32,65 @@ public class EnemyAI : MonoBehaviour
 
     private void Update()
     {
+        // Kiểm tra khoảng cách bằng Physics.CheckSphere
         playerInSightRange = Physics.CheckSphere(transform.position, sightRange, whatIsPlayer);
         playerInAttackRange = Physics.CheckSphere(transform.position, attackRange, whatIsPlayer);
 
+        // Chuyển đổi trạng thái chuẩn
         if (!playerInSightRange && !playerInAttackRange) Patrolling();
         if (playerInSightRange && !playerInAttackRange) ChasePlayer();
         if (playerInSightRange && playerInAttackRange) AttackPlayer();
 
-        // Animation di chuyển
+        // Đồng bộ tốc độ với Animator
         if (anim != null && agent != null)
         {
+            // Dùng remainingDistance để check xem nó có thực sự đang di chuyển không
             float currentSpeed = agent.velocity.magnitude;
             anim.SetFloat("Speed", currentSpeed);
         }
     }
 
+    private void Patrolling()
+    {
+        // Trả lại tốc độ di chuyển bình thường khi đi tuần
+        if (agent.isStopped) agent.isStopped = false;
+
+        if (!walkPointSet) SearchWalkPoint();
+        if (walkPointSet) agent.SetDestination(walkPoint);
+
+        Vector3 distanceToWalkPoint = transform.position - walkPoint;
+        if (distanceToWalkPoint.magnitude < 1f) walkPointSet = false;
+    }
+
+    private void SearchWalkPoint()
+    {
+        float randomZ = Random.Range(-walkPointRange, walkPointRange);
+        float randomX = Random.Range(-walkPointRange, walkPointRange);
+        walkPoint = new Vector3(transform.position.x + randomX, transform.position.y, transform.position.z + randomZ);
+
+        if (Physics.Raycast(walkPoint, -transform.up, 2f, whatIsGround))
+            walkPointSet = true;
+    }
+
+    private void ChasePlayer()
+    {
+        // Trả lại tốc độ di chuyển bình thường khi đuổi theo
+        if (agent.isStopped) agent.isStopped = false;
+
+        agent.SetDestination(player.position);
+    }
+
     private void AttackPlayer()
     {
-        // Quái dừng lại để đánh
-        agent.SetDestination(transform.position);
-        transform.LookAt(player);
+        // Thay vì SetDestination liên tục, ta ra lệnh cho Agent dừng hẳn chân lại để đánh
+        agent.isStopped = true;
+        transform.LookAt(new Vector3(player.position.x, transform.position.y, player.position.z)); // Giữ quái không bị ngửa lên trời
 
         if (!alreadyAttacked)
         {
-            // --- KÍCH HOẠT ANIMATION ĐÁNH ---
-            anim.SetTrigger("Attack");
+            if (anim != null) anim.SetTrigger("Attack");
 
             alreadyAttacked = true;
-            // Gọi hàm Reset đòn đánh sau một khoảng thời gian chờ
             Invoke(nameof(ResetAttack), timeBetweenAttacks);
         }
     }
@@ -67,7 +100,11 @@ public class EnemyAI : MonoBehaviour
         alreadyAttacked = false;
     }
 
-    // Các hàm di chuyển giữ nguyên...
-    private void Patrolling() { /* code tuần tra */ }
-    private void ChasePlayer() { agent.SetDestination(player.position); }
+    private void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawWireSphere(transform.position, sightRange);
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(transform.position, attackRange);
+    }
 }
