@@ -9,11 +9,12 @@ TagManager:
   - Truck
   - TruckTrigger
   - Water
+  - Interactable
   layers:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - 
+  - Interactable
   - Water
   - UI
   - Valve
