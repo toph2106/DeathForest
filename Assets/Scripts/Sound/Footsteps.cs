@@ -14,19 +14,37 @@ public class FootstepManager : MonoBehaviour
     public CharacterController player;
     private float nextSoundTime;
 
+    private Vector3 lastPosition;
+    private bool isOnRoad = false;
+
     void Start()
     {
         if (player == null) player = GetComponent<CharacterController>();
+        lastPosition = transform.position;
     }
 
-    void OnTriggerStay(Collider other)
+    void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("Road"))
+        if (other.CompareTag("Road")) isOnRoad = true;
+    }
+
+    void OnTriggerExit(Collider other)
+    {
+        if (other.CompareTag("Road")) isOnRoad = false;
+    }
+
+    void Update()
+    {
+        Vector3 currentPos = new Vector3(transform.position.x, 0, transform.position.z);
+        Vector3 previousPos = new Vector3(lastPosition.x, 0, lastPosition.z);
+        float distanceMoved = Vector3.Distance(currentPos, previousPos);
+
+        if (isOnRoad && player.isGrounded)
         {
             float h = Input.GetAxisRaw("Horizontal");
             float v = Input.GetAxisRaw("Vertical");
 
-            if (h != 0 || v != 0)
+            if ((h != 0 || v != 0) && distanceMoved > 0.01f)
             {
                 if (Time.time > nextSoundTime)
                 {
@@ -36,6 +54,8 @@ public class FootstepManager : MonoBehaviour
                 }
             }
         }
+
+        lastPosition = transform.position;
     }
 
     void PlayStepSound()
