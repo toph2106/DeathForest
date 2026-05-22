@@ -7,12 +7,18 @@ public class SmoothDoubleDoor : MonoBehaviour
     public Transform rightDoor;
 
     [Header("UI Interaction Hint")]
-    public GameObject doorHintUI; // Cái DoorCanvas (World Space) dính trên cửa
+    public GameObject doorHintUI;
 
     [Header("Rotation Settings")]
     public float openAngleLeft = -90f;
     public float openAngleRight = 90f;
     public float doorSpeed = 3f;
+
+    [Header("Audio Settings")]
+    public AudioSource doorAudioSource;
+    public AudioClip openSound;
+    public AudioClip closeSound;
+    [Range(0f, 1f)] public float volume = 1f;
 
     private bool isDoorOpen = false;
     private Quaternion closedRotationLeft;
@@ -29,11 +35,12 @@ public class SmoothDoubleDoor : MonoBehaviour
         openRotationRight = closedRotationRight * Quaternion.Euler(0, openAngleRight, 0);
 
         if (doorHintUI != null) doorHintUI.SetActive(false);
+
+        if (doorAudioSource == null) doorAudioSource = GetComponent<AudioSource>();
     }
 
     void Update()
     {
-        // Nội suy xoay cửa mượt mà
         if (isDoorOpen)
         {
             leftDoor.localRotation = Quaternion.Slerp(leftDoor.localRotation, openRotationLeft, Time.deltaTime * doorSpeed);
@@ -46,13 +53,21 @@ public class SmoothDoubleDoor : MonoBehaviour
         }
     }
 
-    // =================================================================
-    // BẮT BUỘC PHẢI CÓ 3 HÀM PUBLIC NÀY ĐỂ PLAYERINTERACTION GỌI ĐƯỢC
-    // =================================================================
-
     public void ToggleDoor()
     {
         isDoorOpen = !isDoorOpen;
+
+        if (doorAudioSource != null)
+        {
+            if (isDoorOpen && openSound != null)
+            {
+                doorAudioSource.PlayOneShot(openSound, volume);
+            }
+            else if (!isDoorOpen && closeSound != null)
+            {
+                doorAudioSource.PlayOneShot(closeSound, volume);
+            }
+        }
     }
 
     public void ShowPrompt()
