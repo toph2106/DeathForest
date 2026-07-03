@@ -7,6 +7,7 @@ public class Bird : MonoBehaviour
     public AudioClip clip1;
     public AudioClip clip2;
     public AudioClip clip3;
+    public AudioClip clip4;
 
     [Header("Thời gian chờ (Giây)")]
     public float minWait = 15f;
@@ -33,7 +34,8 @@ public class Bird : MonoBehaviour
 
             if (rand == 0) selectedClip = clip1;
             else if (rand == 1) selectedClip = clip2;
-            else selectedClip = clip3;
+            else if (rand == 2) selectedClip = clip3;
+            else selectedClip = clip4;
 
             if (selectedClip != null)
             {
