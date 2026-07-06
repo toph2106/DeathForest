@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 3837373387896154052}
   - component: {fileID: 8174042717012889729}
   - component: {fileID: 3685888989428289894}
+  - component: {fileID: 7666129831010379276}
   m_Layer: 0
   m_Name: SM_Pine01
   m_TagString: Untagged
@@ -90,3 +91,26 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!136 &7666129831010379276
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 942531563374898625}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 1534
+  m_Height: 100000
+  m_Direction: 2
+  m_Center: {x: -24.67, y: 1, z: 44827}
