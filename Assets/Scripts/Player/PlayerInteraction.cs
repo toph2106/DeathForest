@@ -12,7 +12,7 @@ public class PlayerInteraction : MonoBehaviour
     private SmoothDoubleDoor currentDoor = null;
     private ReadablePaper currentPaper = null;
     private SmoothSingleDoor currentSingleDoor = null; // Thêm biến lưu cửa đơn hiện tại
-
+    private SmoothSlidingDoor currentSlidingDoor = null;
     void Update()
     {
         // QUAN TRỌNG: Nếu đang đọc giấy thì khóa tia nhìn lại, không cho tương tác linh tinh
@@ -88,6 +88,23 @@ public class PlayerInteraction : MonoBehaviour
                 }
                 if (Input.GetKeyDown(KeyCode.F)) currentSingleDoor.ToggleDoor();
             }
+            // 4. XỬ LÝ NHÌN VÀO CỬL KÉO NGANG (TÍNH NĂNG MỚI)
+            else if (hit.collider.GetComponentInParent<SmoothSlidingDoor>() != null)
+            {
+                SmoothSlidingDoor slidingDoor = hit.collider.GetComponentInParent<SmoothSlidingDoor>();
+
+                ClearCurrentDoor();
+                ClearCurrentPaper();
+                ClearCurrentSingleDoor();
+
+                if (currentSlidingDoor != slidingDoor)
+                {
+                    if (currentSlidingDoor != null) currentSlidingDoor.HidePrompt();
+                    currentSlidingDoor = slidingDoor;
+                    currentSlidingDoor.ShowPrompt();
+                }
+                if (Input.GetKeyDown(KeyCode.F)) currentSlidingDoor.ToggleDoor();
+            }
             else
             {
                 ClearAll();
@@ -114,11 +131,15 @@ public class PlayerInteraction : MonoBehaviour
     {
         if (currentSingleDoor != null) { currentSingleDoor.HidePrompt(); currentSingleDoor = null; }
     }
-
+    void ClearCurrentSlidingDoor()
+    {
+        if (currentSlidingDoor != null) { currentSlidingDoor.HidePrompt(); currentSlidingDoor = null; }
+    }
     void ClearAll()
     {
         ClearCurrentDoor();
         ClearCurrentPaper();
         ClearCurrentSingleDoor(); // Thêm vào hàm xóa tổng hợp
+        ClearCurrentSlidingDoor();
     }
 }
