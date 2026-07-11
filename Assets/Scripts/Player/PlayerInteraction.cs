@@ -13,6 +13,7 @@ public class PlayerInteraction : MonoBehaviour
     private ReadablePaper currentPaper = null;
     private SmoothSingleDoor currentSingleDoor = null; // Thêm biến lưu cửa đơn hiện tại
     private SmoothSlidingDoor currentSlidingDoor = null;
+    private InteractableItem currentItem = null;
     void Update()
     {
         // QUAN TRỌNG: Nếu đang đọc giấy thì khóa tia nhìn lại, không cho tương tác linh tinh
@@ -105,6 +106,31 @@ public class PlayerInteraction : MonoBehaviour
                 }
                 if (Input.GetKeyDown(KeyCode.F)) currentSlidingDoor.ToggleDoor();
             }
+            // XỬ LÝ NHÌN VÀO ITEM NHẶT (TÍNH NĂNG MỚI)
+            else if (hit.collider.GetComponentInParent<InteractableItem>() != null)
+            {
+                InteractableItem item = hit.collider.GetComponentInParent<InteractableItem>();
+
+                ClearCurrentDoor();
+                ClearCurrentPaper();
+                if (typeof(PlayerInteraction).GetField("currentSingleDoor") != null) ClearCurrentSingleDoor();
+                if (typeof(PlayerInteraction).GetField("currentSlidingDoor") != null) ClearCurrentSlidingDoor();
+
+                if (currentItem != item)
+                {
+                    ClearCurrentItem();
+                    currentItem = item;
+                    currentItem.ShowPrompt();
+                }
+
+                // Bấm F để nhặt item
+                if (Input.GetKeyDown(KeyCode.F))
+                {
+                    currentItem.HidePrompt();
+                    currentItem.Pickup();
+                    currentItem = null; // Gán về null vì vật thể đã bị Destroy
+                }
+            }
             else
             {
                 ClearAll();
@@ -120,7 +146,12 @@ public class PlayerInteraction : MonoBehaviour
     {
         if (currentDoor != null) { currentDoor.HidePrompt(); currentDoor = null; }
     }
+    void ClearCurrentItem()
+    {
+        if (currentItem != null) { currentItem.HidePrompt(); currentItem = null; }
+    }
 
+    // Nhớ thêm ClearCurrentItem(); vào bên trong hàm ClearAll() cuối script của bạn nhé!
     void ClearCurrentPaper()
     {
         if (currentPaper != null) { currentPaper.HidePrompt(); currentPaper = null; }
@@ -141,5 +172,6 @@ public class PlayerInteraction : MonoBehaviour
         ClearCurrentPaper();
         ClearCurrentSingleDoor(); // Thêm vào hàm xóa tổng hợp
         ClearCurrentSlidingDoor();
+        ClearCurrentItem();
     }
 }
