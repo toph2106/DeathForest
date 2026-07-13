@@ -14,6 +14,7 @@ public class PlayerInteraction : MonoBehaviour
     private SmoothSingleDoor currentSingleDoor = null; // Thêm biến lưu cửa đơn hiện tại
     private SmoothSlidingDoor currentSlidingDoor = null;
     private InteractableItem currentItem = null;
+    private CorpseLoot currentCorpse = null;
     void Update()
     {
         // QUAN TRỌNG: Nếu đang đọc giấy thì khóa tia nhìn lại, không cho tương tác linh tinh
@@ -131,6 +132,32 @@ public class PlayerInteraction : MonoBehaviour
                     currentItem = null; // Gán về null vì vật thể đã bị Destroy
                 }
             }
+            // XỬ LÝ NHÌN VÀO XÁC CHẾT
+            else if (hit.collider.GetComponentInParent<CorpseLoot>() != null)
+            {
+                CorpseLoot corpse = hit.collider.GetComponentInParent<CorpseLoot>();
+
+                // Xóa tất cả các focus khác
+                ClearCurrentDoor();
+                ClearCurrentPaper();
+                ClearCurrentItem(); // Hàm dọn item thường của bạn
+                if (typeof(PlayerInteraction).GetField("currentSingleDoor") != null) ClearCurrentSingleDoor();
+                if (typeof(PlayerInteraction).GetField("currentSlidingDoor") != null) ClearCurrentSlidingDoor();
+
+                if (currentCorpse != corpse)
+                {
+                    ClearCurrentCorpse();
+                    currentCorpse = corpse;
+                    currentCorpse.ShowPrompt();
+                }
+
+                if (Input.GetKeyDown(KeyCode.F))
+                {
+                    currentCorpse.HidePrompt();
+                    currentCorpse.LootCorpse();
+                    currentCorpse = null;
+                }
+            }
             else
             {
                 ClearAll();
@@ -166,6 +193,14 @@ public class PlayerInteraction : MonoBehaviour
     {
         if (currentSlidingDoor != null) { currentSlidingDoor.HidePrompt(); currentSlidingDoor = null; }
     }
+    void ClearCurrentCorpse()
+    {
+        if (currentCorpse != null) 
+        { 
+            currentCorpse.HidePrompt();
+            currentCorpse = null; 
+        }
+    }
     void ClearAll()
     {
         ClearCurrentDoor();
@@ -173,5 +208,6 @@ public class PlayerInteraction : MonoBehaviour
         ClearCurrentSingleDoor(); // Thêm vào hàm xóa tổng hợp
         ClearCurrentSlidingDoor();
         ClearCurrentItem();
+        ClearCurrentCorpse();
     }
 }
