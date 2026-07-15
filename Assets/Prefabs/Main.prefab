@@ -16,6 +16,7 @@ GameObject:
   - component: {fileID: 4290783705898045144}
   - component: {fileID: 1627739197130759581}
   - component: {fileID: -6383565416564829069}
+  - component: {fileID: 7408493028559132474}
   m_Layer: 0
   m_Name: Main
   m_TagString: Player
@@ -31,14 +32,14 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 502843895706134039}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0.65741706, z: -0, w: 0.7535269}
+  m_LocalRotation: {x: 0, y: -0.6574147, z: 0, w: 0.7535291}
   m_LocalPosition: {x: 33.2, y: 93.37, z: 23.1}
   m_LocalScale: {x: 1.495, y: 1.495, z: 1.495}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 482138627018873464}
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: -82.206, z: 0}
 --- !u!114 &6702013918662060687
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -273,6 +274,34 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &7408493028559132474
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 502843895706134039}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f673517d183bd0f43bb2acad33f5cc43, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InventoryManager
+  inventoryPanel: {fileID: 0}
+  slotTransforms:
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  slotTexts:
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  questProgressTextObject: {fileID: 0}
+  questProgressText: {fileID: 0}
+  totalQuestItemsNeeded: 3
 --- !u!1 &1401232883416748506
 GameObject:
   m_ObjectHideFlags: 0
@@ -285,6 +314,7 @@ GameObject:
   - component: {fileID: 6479380076907615039}
   - component: {fileID: 5284719581486234813}
   - component: {fileID: 3634095714935439381}
+  - component: {fileID: 7670206717163570282}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -411,6 +441,23 @@ MonoBehaviour:
     m_VarianceClampScale: 0.9
     m_ContrastAdaptiveSharpening: 0
   m_Version: 2
+--- !u!114 &7670206717163570282
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1401232883416748506}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d65110f569fb7d54d921dd66e5840c07, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerInteraction
+  interactRange: 20
+  interactableLayer:
+    serializedVersion: 2
+    m_Bits: 512
+  readManager: {fileID: 0}
 --- !u!1 &3154352826049486435
 GameObject:
   m_ObjectHideFlags: 0
@@ -428,7 +475,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &3034555955188018059
 Transform:
   m_ObjectHideFlags: 0
