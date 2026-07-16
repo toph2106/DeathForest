@@ -12,7 +12,8 @@ GameObject:
   - component: {fileID: 3473923643906462179}
   - component: {fileID: 4484770799128119709}
   - component: {fileID: 6008250444869925748}
-  m_Layer: 0
+  - component: {fileID: 1184405620310900102}
+  m_Layer: 9
   m_Name: CamCorder
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -27,7 +28,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 221780517856568041}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.011996748, y: -0.9947326, z: 0.0012276414, w: -0.10179215}
+  m_LocalRotation: {x: 0.0119973, y: -0.9947323, z: 0.0012277386, w: -0.1017955}
   m_LocalPosition: {x: 223.69861, y: 68.87744, z: 180.55933}
   m_LocalScale: {x: 0.043163534, y: 0.043163545, z: 0.043196198}
   m_ConstrainProportionsScale: 0
@@ -111,3 +112,16 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 8.932285, y: 7.307815, z: 8.41821}
   m_Center: {x: -0.38070834, y: 2.2723513, z: -0.11179823}
+--- !u!114 &1184405620310900102
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 221780517856568041}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 496b2e06247ec494fa7dc6af3f56d585, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CameraObjectPickup
+  pressFHintUI: {fileID: 0}
