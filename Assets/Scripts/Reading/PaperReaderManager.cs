@@ -9,6 +9,12 @@ public class PaperReaderManager : MonoBehaviour
     public GameObject readingCanvas;
     public TextMeshProUGUI paperTextUI;
 
+    // --- MỚI: TÍNH NĂNG ĐỒNG BỘ MÁY QUAY ---
+    [Header("Camera UI Integration")]
+    [Tooltip("Kéo cái GameObject chứa giao diện/kính lọc của Máy Quay vào đây")]
+    public GameObject cameraUI;
+    private bool wasCameraUIActive = false; // Biến ghi nhớ trạng thái trước đó của Máy quay
+
     [Header("Player Controllers (To Disable)")]
     [Tooltip("Kéo các Script di chuyển và xoay Camera của Player vào đây để khóa lại khi đọc giấy")]
     public MonoBehaviour[] playerScriptsToFreeze;
@@ -66,6 +72,17 @@ public class PaperReaderManager : MonoBehaviour
         paperTextUI.text = content;
         readingCanvas.SetActive(true);
 
+        // --- MỚI: KIỂM TRA VÀ TẠM ẨN UI MÁY QUAY ---
+        if (cameraUI != null && cameraUI.activeSelf)
+        {
+            wasCameraUIActive = true;  // Ghi nhớ là người chơi ĐANG bật máy quay
+            cameraUI.SetActive(false); // Tạm thời ẩn UI máy quay đi cho đỡ vướng mắt
+        }
+        else
+        {
+            wasCameraUIActive = false; // Người chơi đang KHÔNG bật máy quay
+        }
+
         // --- TÍNH NĂNG MỚI: HIỆN CHUỘT VÀ KHÓA DI CHUYỂN ---
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
@@ -90,6 +107,12 @@ public class PaperReaderManager : MonoBehaviour
         readingCanvas.SetActive(false);
         isReading = false;
         currentPaper = null;
+
+        // --- MỚI: HOÀN TRẢ LẠI TRẠNG THÁI UI MÁY QUAY ---
+        if (wasCameraUIActive && cameraUI != null)
+        {
+            cameraUI.SetActive(true); // Bật lại UI máy quay như cũ nếu trước đó đang bật
+        }
 
         // --- TÍNH NĂNG MỚI: ẨN CHUỘT VÀ MỞ KHÓA DI CHUYỂN ---
         Cursor.lockState = CursorLockMode.Locked;
