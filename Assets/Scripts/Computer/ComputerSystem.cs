@@ -6,41 +6,41 @@ public class ComputerSystem : MonoBehaviour
     [Header("UI Canvas")]
     public GameObject computerCanvas; // Chính là cái ComputerUI_Panel cha
 
+    [Header("Camera UI Integration (Tính năng mới)")]
+    [Tooltip("Kéo cái GameObject chứa giao diện/kính lọc của Máy Quay vào đây")]
+    public GameObject cameraUI;
+    private bool wasCameraUIActive = false; // Biến ghi nhớ trạng thái trước đó của Máy quay
+
     [Header("Tabs Configuration")]
-    public GameObject[] tabPanels = new GameObject[3]; // Kéo 3 Panel_Tab1, 2, 3 vào đây
-    public Image[] tabButtonImages = new Image[3];      // Kéo Component Image của 3 Button vào đây
+    public GameObject[] tabPanels = new GameObject[3];
+    public Image[] tabButtonImages = new Image[3];
 
     [Header("Visual State Colors")]
-    public Color activeColor = Color.white;            // Màu của tab đang chọn (sáng rõ, Alpha = 1)
-    public Color inactiveColor = new Color(0.5f, 0.5f, 0.5f, 0.4f); // Màu của tab bị mờ đi (Alpha thấp)
+    public Color activeColor = Color.white;
+    public Color inactiveColor = new Color(0.5f, 0.5f, 0.5f, 0.4f);
 
     [HideInInspector]
     public bool isUsingComputer = false;
 
-    // Lưu trữ Script di chuyển của nhân vật để khóa di chuyển khi đang dùng máy tính
     private MonoBehaviour playerMovementScript;
 
     void Start()
     {
         if (computerCanvas != null) computerCanvas.SetActive(false);
 
-        // Mẹo tự tìm Script di chuyển của nhân vật (Sếp thay "PlayerController" bằng tên Script di chuyển của sếp nhé)
+        // Tự động tìm Script di chuyển của nhân vật
         GameObject player = GameObject.FindWithTag("Player");
         if (player != null)
         {
-            playerMovementScript = player.GetComponent<MonoBehaviour>(); // Lấy script di chuyển
+            playerMovementScript = player.GetComponent<MonoBehaviour>();
         }
     }
 
     void Update()
     {
-        // Nếu đang dùng máy tính, bấm ESC hoặc bấm F một lần nữa để thoát
-        if (isUsingComputer)
+        if (isUsingComputer && (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.F)))
         {
-            if (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.F))
-            {
-                CloseComputer();
-            }
+            CloseComputer();
         }
     }
 
@@ -49,14 +49,25 @@ public class ComputerSystem : MonoBehaviour
         isUsingComputer = true;
         if (computerCanvas != null) computerCanvas.SetActive(true);
 
-        // 1. Khóa di chuyển của nhân vật để không bị đi xuyên tường khi đang đọc máy tính
+        // --- MỚI: Kiểm tra và tạm ẩn UI Máy Quay ---
+        if (cameraUI != null && cameraUI.activeSelf)
+        {
+            wasCameraUIActive = true;  // Ghi nhớ là người chơi ĐANG bật máy quay
+            cameraUI.SetActive(false); // Tạm thời ẩn UI máy quay đi
+        }
+        else
+        {
+            wasCameraUIActive = false; // Người chơi đang KHÔNG bật máy quay
+        }
+
+        // Khóa di chuyển của nhân vật
         if (playerMovementScript != null) playerMovementScript.enabled = false;
 
-        // 2. Hiện con trỏ chuột và mở khóa khỏi tâm màn hình để người chơi click tab
+        // Hiện con trỏ chuột
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
-        // 3. Mặc định mở Tab 1 (Index = 0) khi vừa bật máy lên
+        // Mặc định mở Tab 1
         SelectTab(0);
     }
 
@@ -65,26 +76,29 @@ public class ComputerSystem : MonoBehaviour
         isUsingComputer = false;
         if (computerCanvas != null) computerCanvas.SetActive(false);
 
-        // 1. Cho phép nhân vật di chuyển lại bình thường
+        // --- MỚI: Hoàn trả lại trạng thái UI Máy Quay ---
+        if (wasCameraUIActive && cameraUI != null)
+        {
+            cameraUI.SetActive(true); // Bật lại UI máy quay như cũ cho người chơi
+        }
+
+        // Cho phép nhân vật di chuyển lại
         if (playerMovementScript != null) playerMovementScript.enabled = true;
 
-        // 2. Khóa chuột lại vào giữa màn hình cho góc nhìn FPS
+        // Khóa chuột lại vào giữa màn hình
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
     }
 
-    // Hàm đổi Tab (Sẽ được gọi khi click vào các nút trên màn hình)
     public void SelectTab(int tabIndex)
     {
         for (int i = 0; i < 3; i++)
         {
-            // Bật Panel được chọn, tắt các Panel còn lại
             if (tabPanels[i] != null)
             {
                 tabPanels[i].SetActive(i == tabIndex);
             }
 
-            // Đổi độ mờ của Button: Được chọn thì sáng (Active), còn lại mờ đi (Inactive)
             if (tabButtonImages[i] != null)
             {
                 tabButtonImages[i].color = (i == tabIndex) ? activeColor : inactiveColor;
