@@ -9,11 +9,12 @@ TagManager:
   - Truck
   - TruckTrigger
   - Water
+  - Ground
   layers:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - 
+  - Spider
   - Water
   - UI
   - Valve
