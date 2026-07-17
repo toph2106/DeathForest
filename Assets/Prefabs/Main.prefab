@@ -315,6 +315,8 @@ GameObject:
   - component: {fileID: 5284719581486234813}
   - component: {fileID: 3634095714935439381}
   - component: {fileID: 7670206717163570282}
+  - component: {fileID: 3398951042192256987}
+  - component: {fileID: 3018847474693142815}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -453,11 +455,40 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d65110f569fb7d54d921dd66e5840c07, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerInteraction
-  interactRange: 20
+  interactRange: 15
   interactableLayer:
     serializedVersion: 2
     m_Bits: 512
   readManager: {fileID: 0}
+--- !u!114 &3398951042192256987
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1401232883416748506}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c4310d9d368a8824da284fdfc1fceaca, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SimpleCameraOverlay
+  cameraOverlayCanvas: {fileID: 4574413283248229600, guid: f66d2f79d2d85bb4fb885671433d3405, type: 3}
+--- !u!114 &3018847474693142815
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1401232883416748506}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 274f346c8f6059544880ec1aad49aa04, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerInteractionCamera
+  interactRange: 10
+  interactableLayer:
+    serializedVersion: 2
+    m_Bits: 512
 --- !u!1 &3154352826049486435
 GameObject:
   m_ObjectHideFlags: 0
