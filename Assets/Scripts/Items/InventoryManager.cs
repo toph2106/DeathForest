@@ -6,7 +6,6 @@ public class InventoryManager : MonoBehaviour
     [Header("UI Hotbar (5 Ô Tiêu Hao)")]
     public GameObject inventoryPanel;
     public Transform[] slotTransforms = new Transform[5];
-    public TextMeshProUGUI[] slotTexts = new TextMeshProUGUI[5];
 
     [Header("UI Loại 2 - Vật phẩm Quest")]
     public GameObject questProgressTextObject;
@@ -28,11 +27,17 @@ public class InventoryManager : MonoBehaviour
         if (inventoryPanel != null) inventoryPanel.SetActive(true);
         if (questProgressTextObject != null) questProgressTextObject.SetActive(false);
 
+        // Đọc Scale gốc từ ô đầu tiên mà bạn đã chỉnh trong Editor
+        if (slotTransforms.Length > 0 && slotTransforms[0] != null)
+        {
+            normalScale = slotTransforms[0].localScale;
+            selectedScale = normalScale * 1.2f; // Phóng to 20% khi được chọn
+        }
+
         for (int i = 0; i < 5; i++)
         {
             heldItems[i] = "";
             heldItemObjects[i] = null; // Khởi tạo ô trống
-            slotTexts[i].text = "";
             slotTransforms[i].localScale = normalScale;
         }
     }
@@ -52,7 +57,6 @@ public class InventoryManager : MonoBehaviour
             {
                 heldItems[i] = itemName;
                 heldItemObjects[i] = itemObj; // Lưu vật thể vào túi
-                slotTexts[i].text = itemName;
 
                 itemObj.SetActive(false); // Ẩn vật thể khỏi mặt đất thay vì xóa đi
 
@@ -85,7 +89,6 @@ public class InventoryManager : MonoBehaviour
                 // Xóa dữ liệu trong ô UI
                 heldItems[selectedIndex] = "";
                 heldItemObjects[selectedIndex] = null;
-                slotTexts[selectedIndex].text = "";
             }
         }
     }
