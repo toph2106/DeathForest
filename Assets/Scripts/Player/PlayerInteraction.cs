@@ -15,8 +15,16 @@ public class PlayerInteraction : MonoBehaviour
     private SmoothSlidingDoor currentSlidingDoor = null;
     private InteractableItem currentItem = null;
     private CorpseLoot currentCorpse = null;
+    private DesktopComputer currentComputer = null;
     void Update()
     {
+        // Đặt đoạn này ở dòng đầu tiên của hàm Update() để nếu đang dùng máy tính thì tắt tia quét mắt
+        ComputerSystem compSys = Object.FindFirstObjectByType<ComputerSystem>();
+        if (compSys != null && compSys.isUsingComputer)
+        {
+            ClearAll(); // Ẩn hết các chữ F lơ lửng xung quanh (nếu có)
+            return;     // Khóa toàn bộ tia quét mắt lại
+        }
         // QUAN TRỌNG: Nếu đang đọc giấy thì khóa tia nhìn lại, không cho tương tác linh tinh
         if (readManager != null && readManager.isReading) return;
 
@@ -158,6 +166,26 @@ public class PlayerInteraction : MonoBehaviour
                     currentCorpse = null;
                 }
             }
+            // XỬ LÝ NHÌN VÀO MÁY TÍNH ĐỂ BÀN
+            else if (hit.collider.GetComponentInParent<DesktopComputer>() != null)
+            {
+                DesktopComputer computer = hit.collider.GetComponentInParent<DesktopComputer>();
+
+                ClearAll();
+
+                if (currentComputer != computer)
+                {
+                    ClearCurrentComputer();
+                    currentComputer = computer;
+                    currentComputer.ShowPrompt();
+                }
+
+                if (Input.GetKeyDown(KeyCode.F))
+                {
+                    currentComputer.Interact();
+                    currentComputer = null; // Reset biến tạm
+                }
+            }
             else
             {
                 ClearAll();
@@ -168,7 +196,12 @@ public class PlayerInteraction : MonoBehaviour
             ClearAll();
         }
     }
+    void ClearCurrentComputer()
+    {
+        if (currentComputer != null) { currentComputer.HidePrompt(); currentComputer = null; }
+    }
 
+    // Nhớ kéo thả lệnh ClearCurrentComputer(); vào bên trong hàm ClearAll() tổng của sếp nhé!
     void ClearCurrentDoor()
     {
         if (currentDoor != null) { currentDoor.HidePrompt(); currentDoor = null; }
@@ -209,5 +242,6 @@ public class PlayerInteraction : MonoBehaviour
         ClearCurrentSlidingDoor();
         ClearCurrentItem();
         ClearCurrentCorpse();
+        ClearCurrentComputer();
     }
 }

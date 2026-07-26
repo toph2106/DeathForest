@@ -15,8 +15,8 @@ EditorBuildSettings:
     path: Assets/Scenes/Map02.unity
     guid: c3e9c1fdf329a2b4190f1618843d3882
   - enabled: 1
-    path: Assets/Scenes/DemoJumpscareMap01/Jump01.1.unity
-    guid: bc07bf3a0197ee1498b599f4d6afb94f
+    path: Assets/Scenes/Map03.unity
+    guid: 09032f0196e4c4d4aaee2cf9c0d5f684
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   m_UseUCBPForAssetBundles: 0

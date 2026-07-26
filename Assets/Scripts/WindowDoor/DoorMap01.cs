@@ -3,10 +3,17 @@ using UnityEngine.SceneManagement;
 
 public class DoorExit : MonoBehaviour, IInteractable
 {
-    public string nextSceneName = "Map02";
-
     public void Interact()
     {
-        SceneManager.LoadScene(nextSceneName);
+        // Dùng SceneLoader để chuyển scene mượt mà (không giật)
+        if (SceneLoader.Instance != null)
+        {
+            SceneLoader.Instance.LoadSceneAsync("Map02");
+        }
+        else
+        {
+            // Fallback nếu chưa setup SceneLoader
+            SceneManager.LoadScene("Map02");
+        }
     }
 }
