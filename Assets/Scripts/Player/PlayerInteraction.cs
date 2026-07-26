@@ -14,8 +14,17 @@ public class PlayerInteraction : MonoBehaviour
     private SmoothSingleDoor currentSingleDoor = null; // Thêm biến lưu cửa đơn hiện tại
     private SmoothSlidingDoor currentSlidingDoor = null;
     private InteractableItem currentItem = null;
+    private CorpseLoot currentCorpse = null;
+    private DesktopComputer currentComputer = null;
     void Update()
     {
+        // Đặt đoạn này ở dòng đầu tiên của hàm Update() để nếu đang dùng máy tính thì tắt tia quét mắt
+        ComputerSystem compSys = Object.FindFirstObjectByType<ComputerSystem>();
+        if (compSys != null && compSys.isUsingComputer)
+        {
+            ClearAll(); // Ẩn hết các chữ F lơ lửng xung quanh (nếu có)
+            return;     // Khóa toàn bộ tia quét mắt lại
+        }
         // QUAN TRỌNG: Nếu đang đọc giấy thì khóa tia nhìn lại, không cho tương tác linh tinh
         if (readManager != null && readManager.isReading) return;
 
@@ -131,6 +140,52 @@ public class PlayerInteraction : MonoBehaviour
                     currentItem = null; // Gán về null vì vật thể đã bị Destroy
                 }
             }
+            // XỬ LÝ NHÌN VÀO XÁC CHẾT
+            else if (hit.collider.GetComponentInParent<CorpseLoot>() != null)
+            {
+                CorpseLoot corpse = hit.collider.GetComponentInParent<CorpseLoot>();
+
+                // Xóa tất cả các focus khác
+                ClearCurrentDoor();
+                ClearCurrentPaper();
+                ClearCurrentItem(); // Hàm dọn item thường của bạn
+                if (typeof(PlayerInteraction).GetField("currentSingleDoor") != null) ClearCurrentSingleDoor();
+                if (typeof(PlayerInteraction).GetField("currentSlidingDoor") != null) ClearCurrentSlidingDoor();
+
+                if (currentCorpse != corpse)
+                {
+                    ClearCurrentCorpse();
+                    currentCorpse = corpse;
+                    currentCorpse.ShowPrompt();
+                }
+
+                if (Input.GetKeyDown(KeyCode.F))
+                {
+                    currentCorpse.HidePrompt();
+                    currentCorpse.LootCorpse();
+                    currentCorpse = null;
+                }
+            }
+            // XỬ LÝ NHÌN VÀO MÁY TÍNH ĐỂ BÀN
+            else if (hit.collider.GetComponentInParent<DesktopComputer>() != null)
+            {
+                DesktopComputer computer = hit.collider.GetComponentInParent<DesktopComputer>();
+
+                ClearAll();
+
+                if (currentComputer != computer)
+                {
+                    ClearCurrentComputer();
+                    currentComputer = computer;
+                    currentComputer.ShowPrompt();
+                }
+
+                if (Input.GetKeyDown(KeyCode.F))
+                {
+                    currentComputer.Interact();
+                    currentComputer = null; // Reset biến tạm
+                }
+            }
             else
             {
                 ClearAll();
@@ -141,7 +196,12 @@ public class PlayerInteraction : MonoBehaviour
             ClearAll();
         }
     }
+    void ClearCurrentComputer()
+    {
+        if (currentComputer != null) { currentComputer.HidePrompt(); currentComputer = null; }
+    }
 
+    // Nhớ kéo thả lệnh ClearCurrentComputer(); vào bên trong hàm ClearAll() tổng của sếp nhé!
     void ClearCurrentDoor()
     {
         if (currentDoor != null) { currentDoor.HidePrompt(); currentDoor = null; }
@@ -166,6 +226,14 @@ public class PlayerInteraction : MonoBehaviour
     {
         if (currentSlidingDoor != null) { currentSlidingDoor.HidePrompt(); currentSlidingDoor = null; }
     }
+    void ClearCurrentCorpse()
+    {
+        if (currentCorpse != null) 
+        { 
+            currentCorpse.HidePrompt();
+            currentCorpse = null; 
+        }
+    }
     void ClearAll()
     {
         ClearCurrentDoor();
@@ -173,5 +241,7 @@ public class PlayerInteraction : MonoBehaviour
         ClearCurrentSingleDoor(); // Thêm vào hàm xóa tổng hợp
         ClearCurrentSlidingDoor();
         ClearCurrentItem();
+        ClearCurrentCorpse();
+        ClearCurrentComputer();
     }
 }
