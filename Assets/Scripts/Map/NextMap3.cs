@@ -5,17 +5,18 @@ public class NextMap3 : MonoBehaviour
 {
     private void OnTriggerEnter(Collider other)
     {
-        // Kiểm tra xem thực thể "other" chạm vào khối này có phải là Player không
         if (other.CompareTag("Player"))
         {
-            // Dùng SceneLoader để chuyển scene mượt mà (không giật)
+            // 1. TỰ ĐỘNG LƯU TIẾN TRÌNH: Mở khóa Map 03 khi qua màn Map 02
+            GameSaveManager.UnlockLevel(3);
+
+            // 2. Chuyển sang Map 03
             if (SceneLoader.Instance != null)
             {
                 SceneLoader.Instance.LoadSceneAsync("Map03");
             }
             else
             {
-                // Fallback nếu chưa setup SceneLoader
                 SceneManager.LoadScene("Map03");
             }
         }

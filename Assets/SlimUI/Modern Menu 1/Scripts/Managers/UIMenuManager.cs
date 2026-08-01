@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+#pragma warning disable 0414
+using UnityEngine;
 using System.Collections;
 using UnityEngine.UI;
 using TMPro;
@@ -24,6 +25,7 @@ namespace SlimUI.ModernMenu{
         public enum Theme {custom1, custom2, custom3};
         [Header("THEME SETTINGS")]
         public Theme theme;
+        public int ThemeIndex => themeIndex;
         private int themeIndex;
         public ThemedUIData themeController;
 

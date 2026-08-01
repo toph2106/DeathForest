@@ -48,8 +48,8 @@ public class JumpscareManager : MonoBehaviour
     // Hàm kiểm tra xem có con nhện hay Manthing nào đang tồn tại không
     private bool IsAnyJumpscareActive()
     {
-        bool hasManthing = FindObjectOfType<ManthingBehavior>() != null;
-        bool hasSpider = FindObjectOfType<SpiderBehavior>() != null;
+        bool hasManthing = FindFirstObjectByType<ManthingBehavior>() != null;
+        bool hasSpider = FindFirstObjectByType<SpiderBehavior>() != null;
         
         return hasManthing || hasSpider;
     }
