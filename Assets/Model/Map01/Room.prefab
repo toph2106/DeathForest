@@ -1866,7 +1866,6 @@ GameObject:
   - component: {fileID: 1573513324601105239}
   - component: {fileID: 7040889245473450110}
   - component: {fileID: 5751779945799576620}
-  - component: {fileID: 4388528426942653280}
   m_Layer: 9
   m_Name: Object_64
   m_TagString: Untagged
@@ -1945,28 +1944,6 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!64 &4388528426942653280
-MeshCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4666118123906507573}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 5
-  m_Convex: 1
-  m_CookingOptions: 30
-  m_Mesh: {fileID: 8776088442221861451, guid: 0741d4513f294bc44895d9f8cd6be482, type: 3}
 --- !u!1 &5416258041133472881
 GameObject:
   m_ObjectHideFlags: 0
@@ -2090,7 +2067,6 @@ GameObject:
   - component: {fileID: 1764083246137763437}
   - component: {fileID: 8345614983404993100}
   - component: {fileID: 320788499214750877}
-  - component: {fileID: 4626255107047967378}
   - component: {fileID: 317269047543367467}
   - component: {fileID: 8142568669151300997}
   m_Layer: 0
@@ -2171,28 +2147,6 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!64 &4626255107047967378
-MeshCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5454456554772987110}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 5
-  m_Convex: 0
-  m_CookingOptions: 30
-  m_Mesh: {fileID: 654731183051977060, guid: 0741d4513f294bc44895d9f8cd6be482, type: 3}
 --- !u!114 &317269047543367467
 MonoBehaviour:
   m_ObjectHideFlags: 0
