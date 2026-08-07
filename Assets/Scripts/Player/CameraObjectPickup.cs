@@ -93,7 +93,14 @@ public class CameraObjectPickup : MonoBehaviour, IInteractable
             yield return new WaitForSeconds(0.15f);
         }
 
-        // 4. BƯỚC 3: KÍCH HOẠT GIAO DIỆN KÍNH NGẮM VÀ UI CAMCORDER
+        // 4. BƯỚC 3: KÍCH HOẠT GIAO DIỆN KÍNH NGẮM VÀ UI CAMCORDER + MẶC ĐỊNH 100% PIN
+        CamcorderUI.MarkCameraPickedUp();
+
+        if (FlashlightToggle.Instance != null)
+        {
+            FlashlightToggle.Instance.EquipFlashlight();
+        }
+
         if (CamcorderUI.Instance != null)
         {
             CamcorderUI.Instance.gameObject.SetActive(true);
