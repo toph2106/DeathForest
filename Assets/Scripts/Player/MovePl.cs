@@ -12,7 +12,14 @@ public class MovePl : MonoBehaviour
 
     [Header("Look Settings")]
     public Transform cameraTransform;
-    public float mouseSensitivity = 300f;
+    public float mouseSensitivity = 100f;
+
+    [Header("Smooth Mouse Look (Xử Lý Xoay Camera Mượt Như Nhung AAA)")]
+    [Tooltip("Bật ô này để khử hoàn toàn vi giật (Micro-stutter) giúp góc nhìn mượt như game AAA")]
+    public bool enableSmoothLook = true;
+
+    [Tooltip("Tốc độ lướt mượt góc nhìn (Mặc định: 18.0 - Càng cao càng nhạy tức thì, càng thấp càng đằm tay)")]
+    public float smoothLookSpeed = 18.0f;
 
     [Header("Teleport Settings")]
     public Transform spawnPoint;
@@ -29,9 +36,27 @@ public class MovePl : MonoBehaviour
     public bool isSlowed = false;
     public bool isCameraLocked = false;
 
+    private Vector2 targetMouseDelta;
+    private Vector2 smoothMouseDelta;
+
     void Start()
     {
         LockCursor();
+        SyncRotationWithCurrentCamera();
+    }
+
+    /// <summary>
+    /// Đồng bộ góc xoay xRotation nội bộ của MovePl trùng khớp với góc nhìn thực tế của Camera (Chống giật góc khi trả lại quyền điều khiển)
+    /// </summary>
+    public void SyncRotationWithCurrentCamera()
+    {
+        if (cameraTransform != null)
+        {
+            Vector3 euler = cameraTransform.localEulerAngles;
+            float pitch = euler.x;
+            if (pitch > 180f) pitch -= 360f;
+            xRotation = pitch;
+        }
     }
 
     void Update()
@@ -46,12 +71,25 @@ public class MovePl : MonoBehaviour
         {
             if (!isCameraLocked)
             {
-                // ĐỒNG BỘ ĐỘ NHẠY CHUỘT TỪ SETTINGSMANAGER VÀ PLAYERPREFS
                 float sensMultiplier = SettingsManager.mouseSensitivity > 0 ? SettingsManager.mouseSensitivity : PlayerPrefs.GetFloat("MouseSensitivity", 1.0f);
                 float effectiveSensitivity = mouseSensitivity * sensMultiplier;
 
-                float mouseX = Input.GetAxis("Mouse X") * effectiveSensitivity * Time.deltaTime;
-                float mouseY = Input.GetAxis("Mouse Y") * effectiveSensitivity * Time.deltaTime;
+                // TÍNH TOÁN DỮ LIỆU CHUỘT GỐC
+                targetMouseDelta.x = Input.GetAxis("Mouse X") * effectiveSensitivity;
+                targetMouseDelta.y = Input.GetAxis("Mouse Y") * effectiveSensitivity;
+
+                // LỌC KHỬ VI GIẬT KHUNG HÌNH (MICRO-STUTTER) MƯỢT MÀ BẰNG LERP AAA
+                if (enableSmoothLook)
+                {
+                    smoothMouseDelta = Vector2.Lerp(smoothMouseDelta, targetMouseDelta, Time.deltaTime * smoothLookSpeed);
+                }
+                else
+                {
+                    smoothMouseDelta = targetMouseDelta;
+                }
+
+                float mouseX = smoothMouseDelta.x * Time.deltaTime;
+                float mouseY = smoothMouseDelta.y * Time.deltaTime;
 
                 xRotation -= mouseY;
                 xRotation = Mathf.Clamp(xRotation, -90f, 90f);
