@@ -27,6 +27,13 @@ public class SceneLoader : MonoBehaviour
         // Ẩn màn hình loading lúc đầu
         if (loadingScreen != null)
         {
+            Canvas parentCanvas = loadingScreen.GetComponentInParent<Canvas>();
+            if (parentCanvas != null)
+            {
+                parentCanvas.overrideSorting = true;
+                parentCanvas.sortingOrder = 99999;
+            }
+
             loadingScreen.alpha = 0f;
             loadingScreen.gameObject.SetActive(false);
         }

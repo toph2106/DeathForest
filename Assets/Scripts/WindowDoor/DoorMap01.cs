@@ -111,10 +111,10 @@ public class DoorExit : MonoBehaviour, IInteractable
 
         if (fadePanel != null)
         {
-            fadePanel.transform.SetAsLastSibling();
-            fadePanel.gameObject.SetActive(true);
+            PauseMenuManager.BringFadeToFront(fadePanel);
+            PauseMenuManager.SetInGameHUDActive(false);
+
             fadePanel.color = new Color(0, 0, 0, 0f);
-            fadePanel.raycastTarget = true;
             fadePanel.DOFade(1f, fadeOutDuration).SetEase(Ease.OutQuad).SetUpdate(true);
         }
 

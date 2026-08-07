@@ -39,7 +39,7 @@ public class SettingsManager : MonoBehaviour
 
     private ColorAdjustments colorAdjustments;
 
-    // TỰ ĐỘNG NẠP ĐÚNG NGÔN NGỮ ĐÃ LƯU TỪ PLAYERPREFS NGAY KHI SCENE NẠP (KỂ CẢ KHI SETTINGS PANEL ĐANG BỊ TẮT / INACTIVE)
+    // TỰ ĐỘNG NẠP NGUYÊN BẢN CÀI ĐẶT NGAY TỪ TRƯỚC KHI SCENE NẠP (CHẠY NGAY TỪ FRAME ĐẦU TIÊN)
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     public static void InitializeLanguageBeforeSceneLoad()
     {
@@ -61,6 +61,7 @@ public class SettingsManager : MonoBehaviour
     void Awake()
     {
         currentLanguage = PlayerPrefs.GetString("Language", "VI");
+        mouseSensitivity = PlayerPrefs.GetFloat("MouseSensitivity", 1.5f);
     }
 
     IEnumerator Start()
@@ -139,6 +140,7 @@ public class SettingsManager : MonoBehaviour
             sensitivityText.text = value.ToString("F1");
 
         PlayerPrefs.SetFloat("MouseSensitivity", value);
+        PlayerPrefs.Save();
     }
 
     // --- 4. FULLSCREEN ---
