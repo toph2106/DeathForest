@@ -11,39 +11,42 @@ public class PaperReaderManager : MonoBehaviour
     public GameObject readingCanvas;
     public TextMeshProUGUI paperTextUI;
 
-    [Header("2. Danh Sách Các UI Khác Cần Ẩn Khi Đọc Giấy (Camcorder, HUD...)")]
-    [Tooltip("Kéo các UI như Camcorder, Thanh đồ Inventory, Tâm ngắm vào đây để tự động ẩn khi nhấc giấy lên đọc")]
+    [Header("2. Các UI Khác Cần Ẩn")]
     public GameObject[] uisToHideOnRead;
 
-    [Header("3. Khóa Người Chơi Khi Đọc Giấy")]
-    [Tooltip("Kéo script MovePl / PlayerController vào đây để khóa lại khi đang đọc")]
+    [Header("3. Khóa Người Chơi")]
     public MonoBehaviour[] playerScriptsToFreeze;
 
-    [Header("4. Tốc Độ Xoay Tờ Giấy 3D")]
+    [Header("4. Tốc Độ Xoay & Zoom")]
     public float rotationSpeed = 5f;
+    public bool enableZoom = true;
+    public float zoomSpeed = 2f;
+    public float minZoomOffset = -0.15f;
+    public float maxZoomOffset = 0.35f;
+    public float smoothMoveSpeed = 15f;
 
-    [Header("5. Hiệu Ứng Chữ Đọc Giấy (Typewriter & Fade In)")]
-    [Tooltip("Bật hiệu ứng gõ chữ / hiện chữ mượt từng ký tự khi nhấc giấy lên")]
+    [Header("5. Hiệu Ứng Chữ Đọc Giấy")]
     public bool useTypewriterEffect = true;
-    [Tooltip("Tốc độ hiện từng ký tự (Mặc định: 0.015 giây)")]
     public float typewriterSpeed = 0.015f;
-
-    [Tooltip("Bật hiệu ứng mờ dần hiện rõ (Fade In) khi mở giấy")]
     public bool useFadeIn = true;
-    [Tooltip("Thời gian mờ dần (Mặc định: 0.3 giây)")]
     public float fadeInDuration = 0.3f;
-
-    [Tooltip("Kéo âm thanh sột soạt lật giấy (Paper Rustle SFX) vào đây (Tùy chọn)")]
     public AudioClip paperRustleSound;
 
-    [Header("6. Cấu Hình Vị Trí & Góc Xoay Mặc Định Khi Nhấc Giấy")]
-    [Tooltip("Góc xoay mặc định khi vừa nhấc giấy lên để tờ giấy NẰM DỌC CHUẨN (Mặc định: 0, 0, 90)")]
+    [Header("6. Offset Mặc Định")]
     public Vector3 defaultPaperRotationOffset = new Vector3(0f, 0f, 90f);
-
-    [Tooltip("Độ lệch vị trí khi nhấc giấy để NHÍCH SANG BÊN TRÁI MÀN HÌNH (Mặc định: -0.25, 0, 0)")]
     public Vector3 defaultPaperPositionOffset = new Vector3(-0.25f, 0f, 0f);
 
+    [Header("7. Lật Trang (Multi-Page & Multi-Model)")]
+    public GameObject nextPageButton;
+    public GameObject prevPageButton;
+    public float pageTurnSlideDistance = 1.2f;
+    public float pageTurnDuration = 0.18f;
+
+    // --- BIẾN TRẠNG THÁI ---
     private GameObject currentPaper;
+    private GameObject originalTableObject;
+    private bool isUsingSpawnedPrefab = false;
+
     private Vector3 originalPosition;
     private Quaternion originalRotation;
     public bool isReading { get; private set; }
@@ -53,11 +56,20 @@ public class PaperReaderManager : MonoBehaviour
     private AudioSource audioSource;
     private Coroutine textCoroutine;
     private bool isTypingText = false;
-    private string fullTextContent = "";
 
     private Vector3 dragStartPos;
     private bool wasDragging = false;
     private bool wasCamcorderActiveOnRead = false;
+
+    private float currentZoomZ = 0f;
+    private Vector3 activePosOffset;
+    private Vector3 activeRotOffset;
+
+    // --- BIẾN MULTI-PAGE ---
+    private string[] currentPages;
+    private GameObject[] currentPagePrefabs; // Mảng lưu các model cho từng trang
+    private int currentPageIndex = 0;
+    private bool isTurningPage = false;
 
     void Awake()
     {
@@ -69,52 +81,66 @@ public class PaperReaderManager : MonoBehaviour
 
     void Update()
     {
-        if (isReading)
+        if (!isReading) return;
+
+        if (isTypingText && Input.GetMouseButtonDown(0) && Time.time > pickupTime + 0.1f)
+            CompleteTextInstantly();
+
+        if (Time.time > pickupTime + 0.25f && (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.F) || Input.GetMouseButtonDown(1)))
         {
-            // 1. Nếu chữ đang gõ mà bấm chuột trái -> Nhảy hiện full ngay
-            if (isTypingText && Input.GetMouseButtonDown(0) && Time.time > pickupTime + 0.1f)
+            StopReading();
+            return;
+        }
+
+        if (!isTurningPage)
+        {
+            if (Input.GetKeyDown(KeyCode.D) || Input.GetKeyDown(KeyCode.RightArrow)) NextPage();
+            else if (Input.GetKeyDown(KeyCode.A) || Input.GetKeyDown(KeyCode.LeftArrow)) PrevPage();
+        }
+
+        if (Input.GetKeyDown(KeyCode.R) && currentPaper != null && paperAnchor != null && !isTurningPage)
+        {
+            currentZoomZ = 0f;
+            currentPaper.transform.rotation = paperAnchor.rotation * Quaternion.Euler(activeRotOffset);
+        }
+
+        if (enableZoom && !isTurningPage)
+        {
+            float scroll = Input.GetAxis("Mouse ScrollWheel");
+            if (Mathf.Abs(scroll) > 0.01f)
             {
-                CompleteTextInstantly();
-            }
-
-            // 2. Bấm phím F, ESC hoặc chuột phải để đặt giấy xuống
-            if (Time.time > pickupTime + 0.25f && (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.F) || Input.GetMouseButtonDown(1)))
-            {
-                StopReading();
-                return;
-            }
-
-            // 3. Ghi nhận vị trí bấm chuột để phân biệt CLICK nhẹ vs KÉO DI CHUỘT XOAY GIẤY
-            if (Input.GetMouseButtonDown(0))
-            {
-                dragStartPos = Input.mousePosition;
-                wasDragging = false;
-            }
-
-            // 4. Giữ chuột trái để xoay tờ giấy 3D
-            if (Input.GetMouseButton(0))
-            {
-                if (Vector3.Distance(Input.mousePosition, dragStartPos) > 8f)
-                {
-                    wasDragging = true;
-                }
-
-                float rotX = Input.GetAxis("Mouse X") * rotationSpeed;
-                float rotY = Input.GetAxis("Mouse Y") * rotationSpeed;
-
-                if (currentPaper != null && (Mathf.Abs(rotX) > 0.01f || Mathf.Abs(rotY) > 0.01f))
-                {
-                    currentPaper.transform.Rotate(Camera.main.transform.up, -rotX, Space.World);
-                    currentPaper.transform.Rotate(Camera.main.transform.right, rotY, Space.World);
-                }
-            }
-
-            // 5. Khi nhả chuột trái sau khi xoay giấy -> Giữ cờ wasDragging trong 1 frame để chặn việc tự động thoát
-            if (Input.GetMouseButtonUp(0))
-            {
-                StartCoroutine(ResetDragStateRoutine());
+                currentZoomZ = Mathf.Clamp(currentZoomZ + scroll * zoomSpeed, minZoomOffset, maxZoomOffset);
             }
         }
+
+        if (currentPaper != null && paperAnchor != null && !isTurningPage)
+        {
+            Vector3 targetOffset = activePosOffset + new Vector3(0f, 0f, currentZoomZ);
+            Vector3 targetPos = paperAnchor.position + paperAnchor.TransformDirection(targetOffset);
+            currentPaper.transform.position = Vector3.Lerp(currentPaper.transform.position, targetPos, Time.deltaTime * smoothMoveSpeed);
+        }
+
+        if (Input.GetMouseButtonDown(0))
+        {
+            dragStartPos = Input.mousePosition;
+            wasDragging = false;
+        }
+
+        if (Input.GetMouseButton(0) && !isTurningPage && currentPaper != null)
+        {
+            if (Vector3.Distance(Input.mousePosition, dragStartPos) > 8f) wasDragging = true;
+
+            float rotX = Input.GetAxis("Mouse X") * rotationSpeed;
+            float rotY = Input.GetAxis("Mouse Y") * rotationSpeed;
+
+            if (Mathf.Abs(rotX) > 0.01f || Mathf.Abs(rotY) > 0.01f)
+            {
+                currentPaper.transform.Rotate(Camera.main.transform.up, -rotX, Space.World);
+                currentPaper.transform.Rotate(Camera.main.transform.right, rotY, Space.World);
+            }
+        }
+
+        if (Input.GetMouseButtonUp(0)) StartCoroutine(ResetDragStateRoutine());
     }
 
     IEnumerator ResetDragStateRoutine()
@@ -123,94 +149,211 @@ public class PaperReaderManager : MonoBehaviour
         wasDragging = false;
     }
 
-    public void StartReading(GameObject paperObj, string content)
+    // ==========================================
+    // CÁC HÀM OVERLOAD CHỐNG LỖI CODE CŨ
+    // ==========================================
+    public void StartReading(GameObject tableObj, string content, Vector3? pos = null, Vector3? rot = null)
+    { StartReading(tableObj, (GameObject[])null, new string[] { content }, pos, rot); }
+
+    public void StartReading(GameObject tableObj, string[] pages, Vector3? pos = null, Vector3? rot = null)
+    { StartReading(tableObj, (GameObject[])null, pages, pos, rot); }
+
+    public void StartReading(GameObject tableObj, GameObject singlePrefab, string content, Vector3? pos = null, Vector3? rot = null)
+    { StartReading(tableObj, singlePrefab != null ? new GameObject[] { singlePrefab } : null, new string[] { content }, pos, rot); }
+
+    public void StartReading(GameObject tableObj, GameObject singlePrefab, string[] pages, Vector3? pos = null, Vector3? rot = null)
+    { StartReading(tableObj, singlePrefab != null ? new GameObject[] { singlePrefab } : null, pages, pos, rot); }
+
+    // ==========================================
+    // HÀM BẮT ĐẦU ĐỌC (CHÍNH)
+    // ==========================================
+    public void StartReading(GameObject tableObj, GameObject[] displayPrefabs, string[] pages, Vector3? customPosOffset = null, Vector3? customRotOffset = null)
     {
-        // GHI NHẬN CHẮC CHẮN ĐÃ ĐỌC GIẤY
-        ReadablePaper.HasReadPaper = true;
-        Debug.Log("[PaperReaderManager] 📜 Đã mở đọc giấy! Ghi nhận HasReadPaper = TRUE");
-
-        currentPaper = paperObj;
         isReading = true;
+        isTurningPage = false;
         pickupTime = Time.time;
-        fullTextContent = content;
+        currentZoomZ = 0f;
+        currentPageIndex = 0;
 
-        if (currentPaper != null)
+        currentPages = (pages != null && pages.Length > 0) ? pages : new string[] { "" };
+        currentPagePrefabs = displayPrefabs;
+
+        activePosOffset = customPosOffset ?? defaultPaperPositionOffset;
+        activeRotOffset = customRotOffset ?? defaultPaperRotationOffset;
+
+        // Lưu thông tin khối Cube trên bàn
+        originalTableObject = tableObj;
+        if (originalTableObject != null)
         {
-            originalPosition = currentPaper.transform.position;
-            originalRotation = currentPaper.transform.rotation;
+            originalPosition = originalTableObject.transform.position;
+            originalRotation = originalTableObject.transform.rotation;
+        }
 
-            Rigidbody rb = currentPaper.GetComponent<Rigidbody>();
-            if (rb != null) rb.isKinematic = true;
+        // Sinh Model cho Trang Đầu Tiên
+        SpawnModelForCurrentPage();
 
-            Collider col = currentPaper.GetComponent<Collider>();
-            if (col != null) col.enabled = false;
-
-            if (paperAnchor != null)
+        if (currentPaper != null && paperAnchor != null)
+        {
+            currentPaper.transform.rotation = paperAnchor.rotation * Quaternion.Euler(activeRotOffset);
+            if (isUsingSpawnedPrefab)
             {
-                // ÉP ĐẶT VỊ TRÍ NHÍCH SANG BÊN TRÁI VÀ NẰM DỌC CHUẨN ĐIỆN ẢNH
-                Vector3 targetPos = paperAnchor.position + paperAnchor.TransformDirection(defaultPaperPositionOffset);
-                Quaternion targetRot = paperAnchor.rotation * Quaternion.Euler(defaultPaperRotationOffset);
-
-                currentPaper.transform.position = targetPos;
-                currentPaper.transform.rotation = targetRot;
+                currentPaper.transform.position = paperAnchor.position + paperAnchor.TransformDirection(activePosOffset);
             }
         }
 
         if (readingCanvas != null) readingCanvas.SetActive(true);
 
-        // ẨN CẢM BIẾN MÁY QUAY CAMCORDER SỐNG SÓT QUA SCENE (DONTDESTROYONLOAD)
         if (CamcorderUI.Instance != null && CamcorderUI.Instance.gameObject.activeSelf)
         {
             wasCamcorderActiveOnRead = true;
             CamcorderUI.Instance.gameObject.SetActive(false);
         }
-        else
-        {
-            wasCamcorderActiveOnRead = false;
-        }
+        else { wasCamcorderActiveOnRead = false; }
 
-        // PHÁT TIẾNG SỘT SOẠT LẬT GIẤY
-        if (paperRustleSound != null && audioSource != null)
-        {
-            audioSource.PlayOneShot(paperRustleSound, 0.8f);
-        }
+        if (paperRustleSound != null && audioSource != null) audioSource.PlayOneShot(paperRustleSound, 0.8f);
 
-        // CHẠY HIỆU ỨNG CHỮ TYPEWRITER & FADE IN
+        UpdatePageButtons();
+
         if (textCoroutine != null) StopCoroutine(textCoroutine);
-        textCoroutine = StartCoroutine(DisplayTextRoutine(content));
+        textCoroutine = StartCoroutine(DisplayTextRoutine(currentPages[currentPageIndex]));
 
-        // ẨN DANH SÁCH CÁC UI INGAME KHÁC (HUD, Crosshair...)
         previouslyActiveUI.Clear();
         if (uisToHideOnRead != null)
         {
             foreach (GameObject ui in uisToHideOnRead)
             {
-                if (ui != null && ui.activeSelf)
-                {
-                    previouslyActiveUI.Add(ui);
-                    ui.SetActive(false);
-                }
+                if (ui != null && ui.activeSelf) { previouslyActiveUI.Add(ui); ui.SetActive(false); }
             }
         }
 
-        // BẬT CON TRỎ CHUỘT VÀ KHÓA NGƯỜI CHƠI
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None; Cursor.visible = true;
 
         if (playerScriptsToFreeze != null)
         {
-            foreach (var script in playerScriptsToFreeze)
-            {
-                if (script != null) script.enabled = false;
-            }
+            foreach (var script in playerScriptsToFreeze) { if (script != null) script.enabled = false; }
         }
     }
 
+    // ==========================================
+    // LOGIC SPAWN TỪNG TRANG & LẬT TRANG
+    // ==========================================
+
+    void SpawnModelForCurrentPage()
+    {
+        GameObject prefabToSpawn = null;
+
+        // Tìm Model tương ứng với số trang
+        if (currentPagePrefabs != null && currentPagePrefabs.Length > 0)
+        {
+            int prefabIndex = Mathf.Min(currentPageIndex, currentPagePrefabs.Length - 1);
+            prefabToSpawn = currentPagePrefabs[prefabIndex];
+        }
+
+        if (prefabToSpawn != null)
+        {
+            isUsingSpawnedPrefab = true;
+            if (originalTableObject != null) originalTableObject.SetActive(false); // Luôn ẩn khối bàn
+            currentPaper = Instantiate(prefabToSpawn);
+        }
+        else
+        {
+            isUsingSpawnedPrefab = false;
+            currentPaper = originalTableObject;
+            if (currentPaper != null) currentPaper.SetActive(true);
+        }
+
+        // Tắt vật lý cho Model đang hiển thị
+        if (currentPaper != null)
+        {
+            Rigidbody rb = currentPaper.GetComponent<Rigidbody>();
+            if (rb != null) rb.isKinematic = true;
+
+            Collider col = currentPaper.GetComponent<Collider>();
+            if (col != null) col.enabled = false;
+        }
+    }
+
+    public void NextPage()
+    {
+        if (!isReading || isTurningPage) return;
+        if (currentPageIndex < currentPages.Length - 1) StartCoroutine(TurnPageRoutine(currentPageIndex + 1, true));
+    }
+
+    public void PrevPage()
+    {
+        if (!isReading || isTurningPage) return;
+        if (currentPageIndex > 0) StartCoroutine(TurnPageRoutine(currentPageIndex - 1, false));
+    }
+
+    IEnumerator TurnPageRoutine(int targetPageIndex, bool goingNext)
+    {
+        isTurningPage = true;
+        if (paperRustleSound != null && audioSource != null) audioSource.PlayOneShot(paperRustleSound, 0.7f);
+
+        Vector3 basePos = paperAnchor.position + paperAnchor.TransformDirection(activePosOffset + new Vector3(0f, 0f, currentZoomZ));
+        Vector3 slideOutPos = basePos + (goingNext ? -paperAnchor.right : paperAnchor.right) * pageTurnSlideDistance;
+
+        // 1. Trượt Model CŨ ra ngoài
+        float elapsed = 0f;
+        Vector3 startPos = currentPaper.transform.position;
+        while (elapsed < pageTurnDuration)
+        {
+            elapsed += Time.deltaTime;
+            float t = elapsed / pageTurnDuration;
+            currentPaper.transform.position = Vector3.Lerp(startPos, slideOutPos, t * t);
+            yield return null;
+        }
+
+        // 2. Xóa Model cũ & Tráo Model MỚI
+        currentPageIndex = targetPageIndex;
+        UpdatePageButtons();
+
+        GameObject oldPaper = currentPaper; // Lưu tạm model cũ
+        SpawnModelForCurrentPage();         // Sinh model mới (Gán đè vào biến currentPaper)
+
+        // Xóa hẳn model cũ (nếu nó là bản copy)
+        if (isUsingSpawnedPrefab && oldPaper != currentPaper && oldPaper != originalTableObject && oldPaper != null)
+        {
+            Destroy(oldPaper);
+        }
+
+        // 3. Chuẩn bị vị trí cho Model MỚI để trượt vào
+        Quaternion targetRot = paperAnchor.rotation * Quaternion.Euler(activeRotOffset);
+        currentPaper.transform.rotation = targetRot;
+
+        if (textCoroutine != null) StopCoroutine(textCoroutine);
+        textCoroutine = StartCoroutine(DisplayTextRoutine(currentPages[currentPageIndex]));
+
+        Vector3 slideInStartPos = basePos + (goingNext ? paperAnchor.right : -paperAnchor.right) * pageTurnSlideDistance;
+        currentPaper.transform.position = slideInStartPos;
+
+        // 4. Trượt Model MỚI vào giữa
+        elapsed = 0f;
+        while (elapsed < pageTurnDuration)
+        {
+            elapsed += Time.deltaTime;
+            float t = elapsed / pageTurnDuration;
+            currentPaper.transform.position = Vector3.Lerp(slideInStartPos, basePos, 1f - (1f - t) * (1f - t));
+            yield return null;
+        }
+
+        currentPaper.transform.position = basePos;
+        isTurningPage = false;
+    }
+
+    void UpdatePageButtons()
+    {
+        if (nextPageButton != null) nextPageButton.SetActive(currentPageIndex < currentPages.Length - 1);
+        if (prevPageButton != null) prevPageButton.SetActive(currentPageIndex > 0);
+    }
+
+    // ==========================================
+    // HIỂN THỊ CHỮ
+    // ==========================================
     IEnumerator DisplayTextRoutine(string targetText)
     {
         if (paperTextUI == null) yield break;
 
-        // FADE IN MỜ DẦN HIỆN CHỮ
         if (useFadeIn)
         {
             float elapsed = 0f;
@@ -229,7 +372,6 @@ public class PaperReaderManager : MonoBehaviour
             paperTextUI.color = c;
         }
 
-        // TYPEWRITER EFFECT
         if (useTypewriterEffect)
         {
             isTypingText = true;
@@ -238,58 +380,65 @@ public class PaperReaderManager : MonoBehaviour
             for (int i = 0; i <= targetText.Length; i++)
             {
                 if (!isTypingText) break;
-
                 paperTextUI.text = targetText.Substring(0, i);
                 yield return new WaitForSeconds(typewriterSpeed);
             }
         }
-
         CompleteTextInstantly();
     }
 
     void CompleteTextInstantly()
     {
         isTypingText = false;
-        if (paperTextUI != null)
+        if (paperTextUI != null && currentPages != null && currentPageIndex < currentPages.Length)
         {
-            paperTextUI.text = fullTextContent;
-            Color c = paperTextUI.color;
-            c.a = 1f;
-            paperTextUI.color = c;
+            paperTextUI.text = currentPages[currentPageIndex];
+            Color c = paperTextUI.color; c.a = 1f; paperTextUI.color = c;
         }
     }
 
+    // ==========================================
+    // HÀM KẾT THÚC ĐỌC
+    // ==========================================
     public void StopReading()
     {
         if (!isReading) return;
 
         if (textCoroutine != null) StopCoroutine(textCoroutine);
         isTypingText = false;
+        isTurningPage = false;
 
-        if (currentPaper != null)
+        // Xóa Model đang cầm trên tay
+        if (isUsingSpawnedPrefab && currentPaper != null && currentPaper != originalTableObject)
         {
-            Rigidbody rb = currentPaper.GetComponent<Rigidbody>();
+            Destroy(currentPaper);
+        }
+
+        // Luôn khôi phục khối Cube trên bàn về trạng thái ban đầu
+        if (originalTableObject != null)
+        {
+            originalTableObject.SetActive(true);
+
+            Rigidbody rb = originalTableObject.GetComponent<Rigidbody>();
             if (rb != null) rb.isKinematic = false;
 
-            Collider col = currentPaper.GetComponent<Collider>();
+            Collider col = originalTableObject.GetComponent<Collider>();
             if (col != null) col.enabled = true;
 
-            currentPaper.transform.position = originalPosition;
-            currentPaper.transform.rotation = originalRotation;
+            originalTableObject.transform.position = originalPosition;
+            originalTableObject.transform.rotation = originalRotation;
         }
 
         if (readingCanvas != null) readingCanvas.SetActive(false);
         isReading = false;
         currentPaper = null;
 
-        // BẬT LẠI MÁY QUAY CAMCORDER NẾU TRƯỚC ĐÓ ĐANG BẬT
         if (wasCamcorderActiveOnRead && CamcorderUI.Instance != null)
         {
             CamcorderUI.Instance.gameObject.SetActive(true);
             wasCamcorderActiveOnRead = false;
         }
 
-        // KHÔI PHỤC LẠI CÁC UI INGAME TRƯỚC ĐÓ
         if (previouslyActiveUI != null)
         {
             foreach (GameObject ui in previouslyActiveUI)
@@ -299,28 +448,11 @@ public class PaperReaderManager : MonoBehaviour
             previouslyActiveUI.Clear();
         }
 
-        // KHÓA LẠI CON TRỎ CHUỘT VÀ MỞ KHÓA NGƯỜI CHƠI
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
+        Cursor.lockState = CursorLockMode.Locked; Cursor.visible = false;
 
         if (playerScriptsToFreeze != null)
         {
-            foreach (var script in playerScriptsToFreeze)
-            {
-                if (script != null) script.enabled = true;
-            }
-        }
-    }
-
-    // HÀM GÁN CHO BACKGROUND NỀN CANVAS ĐỂ BẤM OUTSIDE THOÁT RA NGOÀI
-    public void OnClickBackgroundToClose()
-    {
-        // NẾU VỪA KÉO DI CHUỘT XOAY GIẤY XONG NHẢ CHUỘT -> CẤM TỰ ĐỘNG THOÁT!
-        if (wasDragging) return;
-
-        if (isReading && Time.time > pickupTime + 0.25f)
-        {
-            StopReading();
+            foreach (var script in playerScriptsToFreeze) { if (script != null) script.enabled = true; }
         }
     }
 }
