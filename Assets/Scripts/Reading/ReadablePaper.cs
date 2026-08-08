@@ -2,19 +2,27 @@ using UnityEngine;
 
 public class ReadablePaper : MonoBehaviour, IInteractable
 {
+    [Header("1. Nội Dung Văn Bản")]
     [TextArea(5, 15)]
-    [Tooltip("Nhập nội dung tờ giấy / tài liệu vào đây")]
     public string content;
+
+    [TextArea(5, 15)]
+    public string[] pages;
 
     public GameObject paperHintUI;
 
-    // BIẾN STATIC TOÀN CỤC ĐỒNG BỘ PLAYERPREFS GHI NHỚ NGƯỜI CHƠI ĐÃ ĐỌC GIẤY CHƯA
+    [Header("2. Tùy Chọn Offset (Tùy chọn)")]
+    public bool useCustomOffset = false;
+    public Vector3 customPositionOffset = new Vector3(-0.25f, 0f, 0f);
+    public Vector3 customRotationOffset = new Vector3(0f, 0f, 90f);
+
+    [Header("3. Model Hiển Thị Cho TỪNG TRANG (Tùy chọn)")]
+    [Tooltip("Gán Prefab tờ giấy cho từng trang. VD: Trang 1 giấy phẳng, Trang 2 giấy rách. Nếu mảng này ít hơn số trang, các trang sau sẽ tự dùng lại Model cuối cùng trong mảng.")]
+    public GameObject[] pagePrefabs;
+
     public static bool HasReadPaper
     {
-        get
-        {
-            return PlayerPrefs.GetInt("HasReadPaper_Map02", 0) == 1;
-        }
+        get { return PlayerPrefs.GetInt("HasReadPaper_Map02", 0) == 1; }
         set
         {
             PlayerPrefs.SetInt("HasReadPaper_Map02", value ? 1 : 0);
@@ -24,25 +32,27 @@ public class ReadablePaper : MonoBehaviour, IInteractable
 
     void Start()
     {
-        // Reset trạng thái chưa đọc khi vừa nạp Map 02 mới
         HasReadPaper = false;
         if (paperHintUI != null) paperHintUI.SetActive(false);
     }
 
-    // TƯƠNG TÁC PHÍM F CHUẨN INTERACTPRO
     public void Interact()
     {
-        HasReadPaper = true; // Ghi nhận 100% đã đọc tờ giấy!
-        Debug.Log("[ReadablePaper] 📜 Đã bấm F đọc tờ giấy! HasReadPaper = TRUE");
+        HasReadPaper = true;
 
         PaperReaderManager reader = FindFirstObjectByType<PaperReaderManager>();
         if (reader != null)
         {
-            reader.StartReading(gameObject, content);
-        }
-        else
-        {
-            Debug.LogError("[ReadablePaper] ⚠️ Không tìm thấy PaperReaderManager trong Scene!");
+            string[] finalPages = (pages != null && pages.Length > 0) ? pages : new string[] { content };
+
+            if (useCustomOffset)
+            {
+                reader.StartReading(gameObject, pagePrefabs, finalPages, customPositionOffset, customRotationOffset);
+            }
+            else
+            {
+                reader.StartReading(gameObject, pagePrefabs, finalPages);
+            }
         }
     }
 

@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class InteractableItem : MonoBehaviour, IInteractable
 {
-    public enum ItemType { Consumable, Quest, Battery }
+    public enum ItemType { Consumable, Quest, Battery,Paper, Key}
 
     [Header("Item Configuration")]
     public ItemType itemType; // Chọn loại Item trên Inspector (Consumable, Quest, Battery)
