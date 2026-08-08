@@ -11,6 +11,10 @@ public class CamcorderUI : MonoBehaviour
     [Tooltip("Kéo cái Text AM 00:00 ở dưới cùng vào đây")]
     public TMP_Text clockText;
 
+    [Header("Battery UI (Ngay dưới chữ REC)")]
+    [Tooltip("Kéo TextMeshProUGUI hiển thị % Pin ở ngay dưới chữ REC vào đây")]
+    public TMP_Text batteryText;
+
     [Header("Clock Settings")]
     [Tooltip("Giờ bắt đầu đếm (Theo định dạng 24h. 0 = 12h đêm, 13 = 1h chiều)")]
     public int startHour = 0;
@@ -46,6 +50,15 @@ public class CamcorderUI : MonoBehaviour
         SceneManager.sceneLoaded += OnSceneLoaded;
     }
 
+    void Start()
+    {
+        // CHƯA NHẶT MÁY QUAY -> ÉP ẨN GIAO DIỆN MÁY QUAY MẶC ĐỊNH KHI VỪA MỚI VÀO MAP 01
+        if (!HasPickedUpCamera)
+        {
+            gameObject.SetActive(false);
+        }
+    }
+
     void OnDestroy()
     {
         if (Instance == this)
@@ -57,7 +70,6 @@ public class CamcorderUI : MonoBehaviour
     void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
         // CHỈ XÓA VÀ RESET UI MÁY QUAY KHI VỀ MAINMENU
-        // Khi chuyển từ Map 1 sang Map 2 / Map 3 -> Giữ nguyên máy quay & tiếp tục đếm thời gian!
         if (scene.name == "MainMenu")
         {
             ResetTimer();
@@ -66,8 +78,6 @@ public class CamcorderUI : MonoBehaviour
 
     void OnEnable()
     {
-        HasPickedUpCamera = true;
-
         // Nếu đã có thời gian cũ được lưu -> Khôi phục lại, KHÔNG reset về 0
         if (savedTimer >= 0f)
         {
@@ -121,6 +131,46 @@ public class CamcorderUI : MonoBehaviour
 
             clockText.text = string.Format("{0} {1:00}:{2:00}", amPm, clockHours12, clockMinutes);
         }
+
+        // ============================================
+        // 3. CẬP NHẬT % PIN ĐÈN PIN (ĐỔI MÀU TRẮNG -> VÀNG -> ĐỎ NHÁY CẢNH BÁO)
+        // ============================================
+        if (batteryText != null && FlashlightToggle.Instance != null)
+        {
+            float maxBat = FlashlightToggle.Instance.maxBattery;
+            float curBat = FlashlightToggle.Instance.currentBattery;
+            float pctRatio = (maxBat > 0) ? (curBat / maxBat) : 0f;
+            int pct = Mathf.CeilToInt(pctRatio * 100f);
+
+            batteryText.text = pct + "%";
+
+            // ĐỔI MÀU CHỮ THEO ĐỨNG PHONG CÁCH MÁY QUAY CAMCORDER RETRO
+            if (pctRatio > 0.5f)
+            {
+                batteryText.color = Color.white;
+            }
+            else if (pctRatio > 0.2f)
+            {
+                batteryText.color = new Color(1f, 0.82f, 0.2f, 1f);
+            }
+            else
+            {
+                if (curBat <= 0f)
+                {
+                    batteryText.color = new Color(0.4f, 0.4f, 0.4f, 1f);
+                }
+                else
+                {
+                    float alpha = (Mathf.Sin(Time.time * 6f) > 0f) ? 1f : 0.35f;
+                    batteryText.color = new Color(1f, 0.2f, 0.2f, alpha);
+                }
+            }
+        }
+    }
+
+    public static void MarkCameraPickedUp()
+    {
+        HasPickedUpCamera = true;
     }
 
     /// <summary>

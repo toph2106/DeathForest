@@ -56,6 +56,7 @@ public class PauseMenuManager : MonoBehaviour
     private Vector2 settingsOriginalPos;
     private bool isTransitioning = false;
     private List<GameObject> previouslyActiveUI = new List<GameObject>();
+    private bool wasCamcorderActive = false;
 
     void Awake()
     {
@@ -111,11 +112,15 @@ public class PauseMenuManager : MonoBehaviour
     {
         if (fadePanel != null)
         {
-            isTransitioning = true; // Vô hiệu hóa nút bấm & phím ESC khi đang mờ cảnh
-            fadePanel.transform.SetAsLastSibling();
+            isTransitioning = true;
+            BringFadeToFront(fadePanel);
+
+            // ẨN TOÀN BỘ UI INGAME (CAMCORDER, INVENTORY) TRONG LÚC MÀN HÌNH ĐANG ĐEN NGÒM
+            SetInGameHUDActive(false);
+
             fadePanel.gameObject.SetActive(true);
-            fadePanel.color = new Color(0, 0, 0, 1f); // Bắt đầu bằng màn đen 100%
-            fadePanel.raycastTarget = true; // Chặn toàn bộ cú click chuột của người chơi
+            fadePanel.color = new Color(0, 0, 0, 1f);
+            fadePanel.raycastTarget = true;
 
             yield return new WaitForSecondsRealtime(initialBlackPause);
 
@@ -124,14 +129,16 @@ public class PauseMenuManager : MonoBehaviour
             {
                 fadePanel.raycastTarget = false;
                 fadePanel.gameObject.SetActive(false);
-                isTransitioning = false; // Mở lại cho phép tương tác bình thường
+                isTransitioning = false;
+
+                // SAU KHỔI MỜ SÁNG XONG HOÀN TOÀN -> MỚI MỞ LẠI UI INGAME!
+                SetInGameHUDActive(true);
             });
         }
     }
 
     void Update()
     {
-        // Bắt phím ESC hoặc P để Pause / Resume game
         if (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.P))
         {
             if (isTransitioning) return;
@@ -156,13 +163,21 @@ public class PauseMenuManager : MonoBehaviour
         if (isTransitioning) return;
 
         isPaused = true;
-        Time.timeScale = 0f; // Tạm dừng thời gian
+        Time.timeScale = 0f;
 
-        // Mở con trỏ chuột cho người chơi thao tác UI
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
-        // Ẩn danh sách các UI ingame (Camcorder, Inventory...)
+        if (CamcorderUI.Instance != null && CamcorderUI.Instance.gameObject.activeSelf)
+        {
+            wasCamcorderActive = true;
+            CamcorderUI.Instance.gameObject.SetActive(false);
+        }
+        else
+        {
+            wasCamcorderActive = false;
+        }
+
         previouslyActiveUI.Clear();
         if (uiToHideOnPause != null)
         {
@@ -176,14 +191,12 @@ public class PauseMenuManager : MonoBehaviour
             }
         }
 
-        // Bật Volume Pause
         if (pauseVolume != null)
         {
             pauseVolume.priority = 10;
             pauseVolume.gameObject.SetActive(true);
         }
 
-        // Bật Background Dim mờ dần
         if (backgroundDim != null)
         {
             backgroundDim.SetActive(true);
@@ -194,7 +207,6 @@ public class PauseMenuManager : MonoBehaviour
             }
         }
 
-        // Bật Pause Menu trôi lên mượt mà
         if (pauseMenuPanel != null)
         {
             pauseMenuPanel.SetActive(true);
@@ -210,14 +222,18 @@ public class PauseMenuManager : MonoBehaviour
     {
         if (!isPaused) return;
 
-        // KHÔI PHỤC THỜI GIAN VÀ CON TRỎ CHUỘT NGAY LẬP TỨC
         isPaused = false;
         Time.timeScale = 1f;
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
 
-        // Hiện lại các UI ingame trước đó
+        if (wasCamcorderActive && CamcorderUI.Instance != null)
+        {
+            CamcorderUI.Instance.gameObject.SetActive(true);
+            wasCamcorderActive = false;
+        }
+
         if (previouslyActiveUI != null)
         {
             foreach (var ui in previouslyActiveUI)
@@ -321,12 +337,12 @@ public class PauseMenuManager : MonoBehaviour
         isTransitioning = true;
         Time.timeScale = 1f;
 
-        // RESET TOÀN BỘ TRẠNG THÁI MÁY QUAY VÀ CẮT CẢNH KHI VỀ TITLE
         CameraObjectPickup.isComputerCutsceneFinished = false;
         InWorldComputerCutscene.isUsingComputer = false;
 
-        // Reset bộ đếm và ẩn hoàn toàn CamcorderUI
         CamcorderUI.ResetTimer();
+        FlashlightToggle.ResetFlashlightData();
+        InventoryManager.ResetInventoryData();
 
         SimpleCameraOverlay overlay = FindFirstObjectByType<SimpleCameraOverlay>();
         if (overlay != null)
@@ -336,8 +352,9 @@ public class PauseMenuManager : MonoBehaviour
 
         if (fadePanel != null)
         {
-            fadePanel.transform.SetAsLastSibling();
-            fadePanel.gameObject.SetActive(true);
+            BringFadeToFront(fadePanel);
+            SetInGameHUDActive(false);
+
             fadePanel.color = new Color(0, 0, 0, 0);
             fadePanel.raycastTarget = true;
 
@@ -362,6 +379,67 @@ public class PauseMenuManager : MonoBehaviour
         if (backgroundDim != null) backgroundDim.SetActive(false);
         if (pauseVolume != null) pauseVolume.gameObject.SetActive(false);
         if (fadePanel != null) fadePanel.gameObject.SetActive(false);
+    }
+
+    public static void SetInGameHUDActive(bool active)
+    {
+        // 1. Tắt/bật CamcorderUI
+        if (CamcorderUI.Instance != null)
+        {
+            if (active)
+            {
+                // BẮT BUỘC ĐÃ NHẶT MÁY QUAY MỚI ĐƯỢC BẬT!
+                if (CamcorderUI.HasPickedUpCamera && FlashlightToggle.Instance != null && FlashlightToggle.Instance.currentBattery > 0f && FlashlightToggle.Instance.hasFlashlight)
+                {
+                    CamcorderUI.Instance.gameObject.SetActive(true);
+                }
+                else
+                {
+                    CamcorderUI.Instance.gameObject.SetActive(false);
+                }
+            }
+            else
+            {
+                CamcorderUI.Instance.gameObject.SetActive(false);
+            }
+        }
+
+        // 2. Tắt/bật các Canvas UI In-Game (LootItem, ItemUI, CameraOverlayCanvas)
+        Canvas[] canvases = FindObjectsByType<Canvas>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        foreach (Canvas c in canvases)
+        {
+            string n = c.gameObject.name.ToLower();
+            if (n.Contains("camera") || n.Contains("loot") || n.Contains("itemui"))
+            {
+                if (!n.Contains("pause") && !n.Contains("fade"))
+                {
+                    c.gameObject.SetActive(active);
+                }
+            }
+        }
+    }
+
+    public static void BringFadeToFront(Image fadeImg)
+    {
+        if (fadeImg == null) return;
+
+        Transform curr = fadeImg.transform;
+        while (curr != null)
+        {
+            curr.gameObject.SetActive(true);
+            if (curr.parent != null)
+            {
+                curr.SetAsLastSibling();
+            }
+            curr = curr.parent;
+        }
+
+        Canvas parentCanvas = fadeImg.GetComponentInParent<Canvas>();
+        if (parentCanvas != null)
+        {
+            parentCanvas.overrideSorting = true;
+            parentCanvas.sortingOrder = 99999;
+        }
     }
 
     void OnDestroy()

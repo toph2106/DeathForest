@@ -1,20 +1,37 @@
 using UnityEngine;
+using UnityEngine.UI;
 using TMPro;
 
 public class InventoryManager : MonoBehaviour
 {
-    [Header("UI Hotbar (5 Ô Tiêu Hao)")]
+    // MẢNG STATIC LƯU GIỮ CÁC VẬT PHẨM VÀ SỐ LƯỢNG PIN CỘNG DỒN NẠP QUA SCENE
+    private static string[] savedHeldItems = null;
+    private static int savedBatteryStackCount = 0;
+
+    [Header("UI Hotbar (Các ô Tiêu Hoa)")]
     public GameObject inventoryPanel;
-    public Transform[] slotTransforms = new Transform[5];
+    public Transform[] slotTransforms; // Mảng động các ô Slot trên UI
+
+    [Header("Cấu Hình Icon Pin (Kéo Sprite hình Pin vào đây nếu có)")]
+    [Tooltip("Kéo hình Sprite Cục Pin vào đây để tự hiển thị đẹp mắt khi chuyển Map")]
+    public Sprite batteryIconSprite;
+
+    [Header("Cấu Hình Phím Bấm")]
+    [Tooltip("Phím dùng để SỬ DỤNG vật phẩm đang chọn (Mặc định: Phím R)")]
+    public KeyCode useKey = KeyCode.R;
+
+    [Header("UI Bộ Đếm Số Lượng Pin (Kéo BatteryText vào đây)")]
+    [Tooltip("Kéo TextMeshProUGUI hiển thị số Pin (VD: BatteryText) vào đây")]
+    public TextMeshProUGUI batteryCountText;
 
     [Header("UI Loại 2 - Vật phẩm Quest")]
     public GameObject questProgressTextObject;
     public TextMeshProUGUI questProgressText;
     public int totalQuestItemsNeeded = 3;
 
-    // --- MỚI: Thêm mảng lưu trữ vật thể 3D ---
-    private string[] heldItems = new string[5];
-    private GameObject[] heldItemObjects = new GameObject[5]; // Lưu vật thể thật để vứt ra
+    private string[] heldItems;
+    private GameObject[] heldItemObjects;
+    private Image[] slotIconImages; // Các hình Icon con bên trong ô Slot UI
 
     private int selectedIndex = -1;
     private int currentQuestItemCount = 0;
@@ -24,106 +41,241 @@ public class InventoryManager : MonoBehaviour
 
     void Start()
     {
-        if (inventoryPanel != null) inventoryPanel.SetActive(true);
         if (questProgressTextObject != null) questProgressTextObject.SetActive(false);
 
-        // Đọc Scale gốc từ ô đầu tiên mà bạn đã chỉnh trong Editor
-        if (slotTransforms.Length > 0 && slotTransforms[0] != null)
+        int slotCount = (slotTransforms != null && slotTransforms.Length > 0) ? slotTransforms.Length : 5;
+        heldItems = new string[slotCount];
+        heldItemObjects = new GameObject[slotCount];
+        slotIconImages = new Image[slotCount];
+
+        // Đọc Scale gốc từ ô đầu tiên
+        if (slotCount > 0 && slotTransforms[0] != null)
         {
             normalScale = slotTransforms[0].localScale;
-            selectedScale = normalScale * 1.2f; // Phóng to 20% khi được chọn
+            selectedScale = normalScale * 1.2f;
         }
 
-        for (int i = 0; i < 5; i++)
+        for (int i = 0; i < slotCount; i++)
         {
             heldItems[i] = "";
-            heldItemObjects[i] = null; // Khởi tạo ô trống
-            slotTransforms[i].localScale = normalScale;
+            heldItemObjects[i] = null;
+
+            if (slotTransforms[i] != null)
+            {
+                slotTransforms[i].localScale = normalScale;
+
+                Image[] childImgs = slotTransforms[i].GetComponentsInChildren<Image>(true);
+                foreach (Image img in childImgs)
+                {
+                    if (img.transform != slotTransforms[i])
+                    {
+                        slotIconImages[i] = img;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // KHÔI PHỤC DỮ LIỆU TÚI ĐỒ VÀ SỐ PIN CỘNG DỒN NẾU CHUYỂN MAP
+        if (savedHeldItems != null && savedHeldItems.Length == slotCount)
+        {
+            for (int i = 0; i < slotCount; i++)
+            {
+                heldItems[i] = savedHeldItems[i];
+            }
+        }
+
+        UpdateUISlots();
+    }
+
+    void OnDisable()
+    {
+        // LƯU DỮ LIỆU TRƯỚC KHI CHUYỂN MAP
+        if (heldItems != null)
+        {
+            savedHeldItems = (string[])heldItems.Clone();
         }
     }
 
     void Update()
     {
+        if (PauseMenuManager.isPaused) return;
+
+        HandleCheatInput(); // Phím B nhặt pin cheat demo, F9 nạp đầy pin
         HandleSelectionInput();
-        HandleDropInput(); // Gọi hàm xử lý vứt đồ
+        HandleUseInput(); // Phím R dùng pin
     }
 
-    // --- SỬA: Thêm tham số GameObject itemObj vào hàm ---
+    private void HandleCheatInput()
+    {
+        // Bấm phím B -> Nhận ngay 1 Cục Pin (Tự cộng dồn số lượng)
+        if (Input.GetKeyDown(KeyCode.B))
+        {
+            bool success = AddConsumableItem("Pin", null);
+            if (success)
+            {
+                Debug.Log($"⚡ [DEMO CHEAT] Đã thêm 1 Cục Pin! Tổng số Pin dồn: {savedBatteryStackCount}");
+            }
+        }
+
+        // Bấm phím F9 -> Nạp đầy 100% Pin Đèn Pin ngay lập tức
+        if (Input.GetKeyDown(KeyCode.F9))
+        {
+            if (FlashlightToggle.Instance != null)
+            {
+                FlashlightToggle.Instance.hasFlashlight = true;
+                FlashlightToggle.Instance.RechargeBattery(100f);
+                Debug.Log("⚡ [DEMO CHEAT] Đã nạp đầy 100% Pin Đèn Pin!");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Hàm nhặt item: Riêng PIN sẽ tự động CỘNG DỒN vào 1 ô duy nhất trên Hotbar!
+    /// </summary>
     public bool AddConsumableItem(string itemName, GameObject itemObj)
     {
-        for (int i = 0; i < 5; i++)
+        if (heldItems == null) return false;
+        int slotCount = heldItems.Length;
+        bool isBattery = itemName.ToLower().Contains("pin") || itemName.ToLower().Contains("battery") || itemName.ToLower().Contains("thu thap");
+
+        // 1. NẾU LÀ PIN -> TÌM XEM ĐÃ CÓ Ô CHỨA PIN CHƯA ĐỂ CỘNG DỒN SỐ LƯỢNG VÀO Ô ĐÓ
+        if (isBattery)
+        {
+            int existingPinSlot = -1;
+            for (int i = 0; i < slotCount; i++)
+            {
+                if (!string.IsNullOrEmpty(heldItems[i]) && (heldItems[i].ToLower().Contains("pin") || heldItems[i].ToLower().Contains("battery") || heldItems[i].ToLower().Contains("thu thap")))
+                {
+                    existingPinSlot = i;
+                    break;
+                }
+            }
+
+            // Đã có ô chứa Pin -> Tăng số lượng dồn lên +1
+            if (existingPinSlot != -1)
+            {
+                savedBatteryStackCount++;
+                if (itemObj != null) itemObj.SetActive(false);
+
+                UpdateUISlots();
+                Debug.Log($"[Inventory] Đã cộng dồn Pin vào ô {existingPinSlot + 1}. Tổng số pin: {savedBatteryStackCount}");
+                return true;
+            }
+        }
+
+        // 2. NẾU CHƯA CÓ Ô PIN HOẶC LÀ VẬT PHẨM KHÁC -> CHỜ TÌM Ô TRỐNG
+        for (int i = 0; i < slotCount; i++)
         {
             if (string.IsNullOrEmpty(heldItems[i]))
             {
                 heldItems[i] = itemName;
-                heldItemObjects[i] = itemObj; // Lưu vật thể vào túi
+                heldItemObjects[i] = itemObj;
 
-                itemObj.SetActive(false); // Ẩn vật thể khỏi mặt đất thay vì xóa đi
+                if (isBattery)
+                {
+                    savedBatteryStackCount = 1; // Khởi tạo 1 cục pin
+                }
+
+                if (itemObj != null) itemObj.SetActive(false);
 
                 if (selectedIndex == -1) ToggleSelect(i);
+                else UpdateUISlots();
 
+                Debug.Log($"[Inventory] Đã nhặt '{itemName}' vào ô {i + 1}");
                 return true;
             }
         }
-        Debug.Log("Túi đồ đã đầy 5 món!");
+
+        Debug.Log("Túi đồ đã đầy!");
         return false;
     }
 
-    // --- MỚI: Xử lý vứt đồ (Phím Q) ---
-    private void HandleDropInput()
+    // --- XỬ LÝ SỬ DỤNG VẬT PHẨM (PHÍM R) ---
+    private void HandleUseInput()
     {
-        if (Input.GetKeyDown(KeyCode.Q))
+        if (Input.GetKeyDown(useKey))
         {
-            // Kiểm tra xem có đang chọn ô nào không, và ô đó có đồ không
-            if (selectedIndex != -1 && heldItemObjects[selectedIndex] != null)
+            if (selectedIndex >= 0 && heldItems != null && selectedIndex < heldItems.Length && !string.IsNullOrEmpty(heldItems[selectedIndex]))
             {
-                GameObject itemToDrop = heldItemObjects[selectedIndex];
+                string itemName = heldItems[selectedIndex];
+                bool isBattery = itemName.ToLower().Contains("pin") || itemName.ToLower().Contains("battery") || itemName.ToLower().Contains("thu thap");
 
-                // Dịch chuyển vật thể ra phía trước Camera 1.5 mét để không bị kẹt vào người
-                Transform camTransform = Camera.main.transform;
-                itemToDrop.transform.position = camTransform.position + camTransform.forward * 1.5f;
+                if (isBattery)
+                {
+                    if (FlashlightToggle.Instance != null)
+                    {
+                        if (!FlashlightToggle.Instance.hasFlashlight)
+                        {
+                            Debug.LogWarning("[Inventory] Bạn chưa sở hữu Đèn Pin! Không thể nạp Pin.");
+                            return;
+                        }
 
-                // Hiện lại vật thể trên mặt đất
-                itemToDrop.SetActive(true);
+                        FlashlightToggle.Instance.RechargeBattery(50f);
+                        Debug.Log("[Inventory] Đã sử dụng 1 Cục Pin! Nạp +50% Pin Đèn Pin.");
+                    }
 
-                // Xóa dữ liệu trong ô UI
-                heldItems[selectedIndex] = "";
-                heldItemObjects[selectedIndex] = null;
+                    // GIẢM SỐ LƯỢNG PIN CỘNG DỒN ĐI 1 CỤC
+                    savedBatteryStackCount--;
+
+                    // NẾU HẾT PIN TRONG TÚI (VỀ 0) -> DỌN RÁC Ô VÀ BỎ FOCUS
+                    if (savedBatteryStackCount <= 0)
+                    {
+                        savedBatteryStackCount = 0;
+
+                        if (selectedIndex < heldItemObjects.Length && heldItemObjects[selectedIndex] != null)
+                        {
+                            Destroy(heldItemObjects[selectedIndex]);
+                        }
+
+                        heldItems[selectedIndex] = "";
+                        heldItemObjects[selectedIndex] = null;
+                        selectedIndex = -1;
+                    }
+
+                    UpdateUISlots();
+                }
+                else
+                {
+                    Debug.Log($"[Inventory] Chưa có logic dùng cho vật phẩm '{itemName}'");
+                }
             }
         }
     }
-    // Hiệu ứng Bật/Tắt chọn ô
+
     private void HandleSelectionInput()
     {
-        // Chọn bằng phím 1-5
-        if (Input.GetKeyDown(KeyCode.Alpha1)) ToggleSelect(0);
-        if (Input.GetKeyDown(KeyCode.Alpha2)) ToggleSelect(1);
-        if (Input.GetKeyDown(KeyCode.Alpha3)) ToggleSelect(2);
-        if (Input.GetKeyDown(KeyCode.Alpha4)) ToggleSelect(3);
-        if (Input.GetKeyDown(KeyCode.Alpha5)) ToggleSelect(4);
+        if (heldItems == null) return;
+        int count = heldItems.Length;
 
-        // Chọn bằng con lăn chuột
+        if (Input.GetKeyDown(KeyCode.Alpha1) && count > 0) ToggleSelect(0);
+        if (Input.GetKeyDown(KeyCode.Alpha2) && count > 1) ToggleSelect(1);
+        if (Input.GetKeyDown(KeyCode.Alpha3) && count > 2) ToggleSelect(2);
+        if (Input.GetKeyDown(KeyCode.Alpha4) && count > 3) ToggleSelect(4);
+        if (Input.GetKeyDown(KeyCode.Alpha5) && count > 4) ToggleSelect(4);
+
         float scroll = Input.GetAxis("Mouse ScrollWheel");
         if (scroll != 0f)
         {
+            if (count == 0) return;
+
             if (selectedIndex == -1) ToggleSelect(0);
             else
             {
                 int newIndex = selectedIndex;
-                if (scroll > 0f) newIndex--; // Cuộn lên -> lùi sang trái
-                else newIndex++; // Cuộn xuống -> tiến sang phải
+                if (scroll > 0f) newIndex--;
+                else newIndex++;
 
-                // Chạy vòng lặp nếu vượt quá giới hạn 0-4
-                if (newIndex < 0) newIndex = 4;
-                if (newIndex > 4) newIndex = 0;
+                if (newIndex < 0) newIndex = count - 1;
+                if (newIndex >= count) newIndex = 0;
 
                 ToggleSelect(newIndex);
             }
         }
     }
+
     private void ToggleSelect(int index)
     {
-        // Nếu bấm lại chính ô đang chọn -> Bỏ chọn
         if (selectedIndex == index)
         {
             selectedIndex = -1;
@@ -136,19 +288,101 @@ public class InventoryManager : MonoBehaviour
         UpdateUISlots();
     }
 
-    // Cập nhật giao diện phóng to/thu nhỏ
     private void UpdateUISlots()
     {
-        for (int i = 0; i < 5; i++)
+        if (slotTransforms == null || heldItems == null) return;
+        int slotCount = slotTransforms.Length;
+        int itemCount = heldItems.Length;
+
+        // KIỂM TRA SỐ PIN VỀ 0 -> TỰ DỌN SẠCH CHỮ "Pin" KHI NẠP SCENE MỚI
+        if (savedBatteryStackCount <= 0)
         {
+            savedBatteryStackCount = 0;
+            for (int i = 0; i < itemCount; i++)
+            {
+                if (!string.IsNullOrEmpty(heldItems[i]) && (heldItems[i].ToLower().Contains("pin") || heldItems[i].ToLower().Contains("battery") || heldItems[i].ToLower().Contains("thu thap")))
+                {
+                    heldItems[i] = "";
+                }
+            }
+        }
+
+        // TỰ ĐỘNG BẬT/TẮT NỀN KHUNG TÚI ĐỒ HOTBAR: CÓ ĐỒ MỚI HIỆN, KHÔNG CÓ ĐỒ TỰ ẨN SẠCH 5 Ô XÁM!
+        bool hasAnyItem = false;
+        if (heldItems != null)
+        {
+            foreach (string item in heldItems)
+            {
+                if (!string.IsNullOrEmpty(item))
+                {
+                    hasAnyItem = true;
+                    break;
+                }
+            }
+        }
+
+        if (inventoryPanel != null)
+        {
+            inventoryPanel.SetActive(hasAnyItem);
+        }
+
+        for (int i = 0; i < slotCount; i++)
+        {
+            if (slotTransforms[i] == null) continue;
+
+            // 1. Phóng to ô đang được chọn
             if (i == selectedIndex)
             {
                 slotTransforms[i].localScale = selectedScale;
-                // Gợi ý: Bạn có thể đổi màu viền ở đây để nhìn rõ hơn
             }
             else
             {
                 slotTransforms[i].localScale = normalScale;
+            }
+
+            // 2. Tắt/bật Icon con nếu ô đó có vật phẩm
+            if (slotIconImages != null && i < slotIconImages.Length && slotIconImages[i] != null && slotIconImages[i].transform != slotTransforms[i])
+            {
+                bool hasItem = (i < itemCount) && !string.IsNullOrEmpty(heldItems[i]);
+                slotIconImages[i].gameObject.SetActive(hasItem);
+
+                // Gán Sprite Icon Cục Pin nếu có cài trên Inspector
+                if (hasItem && (heldItems[i].ToLower().Contains("pin") || heldItems[i].ToLower().Contains("battery")))
+                {
+                    if (batteryIconSprite != null)
+                    {
+                        slotIconImages[i].sprite = batteryIconSprite;
+                        slotIconImages[i].color = Color.white;
+                    }
+                }
+            }
+        }
+
+        // TỰ ĐỘNG TÌM TEXT BỘ ĐẾM NẾU SANG MAP MỚI MÀ CHƯA KÉO INSPECTOR
+        if (batteryCountText == null)
+        {
+            TextMeshProUGUI[] allTexts = GetComponentsInChildren<TextMeshProUGUI>(true);
+            foreach (var txt in allTexts)
+            {
+                if (txt.gameObject.name.ToLower().Contains("batterytext") || txt.gameObject.name.ToLower().Contains("pin"))
+                {
+                    batteryCountText = txt;
+                    break;
+                }
+            }
+        }
+
+        // 3. HIỂN THỊ SỐ PIN CỘNG DỒN (KHI SỐ PIN > 0 MỚI HIỆN, VỀ 0 TỰ ẨN SẠCH)
+        if (batteryCountText != null)
+        {
+            if (savedBatteryStackCount > 0)
+            {
+                batteryCountText.gameObject.SetActive(true);
+                batteryCountText.text = savedBatteryStackCount.ToString();
+            }
+            else
+            {
+                batteryCountText.gameObject.SetActive(false); // VỀ 0 LÀ ẨN SẠCH 100%!
             }
         }
     }
@@ -156,15 +390,23 @@ public class InventoryManager : MonoBehaviour
     public void AddQuestItem(string questName)
     {
         currentQuestItemCount++;
-        if (questProgressTextObject != null && questProgressText != null)
+        if (questProgressTextObject != null)
         {
             questProgressTextObject.SetActive(true);
-            questProgressText.text = questName + ": " + currentQuestItemCount + "/" + totalQuestItemsNeeded;
+            if (questProgressText != null)
+            {
+                questProgressText.text = questName + ": " + currentQuestItemCount + "/" + totalQuestItemsNeeded;
+            }
         }
-        if (currentQuestItemCount >= totalQuestItemsNeeded)
+        if (currentQuestItemCount >= totalQuestItemsNeeded && questProgressText != null)
         {
             questProgressText.text = questName + ": Hoàn thành!";
-            
         }
+    }
+
+    public static void ResetInventoryData()
+    {
+        savedHeldItems = null;
+        savedBatteryStackCount = 0;
     }
 }
