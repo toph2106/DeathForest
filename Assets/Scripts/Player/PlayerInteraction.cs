@@ -86,8 +86,7 @@ public class PlayerInteraction : MonoBehaviour
                 {
                     currentPaper.HidePrompt();
                     HidePromptUI();
-                    if (readManager == null) return;
-                    readManager.StartReading(currentPaper.gameObject, currentPaper.content);
+                    currentPaper.Interact();
                 }
             }
             // 3. XỬ LÝ NHÌN VÀO CỬA ĐƠN
