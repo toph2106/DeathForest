@@ -61,14 +61,6 @@ public class FlashlightToggle : MonoBehaviour
     void Awake()
     {
         Instance = this;
-        if (Instance == null)
-        {
-            Instance = this;
-        }
-        else
-        {
-            Destroy(gameObject);
-        }
     }
 
     void Start()
