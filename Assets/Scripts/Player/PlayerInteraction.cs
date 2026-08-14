@@ -4,7 +4,7 @@ using TMPro;
 public class PlayerInteraction : MonoBehaviour
 {
     [Header("Interaction Settings")]
-    public float interactRange = 3f;
+    public float interactRange = 3.5f;
     public LayerMask interactableLayer;
 
     [Header("References")]
@@ -21,15 +21,24 @@ public class PlayerInteraction : MonoBehaviour
     private ReadablePaper currentPaper = null;
     private SmoothSingleDoor currentSingleDoor = null;
     private SmoothSlidingDoor currentSlidingDoor = null;
+    private DoorExit currentDoorExit = null;
+    private NPCDialogueCutscene currentNPC = null;
     private InteractableItem currentItem = null;
     private CorpseLoot currentCorpse = null;
     private DesktopComputer currentComputer = null;
 
     void Update()
     {
-        // Đặt đoạn này ở dòng đầu tiên của hàm Update() để nếu đang dùng máy tính thì tắt tia quét mắt
+        // 1. TẮT TƯƠNG TÁC KHI ĐANG DÙNG MÁY TÍNH HOẶC TRONG BẤT KỲ CUTSCENE/FADE NÀO
         ComputerSystem compSys = Object.FindFirstObjectByType<ComputerSystem>();
         if (compSys != null && compSys.isUsingComputer)
+        {
+            ClearAll();
+            return;
+        }
+
+        MovePl movePl = Object.FindFirstObjectByType<MovePl>();
+        if (movePl != null && movePl.isCameraLocked)
         {
             ClearAll();
             return;
@@ -45,19 +54,26 @@ public class PlayerInteraction : MonoBehaviour
         Ray ray = new Ray(mainCam.transform.position, mainCam.transform.forward);
         RaycastHit hit;
 
-        Debug.DrawRay(mainCam.transform.position, mainCam.transform.forward * interactRange, Color.red);
+        InteractPro interactPro = GetComponent<InteractPro>();
+        float currentRange = (interactPro != null) ? interactPro.interactDistance : interactRange;
 
-        if (Physics.Raycast(ray, out hit, interactRange, interactableLayer))
+        Debug.DrawRay(mainCam.transform.position, mainCam.transform.forward * currentRange, Color.red);
+
+        if (Physics.Raycast(ray, out hit, currentRange, interactableLayer))
         {
             SmoothDoubleDoor door = hit.collider.GetComponentInParent<SmoothDoubleDoor>();
             ReadablePaper paper = hit.collider.GetComponentInParent<ReadablePaper>();
             SmoothSingleDoor singleDoor = hit.collider.GetComponentInParent<SmoothSingleDoor>();
+            DoorExit doorExit = hit.collider.GetComponentInParent<DoorExit>();
+            if (doorExit == null) doorExit = hit.collider.GetComponent<DoorExit>();
+
+            NPCDialogueCutscene npc = hit.collider.GetComponentInParent<NPCDialogueCutscene>();
+            if (npc == null) npc = hit.collider.GetComponent<NPCDialogueCutscene>();
 
             // 1. Xử lý nhìn vào CỬA ĐÔI
             if (door != null)
             {
-                ClearCurrentPaper();
-                ClearCurrentSingleDoor();
+                ClearAllExceptDoor();
 
                 if (currentDoor != door)
                 {
@@ -71,8 +87,7 @@ public class PlayerInteraction : MonoBehaviour
             // 2. Xử lý nhìn vào GIẤY
             else if (paper != null)
             {
-                ClearCurrentDoor();
-                ClearCurrentSingleDoor();
+                ClearAllExceptPaper();
 
                 if (currentPaper != paper)
                 {
@@ -92,8 +107,7 @@ public class PlayerInteraction : MonoBehaviour
             // 3. XỬ LÝ NHÌN VÀO CỬA ĐƠN
             else if (singleDoor != null)
             {
-                ClearCurrentDoor();
-                ClearCurrentPaper();
+                ClearAllExceptSingleDoor();
 
                 if (currentSingleDoor != singleDoor)
                 {
@@ -104,14 +118,30 @@ public class PlayerInteraction : MonoBehaviour
                 }
                 if (Input.GetKeyDown(KeyCode.F)) currentSingleDoor.ToggleDoor();
             }
-            // 4. XỬ LÝ NHÌN VÀO CỬA KÉO NGANG
+            // 4. XỬ LÝ NHÌN VÀO CỬA KÉO MAP01 (DOOR EXIT)
+            else if (doorExit != null)
+            {
+                ClearAllExceptDoorExit();
+
+                if (currentDoorExit != doorExit)
+                {
+                    ClearCurrentDoorExit();
+                    currentDoorExit = doorExit;
+                    currentDoorExit.ShowPrompt();
+                    ShowPromptUI("[F] Mở cửa");
+                }
+
+                if (Input.GetKeyDown(KeyCode.F))
+                {
+                    currentDoorExit.Interact();
+                }
+            }
+            // 5. XỬ LÝ NHÌN VÀO CỬA KÉO NGANG (SMOOTH SLIDING DOOR)
             else if (hit.collider.GetComponentInParent<SmoothSlidingDoor>() != null)
             {
                 SmoothSlidingDoor slidingDoor = hit.collider.GetComponentInParent<SmoothSlidingDoor>();
 
-                ClearCurrentDoor();
-                ClearCurrentPaper();
-                ClearCurrentSingleDoor();
+                ClearAllExceptSlidingDoor();
 
                 if (currentSlidingDoor != slidingDoor)
                 {
@@ -122,16 +152,33 @@ public class PlayerInteraction : MonoBehaviour
                 }
                 if (Input.GetKeyDown(KeyCode.F)) slidingDoor.ToggleDoor();
             }
-            // 5. XỬ LÝ NHÌN VÀO ITEM NHẶT (VÍ DỤ: CỤC PIN)
+            // 6. XỬ LÝ NHÌN VÀO NPC THOẠI (JOHNSON)
+            else if (npc != null)
+            {
+                ClearAllExceptNPC();
+
+                if (currentNPC != npc)
+                {
+                    ClearCurrentNPC();
+                    currentNPC = npc;
+                    currentNPC.ShowPrompt();
+                    ShowPromptUI("[F] Nói chuyện");
+                }
+
+                if (Input.GetKeyDown(KeyCode.F))
+                {
+                    HidePromptUI();
+                    currentNPC.Interact();
+                    currentNPC = null;
+                }
+            }
+            // 7. XỬ LÝ NHÌN VÀO ITEM NHẶT (VÍ DỤ: HỘP HÀNG / CỤC PIN)
             else if (hit.collider.GetComponentInParent<InteractableItem>() != null || hit.collider.GetComponent<InteractableItem>() != null)
             {
                 InteractableItem item = hit.collider.GetComponentInParent<InteractableItem>();
                 if (item == null) item = hit.collider.GetComponent<InteractableItem>();
 
-                ClearCurrentDoor();
-                ClearCurrentPaper();
-                ClearCurrentSingleDoor();
-                ClearCurrentSlidingDoor();
+                ClearAllExceptItem();
 
                 if (currentItem != item)
                 {
@@ -143,7 +190,6 @@ public class PlayerInteraction : MonoBehaviour
                     ShowPromptUI(promptMsg);
                 }
 
-                // Bấm F để nhặt item
                 if (Input.GetKeyDown(KeyCode.F))
                 {
                     currentItem.HidePrompt();
@@ -152,17 +198,13 @@ public class PlayerInteraction : MonoBehaviour
                     currentItem = null;
                 }
             }
-            // 6. XỬ LÝ NHÌN VÀO XÁC CHẾT
+            // 8. XỬ LÝ NHÌN VÀO XÁC CHẾT
             else if (hit.collider.GetComponentInParent<CorpseLoot>() != null || hit.collider.GetComponent<CorpseLoot>() != null)
             {
                 CorpseLoot corpse = hit.collider.GetComponentInParent<CorpseLoot>();
                 if (corpse == null) corpse = hit.collider.GetComponent<CorpseLoot>();
 
-                ClearCurrentDoor();
-                ClearCurrentPaper();
-                ClearCurrentItem();
-                ClearCurrentSingleDoor();
-                ClearCurrentSlidingDoor();
+                ClearAllExceptCorpse();
 
                 if (currentCorpse != corpse)
                 {
@@ -180,7 +222,7 @@ public class PlayerInteraction : MonoBehaviour
                     currentCorpse = null;
                 }
             }
-            // 7. XỬ LÝ NHÌN VÀO MÁY TÍNH ĐỂ BÀN
+            // 9. XỬ LÝ NHÌN VÀO MÁY TÍNH ĐỂ BÀN
             else if (hit.collider.GetComponentInParent<DesktopComputer>() != null)
             {
                 DesktopComputer computer = hit.collider.GetComponentInParent<DesktopComputer>();
@@ -227,6 +269,7 @@ public class PlayerInteraction : MonoBehaviour
                 else if (text.Contains("Mở cửa")) text = "[F] Open Door";
                 else if (text.Contains("Kiểm tra xác")) text = "[F] Examine Corpse";
                 else if (text.Contains("Sử dụng máy tính")) text = "[F] Use Computer";
+                else if (text.Contains("Nói chuyện")) text = "[F] Talk";
                 else text = "[F] Interact";
             }
             interactText.text = text;
@@ -235,47 +278,28 @@ public class PlayerInteraction : MonoBehaviour
 
     private void HidePromptUI()
     {
+        if (GetComponent<InteractPro>() != null) return;
         if (interactionUI != null) interactionUI.SetActive(false);
     }
 
-    void ClearCurrentComputer()
-    {
-        if (currentComputer != null) { currentComputer.HidePrompt(); currentComputer = null; }
-    }
+    void ClearCurrentComputer() { if (currentComputer != null) { currentComputer.HidePrompt(); currentComputer = null; } }
+    void ClearCurrentDoor() { if (currentDoor != null) { currentDoor.HidePrompt(); currentDoor = null; } }
+    void ClearCurrentItem() { if (currentItem != null) { currentItem.HidePrompt(); currentItem = null; } }
+    void ClearCurrentPaper() { if (currentPaper != null) { currentPaper.HidePrompt(); currentPaper = null; } }
+    void ClearCurrentSingleDoor() { if (currentSingleDoor != null) { currentSingleDoor.HidePrompt(); currentSingleDoor = null; } }
+    void ClearCurrentSlidingDoor() { if (currentSlidingDoor != null) { currentSlidingDoor.HidePrompt(); currentSlidingDoor = null; } }
+    void ClearCurrentDoorExit() { if (currentDoorExit != null) { currentDoorExit.HidePrompt(); currentDoorExit = null; } }
+    void ClearCurrentNPC() { if (currentNPC != null) { currentNPC.HidePrompt(); currentNPC = null; } }
+    void ClearCurrentCorpse() { if (currentCorpse != null) { currentCorpse.HidePrompt(); currentCorpse = null; } }
 
-    void ClearCurrentDoor()
-    {
-        if (currentDoor != null) { currentDoor.HidePrompt(); currentDoor = null; }
-    }
-
-    void ClearCurrentItem()
-    {
-        if (currentItem != null) { currentItem.HidePrompt(); currentItem = null; }
-    }
-
-    void ClearCurrentPaper()
-    {
-        if (currentPaper != null) { currentPaper.HidePrompt(); currentPaper = null; }
-    }
-
-    void ClearCurrentSingleDoor()
-    {
-        if (currentSingleDoor != null) { currentSingleDoor.HidePrompt(); currentSingleDoor = null; }
-    }
-
-    void ClearCurrentSlidingDoor()
-    {
-        if (currentSlidingDoor != null) { currentSlidingDoor.HidePrompt(); currentSlidingDoor = null; }
-    }
-
-    void ClearCurrentCorpse()
-    {
-        if (currentCorpse != null) 
-        { 
-            currentCorpse.HidePrompt();
-            currentCorpse = null; 
-        }
-    }
+    void ClearAllExceptDoor() { ClearCurrentPaper(); ClearCurrentSingleDoor(); ClearCurrentSlidingDoor(); ClearCurrentDoorExit(); ClearCurrentNPC(); ClearCurrentItem(); ClearCurrentCorpse(); ClearCurrentComputer(); }
+    void ClearAllExceptPaper() { ClearCurrentDoor(); ClearCurrentSingleDoor(); ClearCurrentSlidingDoor(); ClearCurrentDoorExit(); ClearCurrentNPC(); ClearCurrentItem(); ClearCurrentCorpse(); ClearCurrentComputer(); }
+    void ClearAllExceptSingleDoor() { ClearCurrentDoor(); ClearCurrentPaper(); ClearCurrentSlidingDoor(); ClearCurrentDoorExit(); ClearCurrentNPC(); ClearCurrentItem(); ClearCurrentCorpse(); ClearCurrentComputer(); }
+    void ClearAllExceptSlidingDoor() { ClearCurrentDoor(); ClearCurrentPaper(); ClearCurrentSingleDoor(); ClearCurrentDoorExit(); ClearCurrentNPC(); ClearCurrentItem(); ClearCurrentCorpse(); ClearCurrentComputer(); }
+    void ClearAllExceptDoorExit() { ClearCurrentDoor(); ClearCurrentPaper(); ClearCurrentSingleDoor(); ClearCurrentSlidingDoor(); ClearCurrentNPC(); ClearCurrentItem(); ClearCurrentCorpse(); ClearCurrentComputer(); }
+    void ClearAllExceptNPC() { ClearCurrentDoor(); ClearCurrentPaper(); ClearCurrentSingleDoor(); ClearCurrentSlidingDoor(); ClearCurrentDoorExit(); ClearCurrentItem(); ClearCurrentCorpse(); ClearCurrentComputer(); }
+    void ClearAllExceptItem() { ClearCurrentDoor(); ClearCurrentPaper(); ClearCurrentSingleDoor(); ClearCurrentSlidingDoor(); ClearCurrentDoorExit(); ClearCurrentNPC(); ClearCurrentCorpse(); ClearCurrentComputer(); }
+    void ClearAllExceptCorpse() { ClearCurrentDoor(); ClearCurrentPaper(); ClearCurrentSingleDoor(); ClearCurrentSlidingDoor(); ClearCurrentDoorExit(); ClearCurrentNPC(); ClearCurrentItem(); ClearCurrentComputer(); }
 
     void ClearAll()
     {
@@ -284,6 +308,8 @@ public class PlayerInteraction : MonoBehaviour
         ClearCurrentPaper();
         ClearCurrentSingleDoor();
         ClearCurrentSlidingDoor();
+        ClearCurrentDoorExit();
+        ClearCurrentNPC();
         ClearCurrentItem();
         ClearCurrentCorpse();
         ClearCurrentComputer();

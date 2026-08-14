@@ -1,9 +1,17 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 public class WindowR : MonoBehaviour, IInteractable
 {
-    public float slideDistance = 1.5f;
-    public float slideSpeed = 5f;
+    public float slideDistance = 0.5f;
+    public float slideSpeed = 2f;
+
+    [Tooltip("Tích chọn nếu muốn cửa sổ MẶC ĐỊNH MỞ NGAY KHI VÀO GAME")]
+    public bool startOpened = false;
+
+    [Header("Mở Khóa Case PC Sau Khi Đóng Cửa Sổ")]
+    [Tooltip("Kéo Collider của Case PC vào đây để mở khóa tương tác khi đóng cửa sổ")]
+    public Collider caseColliderToEnable;
+    public GameObject caseObjectToEnable;
 
     private Vector3 closedPos;
     private Vector3 openPos;
@@ -13,10 +21,15 @@ public class WindowR : MonoBehaviour, IInteractable
     void Start()
     {
         closedPos = transform.position;
-
         openPos = closedPos + (transform.right * slideDistance);
 
-        targetPos = closedPos;
+        isOpen = startOpened;
+        targetPos = startOpened ? openPos : closedPos;
+
+        if (startOpened)
+        {
+            transform.position = openPos;
+        }
     }
 
     void Update()
@@ -28,5 +41,12 @@ public class WindowR : MonoBehaviour, IInteractable
     {
         isOpen = !isOpen;
         targetPos = isOpen ? openPos : closedPos;
+
+        if (!isOpen)
+        {
+            if (caseColliderToEnable != null) caseColliderToEnable.enabled = true;
+            if (caseObjectToEnable != null) caseObjectToEnable.SetActive(true);
+            Debug.Log("[WindowR] 🔓 Đã đóng cửa sổ! Mở khóa tương tác với Case PC.");
+        }
     }
 }

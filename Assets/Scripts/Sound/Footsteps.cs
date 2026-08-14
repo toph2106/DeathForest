@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 public class FootstepManager : MonoBehaviour
 {
@@ -10,8 +10,10 @@ public class FootstepManager : MonoBehaviour
     [Header("Interval Settings")]
     public float walkInterval = 0.5f;
     public float sprintInterval = 0.3f;
+    public float crouchInterval = 1.0f;
 
     public CharacterController player;
+    private MovePl movePl;
     private float nextSoundTime;
 
     private Vector3 lastPosition;
@@ -20,6 +22,7 @@ public class FootstepManager : MonoBehaviour
     void Start()
     {
         if (player == null) player = GetComponent<CharacterController>();
+        if (player != null) movePl = player.GetComponent<MovePl>();
         lastPosition = transform.position;
     }
 
@@ -48,8 +51,13 @@ public class FootstepManager : MonoBehaviour
             {
                 if (Time.time > nextSoundTime)
                 {
-                    PlayStepSound();
-                    float currentInterval = Input.GetKey(KeyCode.LeftShift) ? sprintInterval : walkInterval;
+                    bool isCrouching = (movePl != null && movePl.isCrouching);
+                    PlayStepSound(isCrouching ? volume * 0.6f : volume);
+
+                    float currentInterval = walkInterval;
+                    if (isCrouching) currentInterval = crouchInterval;
+                    else if (Input.GetKey(KeyCode.LeftShift)) currentInterval = sprintInterval;
+
                     nextSoundTime = Time.time + currentInterval;
                 }
             }
@@ -58,10 +66,10 @@ public class FootstepManager : MonoBehaviour
         lastPosition = transform.position;
     }
 
-    void PlayStepSound()
+    void PlayStepSound(float vol)
     {
         if (walkClip == null) return;
         source.pitch = Random.Range(0.9f, 1.1f);
-        source.PlayOneShot(walkClip, volume);
+        source.PlayOneShot(walkClip, vol);
     }
 }

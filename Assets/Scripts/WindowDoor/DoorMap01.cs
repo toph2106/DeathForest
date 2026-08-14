@@ -1,150 +1,299 @@
 using UnityEngine;
-using UnityEngine.SceneManagement;
-using UnityEngine.UI;
 using System.Collections;
-using DG.Tweening;
 
 public class DoorExit : MonoBehaviour, IInteractable
 {
-    [Header("1. Âm Thanh Mở & Đóng Khóa Cửa (Chuỗi 2 Tiếng Cạch)")]
-    [Tooltip("Tiếng cạch 1: Tiếng xoay tay nắm / mở lẫy cửa (VD: door_handle_click.wav)")]
-    public AudioClip doorOpenClickSound;
+    [Header("1. Tham Chiếu Cánh Cửa (Door Transform)")]
+    [Tooltip("Kéo Transform của cánh cửa trượt vào đây")]
+    public Transform doorBody;
 
-    [Tooltip("Tiếng cạch 2: Tiếng đóng sập cửa & sập ổ khóa (VD: door_lock_click.wav)")]
-    public AudioClip doorCloseLockSound;
+    [Header("2. Hướng & Khoảng Cách Trượt Mở Cửa (Local Offset)")]
+    [Tooltip("Hướng và khoảng cách trượt cửa (Mặc định X: 1.25m sang bên phải)")]
+    public Vector3 slideDirection = new Vector3(1.25f, 0f, 0f);
+
+    [Tooltip("Tích chọn: Di chuyển theo hướng xoay Local của Cửa (chuẩn). Bỏ tích: Di chuyển theo trục World tĩnh")]
+    public bool followDoorLocalRotation = true;
+
+    [Tooltip("Tốc độ trượt mở cửa mượt mà")]
+    public float doorSpeed = 3f;
+
+    [Header("3. Khóa Tương Tác Ban Đầu & Sau Khi Mở")]
+    [Tooltip("Tích chọn để khóa tương tác Cửa Chính lúc đầu (Chờ ngủ dậy mới mở khóa)")]
+    public bool lockOnStart = true;
+
+    [Tooltip("Tích chọn: Sau khi mở cửa ra nhận đồ xong sẽ CHẶN KHÔNG CHO BẤM F TƯƠNG TÁC LẠI VỚI CỬA NỮA!")]
+    public bool disableInteractionAfterOpen = true;
+
+    [Tooltip("Kéo Object NPC Johnson vào đây để tự động mở khóa tương tác cho NPC khi vừa mở cửa!")]
+    public GameObject npcToEnableOnOpen;
+
+    [Header("4. Âm Thanh Mở & Đóng Cửa (Tùy chọn)")]
+    public AudioClip doorOpenSound;
+    public AudioClip doorCloseSound;
 
     [Range(0f, 1f)]
-    [Tooltip("Âm lượng tiếng cửa (Mặc định: 0.8)")]
     public float soundVolume = 0.8f;
 
-    [Header("2. Chuyển Cảnh Mờ Đen (Fade To Black)")]
-    [Tooltip("Tên Scene tiếp theo cần nạp (Mặc định: Map02)")]
-    public string targetSceneName = "Map02";
+    public GameObject doorHintUI;
 
-    [Tooltip("Thời gian màn hình tối mờ dần ra đen (giây)")]
-    public float fadeOutDuration = 1.2f;
+    [Header("5. Nguồn Âm Thanh Môi Trường Thành Phố (City Ambience Control)")]
+    [Tooltip("Kéo AudioSource phát tiếng thành phố đêm lặp đi lặp lại vào đây (Ví dụ: CityAudio)")]
+    public AudioSource cityAmbienceAudioSource;
 
-    [Header("3. Khóa Cửa (2 Điều Kiện Bắt Buộc Để Qua Map 02)")]
-    [Tooltip("Điều kiện 1: Bắt buộc phải trang bị Camcorder mới cho mở cửa")]
-    public bool requireCamcorder = true;
+    [Range(0f, 1f)]
+    [Tooltip("Âm lượng thành phố khi CỬA CHÍNH ĐÓNG (Mặc định: 0.35f)")]
+    public float closedVolume = 0.35f;
 
-    [Tooltip("Điều kiện 2: Bắt buộc phải bấm tắt Case PC (nút nguồn máy tính) mới cho mở cửa")]
-    public bool requirePCTurnedOff = true;
+    [Range(0f, 1f)]
+    [Tooltip("Âm lượng thành phố khi CỬA CHÍNH MỞ (Mặc định: 0.8f)")]
+    public float openedVolume = 0.8f;
 
+    [Tooltip("Thời gian chuyển đổi âm lượng mượt mà khi mở/đóng cửa (giây)")]
+    public float volumeFadeDuration = 1.5f;
+
+    private bool isDoorOpen = false;
+    private bool isInteractionBlocked = false;
+    private bool isLocked = false;
+    private Vector3 closedPosition;
+    private Vector3 openPosition;
     private AudioSource audioSource;
-    private bool isTransitioning = false;
+    private Coroutine fadeCoroutine;
 
     void Start()
     {
-        audioSource = GetComponent<AudioSource>();
-        if (audioSource == null) audioSource = gameObject.AddComponent<AudioSource>();
+        isLocked = lockOnStart;
 
-        audioSource.spatialBlend = 0f; // Âm thanh 2D nghe rõ nét 100%
-        audioSource.playOnAwake = false;
-    }
+        if (doorBody == null) doorBody = transform;
 
-    public void Interact()
-    {
-        if (isTransitioning) return;
+        // Lưu vị trí đóng ban đầu (tọa độ Local)
+        closedPosition = doorBody.localPosition;
 
-        // Đảm bảo âm lượng luôn nghe rõ (nếu Inspector lỡ để 0 sẽ tự dùng 0.8)
-        float effectiveVolume = soundVolume > 0f ? soundVolume : 0.8f;
-
-        // KIỂM TRA ĐIỀU KIỆN 1: Trang bị máy quay
-        bool hasCamcorder = !requireCamcorder || CamcorderUI.HasPickedUpCamera;
-
-        // KIỂM TRA ĐIỀU KIỆN 2: Tắt Case PC (Nút nguồn máy tính)
-        bool isPCOff = !requirePCTurnedOff || !PCPowerButton.IsPCPowerOn;
-
-        // NẾU CHƯA THỎA MÃN ĐỦ CẢ 2 ĐIỀU KIỆN -> BẤM F CHỈ PHÁT TIẾNG "CẠCH CẠCH" TAY NẮM CỬA BỊ KHÓA, KHÔNG CHUYỂN SCENE
-        if (!hasCamcorder || !isPCOff)
+        if (followDoorLocalRotation)
         {
-            if (doorOpenClickSound != null && audioSource != null)
+            Vector3 worldSlideDir = doorBody.TransformDirection(slideDirection);
+            if (doorBody.parent != null)
             {
-                audioSource.PlayOneShot(doorOpenClickSound, effectiveVolume);
+                openPosition = closedPosition + doorBody.parent.InverseTransformDirection(worldSlideDir);
             }
-
-            if (!hasCamcorder && !isPCOff)
+            else
             {
-                Debug.Log("[DoorExit] ⚠️ Cửa đã bị khóa! Bạn phải nhặt máy quay VÀ nhấn tắt Case PC trước khi mở cửa qua Map 02!");
+                openPosition = closedPosition + slideDirection;
             }
-            else if (!hasCamcorder)
-            {
-                Debug.Log("[DoorExit] ⚠️ Cửa đã bị khóa! Bạn phải nhặt máy quay trước khi mở cửa qua Map 02!");
-            }
-            else if (!isPCOff)
-            {
-                Debug.Log("[DoorExit] ⚠️ Cửa đã bị khóa! Bạn phải nhấn nút tắt Case PC trước khi mở cửa qua Map 02!");
-            }
-
-            return;
-        }
-
-        // ĐÃ THỎA MÃN ĐỦ CẢ 2 ĐIỀU KIỆN -> QUY TRÌNH NẠP CỬA SANG MAP 02 CỰC NGHỆ
-        StartCoroutine(DoorTransitionRoutine(effectiveVolume));
-    }
-
-    IEnumerator DoorTransitionRoutine(float volume)
-    {
-        isTransitioning = true;
-
-        // 0. KHÓA TẠM THỜI DI CHUYỂN PLAYER
-        MovePl playerMove = FindFirstObjectByType<MovePl>();
-        if (playerMove != null) playerMove.enabled = false;
-
-        CharacterController playerController = FindFirstObjectByType<CharacterController>();
-        if (playerController != null) playerController.enabled = false;
-
-        // 1. TIẾNG CẠCH 1: PHÁT TIẾNG XOAY TAY NẮM CỬA MỞ
-        if (doorOpenClickSound != null && audioSource != null)
-        {
-            audioSource.PlayOneShot(doorOpenClickSound, volume);
-            yield return new WaitForSeconds(0.2f);
-        }
-
-        // 2. TỐI ĐEN HOÀN TOÀN MÀN HÌNH (FADE TO PITCH BLACK)
-        Image fadePanel = null;
-        if (PauseMenuManager.Instance != null && PauseMenuManager.Instance.fadePanel != null)
-        {
-            fadePanel = PauseMenuManager.Instance.fadePanel;
-        }
-
-        if (fadePanel != null)
-        {
-            PauseMenuManager.BringFadeToFront(fadePanel);
-            PauseMenuManager.SetInGameHUDActive(false);
-
-            fadePanel.color = new Color(0, 0, 0, 0f);
-            fadePanel.DOFade(1f, fadeOutDuration).SetEase(Ease.OutQuad).SetUpdate(true);
-        }
-
-        // 3. GIỮ MÀN HÌNH TỐI ĐEN HOÀN TOÀN TRONG 2.0 GIÂY HỒI HỘP
-        yield return new WaitForSeconds(2.0f);
-
-        // 4. PHÁT TIẾNG CẠCH 2 (ÂM THANH ĐÓNG CỬA & SẬP Ổ KHÓA CỬA CẠCH CẠCH)
-        if (doorCloseLockSound != null && audioSource != null)
-        {
-            audioSource.PlayOneShot(doorCloseLockSound, volume);
-            yield return new WaitForSeconds(doorCloseLockSound.length > 0.5f ? doorCloseLockSound.length : 0.5f);
-        }
-
-        // 5. ẨN TOÀN BỘ GIAO DIỆN UI [F] TRƯỚC KHI SANG SCENE
-        InteractPro interactPro = FindFirstObjectByType<InteractPro>();
-        if (interactPro != null && interactPro.interactionUI != null)
-        {
-            interactPro.interactionUI.SetActive(false);
-        }
-
-        // 6. MỞ KHÓA SCENE 02 VÀ NẠP SANG MAP 02
-        GameSaveManager.UnlockLevel(2);
-
-        if (SceneLoader.Instance != null)
-        {
-            SceneLoader.Instance.LoadSceneAsync(targetSceneName);
         }
         else
         {
-            SceneManager.LoadScene(targetSceneName);
+            openPosition = closedPosition + slideDirection;
         }
+
+        audioSource = GetComponent<AudioSource>();
+        if (audioSource == null) audioSource = gameObject.AddComponent<AudioSource>();
+
+        audioSource.spatialBlend = 0f;
+        audioSource.playOnAwake = false;
+
+        if (doorHintUI != null) doorHintUI.SetActive(false);
+
+        // Tự động tìm nguồn âm thanh CityAudio nếu chưa kéo
+        EnsureCityAudioSource();
+
+        // Cấu hình ban đầu cho tiếng thành phố khi cửa đang ĐÓNG
+        if (cityAmbienceAudioSource != null)
+        {
+            cityAmbienceAudioSource.loop = true;
+            cityAmbienceAudioSource.volume = isDoorOpen ? openedVolume : closedVolume;
+            if (!cityAmbienceAudioSource.isPlaying)
+            {
+                cityAmbienceAudioSource.Play();
+            }
+        }
+    }
+
+    void EnsureCityAudioSource()
+    {
+        if (cityAmbienceAudioSource != null) return;
+
+        GameObject cityObj = GameObject.Find("CityAudio");
+        if (cityObj != null) cityAmbienceAudioSource = cityObj.GetComponent<AudioSource>();
+
+        if (cityAmbienceAudioSource == null)
+        {
+            WindowAmbienceController win = Object.FindFirstObjectByType<WindowAmbienceController>();
+            if (win != null) cityAmbienceAudioSource = win.cityAmbienceAudioSource;
+        }
+    }
+
+    /// <summary>
+    /// GỌI HÀM NÀY ĐỂ MỞ KHÓA TƯƠNG TÁC CHO CỬA CHÍNH (Được gọi khi NGỦ DẬY)
+    /// </summary>
+    public void UnlockDoor()
+    {
+        isLocked = false;
+        Debug.Log("[DoorExit] 🔓 ĐÃ MỞ KHÓA TƯƠNG TÁC CHO CỬA CHÍNH!");
+    }
+
+    void Update()
+    {
+        if (doorBody == null) return;
+
+        // Trượt mở / đóng cửa mượt mà theo vị trí mục tiêu
+        Vector3 targetPos = isDoorOpen ? openPosition : closedPosition;
+        doorBody.localPosition = Vector3.Lerp(doorBody.localPosition, targetPos, Time.deltaTime * doorSpeed);
+    }
+
+    // ==========================================
+    // TƯƠNG TÁC BẤM [F] ĐỂ MỞ CỬA
+    // ==========================================
+    public void Interact()
+    {
+        if (isInteractionBlocked) return;
+
+        // Nếu cửa vẫn đang bị khóa (chưa ngủ dậy) thì không cho mở
+        if (isLocked)
+        {
+            Debug.Log("[DoorExit] 🔒 Cửa đang khóa! Bạn cần nằm ngủ trên nệm trước.");
+            return;
+        }
+
+        // Dừng tiếng gõ cửa liên tục khi tương tác cửa
+        ContinuousDoorKnocker knocker = GetComponent<ContinuousDoorKnocker>();
+        if (knocker == null) knocker = Object.FindFirstObjectByType<ContinuousDoorKnocker>();
+        if (knocker != null) knocker.StopKnocking();
+
+        ToggleDoor();
+
+        if (isDoorOpen && disableInteractionAfterOpen)
+        {
+            isInteractionBlocked = true;
+            HidePrompt();
+
+            // TẮT COLLIDER CỦA CỬA ĐỂ TIA NHÌN XUYÊN QUA TRÚNG NPC PHÍA SAU
+            Collider doorCollider = GetComponent<Collider>();
+            if (doorCollider != null) doorCollider.enabled = false;
+
+            if (npcToEnableOnOpen != null)
+            {
+                npcToEnableOnOpen.SetActive(true);
+                Collider col = npcToEnableOnOpen.GetComponent<Collider>();
+                if (col != null) col.enabled = true;
+            }
+
+            // Tự động tìm NPCDialogueCutscene để mở khóa
+            NPCDialogueCutscene npcCutscene = Object.FindFirstObjectByType<NPCDialogueCutscene>();
+            if (npcCutscene != null)
+            {
+                npcCutscene.UnlockNPC();
+            }
+        }
+    }
+
+    public void ToggleDoor()
+    {
+        isDoorOpen = !isDoorOpen;
+
+        if (audioSource != null)
+        {
+            AudioClip clipToPlay = isDoorOpen ? doorOpenSound : doorCloseSound;
+            if (clipToPlay != null)
+            {
+                audioSource.PlayOneShot(clipToPlay, soundVolume);
+            }
+        }
+
+        UpdateAmbienceVolume();
+    }
+
+    /// <summary>
+    /// Tự động trượt mở cửa (Dùng cho sự kiện kinh dị cán mốc 10s máy quay)
+    /// </summary>
+    public void OpenDoorAutomatically(AudioClip customSound = null)
+    {
+        if (isDoorOpen) return;
+
+        isDoorOpen = true;
+        isInteractionBlocked = true;
+        HidePrompt();
+
+        // Tắt collider để tia nhìn không bị chặn
+        Collider doorCollider = GetComponent<Collider>();
+        if (doorCollider != null) doorCollider.enabled = false;
+
+        if (audioSource != null)
+        {
+            AudioClip clip = (customSound != null) ? customSound : doorOpenSound;
+            if (clip != null)
+            {
+                audioSource.PlayOneShot(clip, soundVolume);
+            }
+        }
+
+        UpdateAmbienceVolume();
+        Debug.Log("[DoorExit] 🚪 Cánh cửa tự động mở ra do sự kiện máy quay 10s!");
+    }
+
+    public bool IsFullyClosed()
+    {
+        if (doorBody == null) return true;
+        return Vector3.Distance(doorBody.localPosition, closedPosition) < 0.05f;
+    }
+
+    public void CloseDoor(bool snapInstantly = false)
+    {
+        isDoorOpen = false;
+        isInteractionBlocked = true;
+        HidePrompt();
+
+        if (snapInstantly && doorBody != null)
+        {
+            doorBody.localPosition = closedPosition;
+        }
+
+        Collider doorCollider = GetComponent<Collider>();
+        if (doorCollider != null) doorCollider.enabled = true;
+
+        if (audioSource != null && doorCloseSound != null)
+        {
+            audioSource.PlayOneShot(doorCloseSound, soundVolume);
+        }
+
+        UpdateAmbienceVolume();
+    }
+
+    void UpdateAmbienceVolume()
+    {
+        EnsureCityAudioSource();
+
+        float targetVol = isDoorOpen ? openedVolume : closedVolume;
+        if (cityAmbienceAudioSource != null)
+        {
+            if (fadeCoroutine != null) StopCoroutine(fadeCoroutine);
+            fadeCoroutine = StartCoroutine(FadeAmbienceRoutine(targetVol));
+            Debug.Log($"[DoorExit] 🔊 Chuyển âm lượng thành phố về: {targetVol} (isDoorOpen = {isDoorOpen})");
+        }
+    }
+
+    IEnumerator FadeAmbienceRoutine(float targetVol)
+    {
+        float startVol = cityAmbienceAudioSource.volume;
+        float elapsed = 0f;
+
+        while (elapsed < volumeFadeDuration)
+        {
+            elapsed += Time.deltaTime;
+            cityAmbienceAudioSource.volume = Mathf.Lerp(startVol, targetVol, elapsed / volumeFadeDuration);
+            yield return null;
+        }
+
+        cityAmbienceAudioSource.volume = targetVol;
+    }
+
+    public void ShowPrompt()
+    {
+        if (isInteractionBlocked || isLocked) return;
+        if (doorHintUI != null) doorHintUI.SetActive(true);
+    }
+
+    public void HidePrompt()
+    {
+        if (doorHintUI != null) doorHintUI.SetActive(false);
     }
 }
