@@ -8,6 +8,8 @@ public class InventoryManager : MonoBehaviour
     private static string[] savedHeldItems = null;
     private static int savedBatteryStackCount = 0;
 
+    public static InventoryManager Instance;
+
     [Header("UI Hotbar (Các ô Tiêu Hoa)")]
     public GameObject inventoryPanel;
     public Transform[] slotTransforms; // Mảng động các ô Slot trên UI
@@ -29,7 +31,7 @@ public class InventoryManager : MonoBehaviour
     public TextMeshProUGUI questProgressText;
     public int totalQuestItemsNeeded = 3;
 
-    private string[] heldItems;
+    public string[] heldItems;
     private GameObject[] heldItemObjects;
     private Image[] slotIconImages; // Các hình Icon con bên trong ô Slot UI
 
@@ -39,6 +41,10 @@ public class InventoryManager : MonoBehaviour
     private Vector3 normalScale = Vector3.one;
     private Vector3 selectedScale = new Vector3(1.2f, 1.2f, 1.2f);
 
+    void Awake()
+    {
+        Instance = this;
+    }
     void Start()
     {
         if (questProgressTextObject != null) questProgressTextObject.SetActive(false);
@@ -408,5 +414,30 @@ public class InventoryManager : MonoBehaviour
     {
         savedHeldItems = null;
         savedBatteryStackCount = 0;
+    }
+    // Hàm kiểm tra xem trong túi có món đồ này chưa
+    public bool HasItem(string itemName)
+    {
+        foreach (string item in heldItems)
+        {
+            if (item == itemName) return true;
+        }
+        return false;
+    }
+
+    // Hàm xóa món đồ sau khi dùng
+    public void RemoveItem(string itemName)
+    {
+        for (int i = 0; i < heldItems.Length; i++)
+        {
+            if (heldItems[i] == itemName)
+            {
+                heldItems[i] = ""; // Xóa tên item
+                if (heldItemObjects[i] != null) Destroy(heldItemObjects[i]); // Hủy object
+                heldItemObjects[i] = null;
+                UpdateUISlots(); // Cập nhật lại UI
+                break;
+            }
+        }
     }
 }
