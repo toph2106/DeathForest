@@ -9,35 +9,31 @@ public class WindowAmbienceController : MonoBehaviour, IInteractable
 
     [Header("2. Mức Âm Lượng Khi Đóng & Mở Cửa Sổ")]
     [Range(0f, 1f)]
-    [Tooltip("Âm lượng thành phố khi CỬA ĐÓNG (Đã tăng lên 0.35 cho nghe rõ hơn nhưng không át tiếng khác)")]
     public float closedVolume = 0.35f;
 
     [Range(0f, 1f)]
-    [Tooltip("Âm lượng thành phố khi CỬA MỞ (Nên để 0.75 đến 0.85 cho tiếng xe cộ ùa vào chân thực)")]
     public float openedVolume = 0.8f;
 
-    [Tooltip("Thời gian chuyển đổi âm lượng mượt mà khi mở/đóng cửa (giây)")]
     public float volumeFadeDuration = 1.5f;
 
-    [Header("3. Âm Thanh Thao Tác Cửa Sổ & Âm Lượng")]
+    [Header("3. Trạng Thái Mặc Định Ban Đầu")]
+    [Tooltip("Tích chọn nếu cửa sổ MẶC ĐỊNH MỞ khi vào game để phát âm thanh môi trường to sẵn")]
+    public bool startOpened = false;
+
+    [Header("4. Âm Thanh Thao Tác Cửa Sổ & Âm Lượng")]
     [Range(0f, 1f)]
-    [Tooltip("Âm lượng tiếng mở/đóng cửa sổ (Mặc định 0.35 cho êm ái vừa vặn)")]
     public float windowSfxVolume = 0.35f;
 
-    [Tooltip("Kéo file tiếng mở cửa sổ vào đây")]
     public AudioClip windowOpenSound;
-    [Tooltip("Kéo file tiếng đóng cửa sổ vào đây (Tùy chọn)")]
     public AudioClip windowCloseSound;
 
-    [Header("4. Chuyển Động Cửa Sổ (Tùy chọn)")]
-    [Tooltip("Kéo cánh cửa sổ trượt vào đây để nó tự di chuyển mở ra khi bấm F")]
-    public Transform slidingWindowMesh;
-    [Tooltip("Khoảng cách cánh cửa trượt sang bên khi mở (Ví dụ: 0.8m)")]
-    public Vector3 slideOffset = new Vector3(-0.7f, 0f, 0f);
+    [Header("5. Mở Khóa Case PC Sau Khi Đóng Cửa Sổ")]
+    [Tooltip("Kéo Collider của Vỏ Case PC vào đây để mở khóa tương tác Case PC sau khi ĐÓNG CỬA SỔ!")]
+    public Collider caseColliderToEnable;
+    public GameObject caseObjectToEnable;
 
     private bool isOpen = false;
     private AudioSource sfxAudioSource;
-    private Vector3 initialWindowPos;
     private Coroutine fadeCoroutine;
 
     void Start()
@@ -48,16 +44,13 @@ public class WindowAmbienceController : MonoBehaviour, IInteractable
         sfxAudioSource.spatialBlend = 0f;
         sfxAudioSource.playOnAwake = false;
 
-        if (slidingWindowMesh != null)
-        {
-            initialWindowPos = slidingWindowMesh.localPosition;
-        }
+        isOpen = startOpened;
 
-        // Cấu hình ban đầu cho tiếng thành phố khi cửa đang ĐÓNG
+        // Cấu hình âm lượng ban đầu cho tiếng thành phố theo startOpened
         if (cityAmbienceAudioSource != null)
         {
             cityAmbienceAudioSource.loop = true;
-            cityAmbienceAudioSource.volume = closedVolume;
+            cityAmbienceAudioSource.volume = startOpened ? openedVolume : closedVolume;
             if (!cityAmbienceAudioSource.isPlaying)
             {
                 cityAmbienceAudioSource.Play();
@@ -65,45 +58,57 @@ public class WindowAmbienceController : MonoBehaviour, IInteractable
         }
     }
 
-    // TƯƠNG TÁC KHI NHÌN CỬA SỔ BẤM PHÍM F
     public void Interact()
     {
         isOpen = !isOpen;
 
         if (isOpen)
         {
-            // BẤM F LẦN 1 -> MỞ CỬA SỔ
             if (windowOpenSound != null && sfxAudioSource != null)
             {
                 sfxAudioSource.PlayOneShot(windowOpenSound, windowSfxVolume);
             }
-
-            // Tăng âm lượng tiếng thành phố ùa vào phòng
             StartVolumeFade(openedVolume);
         }
         else
         {
-            // BẤM F LẦN 2 -> ĐÓNG CỬA SỔ
             if (windowCloseSound != null && sfxAudioSource != null)
             {
                 sfxAudioSource.PlayOneShot(windowCloseSound, windowSfxVolume);
             }
-
-            // Giảm âm lượng tiếng thành phố về lại 0.35
             StartVolumeFade(closedVolume);
-        }
 
-        // Chuyển động trượt cánh cửa sổ (nếu có gán slidingWindowMesh)
-        if (slidingWindowMesh != null)
-        {
-            StopAllCoroutines();
-            Vector3 targetPos = isOpen ? (initialWindowPos + slideOffset) : initialWindowPos;
-            StartCoroutine(SlideWindowRoutine(targetPos));
+            // MỞ KHÓA CASE PC KHI ĐÓNG CỬA SỔ
+            if (caseColliderToEnable != null)
+            {
+                caseColliderToEnable.enabled = true;
+            }
+            if (caseObjectToEnable != null)
+            {
+                caseObjectToEnable.SetActive(true);
+            }
+
+            // Tự động tìm và mở khóa PCPowerButton trong Scene (Fail-safe)
+            PCPowerButton pcPower = Object.FindFirstObjectByType<PCPowerButton>();
+            if (pcPower != null)
+            {
+                pcPower.UnlockCase();
+            }
+
+            Debug.Log("[WindowAmbienceController] 🔓 ĐÃ ĐÓNG CỬA SỔ! Mở khóa tương tác với Case PC.");
         }
     }
 
-    void StartVolumeFade(float targetVol)
+    void EnsureCityAudioSource()
     {
+        if (cityAmbienceAudioSource != null) return;
+        GameObject cityObj = GameObject.Find("CityAudio");
+        if (cityObj != null) cityAmbienceAudioSource = cityObj.GetComponent<AudioSource>();
+    }
+
+    public void StartVolumeFade(float targetVol)
+    {
+        EnsureCityAudioSource();
         if (cityAmbienceAudioSource == null) return;
         if (fadeCoroutine != null) StopCoroutine(fadeCoroutine);
         fadeCoroutine = StartCoroutine(FadeVolumeRoutine(targetVol));
@@ -122,21 +127,5 @@ public class WindowAmbienceController : MonoBehaviour, IInteractable
         }
 
         cityAmbienceAudioSource.volume = targetVol;
-    }
-
-    IEnumerator SlideWindowRoutine(Vector3 targetPos)
-    {
-        float elapsed = 0f;
-        float duration = 0.8f;
-        Vector3 startPos = slidingWindowMesh.localPosition;
-
-        while (elapsed < duration)
-        {
-            elapsed += Time.deltaTime;
-            slidingWindowMesh.localPosition = Vector3.Lerp(startPos, targetPos, elapsed / duration);
-            yield return null;
-        }
-
-        slidingWindowMesh.localPosition = targetPos;
     }
 }

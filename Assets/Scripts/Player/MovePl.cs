@@ -21,6 +21,22 @@ public class MovePl : MonoBehaviour
     [Tooltip("Tốc độ lướt mượt góc nhìn (Mặc định: 18.0 - Càng cao càng nhạy tức thì, càng thấp càng đằm tay)")]
     public float smoothLookSpeed = 18.0f;
 
+    [Header("Crouch Settings (Tính Năng Ngồi Phím C)")]
+    [Tooltip("Phím bấm để bật/tắt ngồi (Mặc định: Phím C)")]
+    public KeyCode crouchKey = KeyCode.C;
+
+    [Tooltip("Tỷ lệ hạ thấp Camera khi ngồi (0.333 = chia 3 chiều cao Camera từ 0.6 xuống 0.2)")]
+    public float crouchHeightMultiplier = 0.333333f;
+
+    [Tooltip("Tỷ lệ giảm tốc độ di chuyển khi ngồi (0.5 = chia đôi tốc độ di chuyển)")]
+    public float crouchSpeedMultiplier = 0.5f;
+
+    [Tooltip("Tốc độ chuyển đổi nâng/hạ camera mượt mà")]
+    public float crouchTransitionSpeed = 10f;
+
+    [HideInInspector]
+    public bool isCrouching = false;
+
     [Header("Teleport Settings")]
     public Transform spawnPoint;
 
@@ -39,9 +55,27 @@ public class MovePl : MonoBehaviour
     private Vector2 targetMouseDelta;
     private Vector2 smoothMouseDelta;
 
+    private float standingCamY = 0.6f;
+    private float crouchCamY = 0.2f;
+
     void Start()
     {
         LockCursor();
+
+        if (cameraTransform != null)
+        {
+            standingCamY = cameraTransform.localPosition.y;
+            if (standingCamY == 0f) standingCamY = 0.6f;
+
+            // Tự động chia 3 chiều cao camera khi ngồi
+            if (crouchHeightMultiplier == 0.5f || crouchHeightMultiplier <= 0f)
+            {
+                crouchHeightMultiplier = 1f / 3f;
+            }
+
+            crouchCamY = standingCamY * crouchHeightMultiplier;
+        }
+
         SyncRotationWithCurrentCamera();
     }
 
@@ -67,6 +101,32 @@ public class MovePl : MonoBehaviour
         if (Input.GetMouseButtonDown(0)) LockCursor();
         if (Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt)) UnlockCursor();
 
+        // 1. XỬ LÝ PHÍM NGỒI (C) & GIỮ SHIFT ĐỨNG DẬY CHẠY NHANH
+        if (canMove && !isCameraLocked)
+        {
+            // Bấm phím C để bật/tắt trạng thái ngồi
+            if (Input.GetKeyDown(crouchKey))
+            {
+                isCrouching = !isCrouching;
+            }
+
+            // Giữ Shift chạy nhanh -> Tự động đứng dậy (hủy trạng thái ngồi)
+            if (Input.GetKey(KeyCode.LeftShift))
+            {
+                isCrouching = false;
+            }
+        }
+
+        // 2. NÂNG / HẠ CAMERA MƯỢT MÀ BẰNG LERP (0.6f -> 0.3f)
+        if (cameraTransform != null && !isCameraLocked)
+        {
+            float targetY = isCrouching ? crouchCamY : standingCamY;
+            Vector3 camLocalPos = cameraTransform.localPosition;
+            camLocalPos.y = Mathf.Lerp(camLocalPos.y, targetY, Time.deltaTime * crouchTransitionSpeed);
+            cameraTransform.localPosition = camLocalPos;
+        }
+
+        // 3. XỬ LÝ GÓC NHÌN CHUỘT
         if (Cursor.lockState == CursorLockMode.Locked && canMove)
         {
             if (!isCameraLocked)
@@ -99,7 +159,7 @@ public class MovePl : MonoBehaviour
             }
         }
 
-        // TÍNH TOÁN DI CHUYỂN
+        // 4. TÍNH TOÁN DI CHUYỂN & TỐC ĐỘ (KHI NGỒI CHIA ĐÔI TỐC ĐỘ)
         if (controller != null && controller.enabled)
         {
             isGrounded = controller.isGrounded;
@@ -116,15 +176,28 @@ public class MovePl : MonoBehaviour
 
             float currentWalkSpeed = isSlowed ? slowWalkSpeed : walkSpeed;
             float currentSprintSpeed = isSlowed ? slowSprintSpeed : sprintSpeed;
-            float speed = Input.GetKey(KeyCode.LeftShift) ? currentSprintSpeed : currentWalkSpeed;
+
+            // Tính toán tốc độ: Chạy nhanh (Shift), Đi bộ chuẩn, hoặc Ngồi (Chia đôi tốc độ)
+            float speed = currentWalkSpeed;
+
+            if (Input.GetKey(KeyCode.LeftShift) && !isCrouching)
+            {
+                speed = currentSprintSpeed;
+            }
+            else if (isCrouching)
+            {
+                speed = currentWalkSpeed * crouchSpeedMultiplier; // Chia đôi tốc độ khi ngồi
+            }
 
             if (canMove)
             {
                 controller.Move(move * speed * Time.deltaTime);
             }
 
+            // Bấm Phím Nhảy (Space) -> Tự động đứng dậy nếu đang ngồi
             if (Input.GetButtonDown("Jump") && isGrounded && canMove)
             {
+                if (isCrouching) isCrouching = false;
                 velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
             }
 

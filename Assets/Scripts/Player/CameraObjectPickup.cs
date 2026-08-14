@@ -116,6 +116,14 @@ public class CameraObjectPickup : MonoBehaviour, IInteractable
             cameraUICanvas.SetActive(true);
         }
 
+        // Tự động kích hoạt bộ đếm sự kiện 10s mở cửa chính
+        Camera10sDoorEvent doorEvent = Object.FindFirstObjectByType<Camera10sDoorEvent>();
+        if (doorEvent == null)
+        {
+            GameObject eventObj = new GameObject("Camera10sDoorEvent");
+            eventObj.AddComponent<Camera10sDoorEvent>();
+        }
+
         // 5. Xóa object an toàn sau 2.0s
         Destroy(gameObject, 2.0f);
     }

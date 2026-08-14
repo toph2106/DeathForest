@@ -30,14 +30,48 @@ public class PCPowerButton : MonoBehaviour, IInteractable
     [Tooltip("Bán kính tối đa nghe thấy tiếng quạt Case PC (Mặc định: 5m)")]
     public float maxSoundDistance = 5f;
 
+    [Header("6. Cơ Chế Khóa Ban Đầu & Mở Khóa Mèo Sau Khi Tắt PC")]
+    [Tooltip("Tích chọn: Khóa tương tác Case PC lúc đầu (Chờ đóng cửa sổ mới mở khóa)")]
+    public bool lockOnStart = true;
+
+    [Tooltip("Kéo Collider của Con Mèo vào đây để tự động mở khóa tương tác đuổi Mèo sau khi TẮT CASE PC!")]
+    public Collider catColliderToEnable;
+    public GameObject catObjectToEnable;
+
     public static bool IsPCPowerOn { get; private set; } = false;
 
+    private Collider caseCollider;
     private AudioSource audioSource;
     private AudioSource fanAudioSource;
+
+    void Awake()
+    {
+        caseCollider = GetComponent<Collider>();
+    }
 
     void Start()
     {
         IsPCPowerOn = false;
+
+        if (caseCollider == null) caseCollider = GetComponent<Collider>();
+
+        if (lockOnStart && caseCollider != null)
+        {
+            caseCollider.enabled = false;
+        }
+
+        // Tự động tìm màn hình PC nếu chưa kéo
+        if (computerCutscene == null)
+        {
+            computerCutscene = Object.FindFirstObjectByType<InWorldComputerCutscene>();
+        }
+
+        // Tự động tìm Con Mèo nếu chưa kéo
+        if (catColliderToEnable == null)
+        {
+            Cat cat = Object.FindFirstObjectByType<Cat>();
+            if (cat != null) catColliderToEnable = cat.GetComponent<Collider>();
+        }
 
         // Source 1: Phát tiếng bíp/click nguồn
         audioSource = GetComponent<AudioSource>();
@@ -49,6 +83,19 @@ public class PCPowerButton : MonoBehaviour, IInteractable
         fanAudioSource.playOnAwake = false;
 
         Update3DSoundSettings();
+    }
+
+    /// <summary>
+    /// GỌI HÀM NÀY ĐỂ MỞ KHÓA TƯƠNG TÁC VỚI CASE PC (Được gọi khi ĐÓNG CỬA SỔ)
+    /// </summary>
+    public void UnlockCase()
+    {
+        if (caseCollider == null) caseCollider = GetComponent<Collider>();
+        if (caseCollider != null)
+        {
+            caseCollider.enabled = true;
+            Debug.Log("[PCPowerButton] 🔓 ĐÃ MỞ KHÓA TƯƠNG TÁC CHO CASE PC!");
+        }
     }
 
     void Update3DSoundSettings()
@@ -129,6 +176,19 @@ public class PCPowerButton : MonoBehaviour, IInteractable
             if (computerCutscene != null)
             {
                 computerCutscene.PowerOffPC();
+            }
+
+            // 4. MỞ KHÓA TƯƠNG TÁC CON MÈO
+            if (catColliderToEnable != null)
+            {
+                catColliderToEnable.enabled = true;
+                Cat catComp = catColliderToEnable.GetComponent<Cat>();
+                if (catComp != null) catComp.UnlockCat();
+                Debug.Log("[PCPowerButton] 🔓 Đã tắt Case PC! Mở khóa tương tác cho Con Mèo.");
+            }
+            if (catObjectToEnable != null)
+            {
+                catObjectToEnable.SetActive(true);
             }
         }
     }
