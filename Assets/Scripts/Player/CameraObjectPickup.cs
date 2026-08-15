@@ -43,11 +43,7 @@ public class CameraObjectPickup : MonoBehaviour, IInteractable
 
     public void Interact()
     {
-        CrouchInteractable crouchComp = GetComponent<CrouchInteractable>();
-        if (crouchComp == null)
-        {
-            Pickup();
-        }
+        Pickup();
     }
 
     public void Pickup()

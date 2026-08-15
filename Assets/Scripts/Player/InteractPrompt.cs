@@ -3,11 +3,11 @@ using TMPro;
 
 public class InteractPrompt : MonoBehaviour
 {
-    [Header("1. Chữ Nhắc Phím Tương Tác Song Ngữ")]
-    public string englishPrompt = "[F] Use Computer";
-    public string vietnamesePrompt = "[F] Xem máy tính";
+    [Header("1. Chữ Nhắc Tương Tác Song Ngữ")]
+    public string englishPrompt = "Use Computer";
+    public string vietnamesePrompt = "Xem máy tính";
 
-    [Header("2. Canvas Chữ F Bay Lơ Lửng (PressF World Space UI - Tùy chọn)")]
+    [Header("2. Canvas Gợi Ý (World Space UI - Tùy chọn)")]
     public GameObject pressFHintUI;
     public TextMeshProUGUI worldSpaceText;
 
@@ -40,7 +40,9 @@ public class InteractPrompt : MonoBehaviour
 
     public string GetPrompt()
     {
-        return (SettingsManager.currentLanguage == "VI") ? vietnamesePrompt : englishPrompt;
+        string p = (SettingsManager.currentLanguage == "VI") ? vietnamesePrompt : englishPrompt;
+        if (string.IsNullOrEmpty(p)) return "";
+        return p.Replace("[F] ", "").Replace("[F]", "").Trim();
     }
 
     public void UpdateText()

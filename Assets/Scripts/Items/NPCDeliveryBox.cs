@@ -4,9 +4,9 @@ using System.Collections;
 
 public class NPCDeliveryBox : MonoBehaviour, IInteractable
 {
-    [Header("1. Chữ Nhắc Phím Tương Tác (Prompt UI)")]
-    public string englishPrompt = "[F] Take Package";
-    public string vietnamesePrompt = "[F] Nhận thùng hàng";
+    [Header("1. Chữ Nhắc Tương Tác (Prompt UI)")]
+    public string englishPrompt = "Take Package";
+    public string vietnamesePrompt = "Nhận thùng hàng";
 
     [Header("2. Thùng Hàng Trên Tay Người Chơi (Player Hand Box)")]
     [Tooltip("Kéo Object thùng hàng setup sẵn trên tay Player/trước camera vào đây để tự động bật active khi màn hình đen")]
@@ -306,23 +306,15 @@ public class NPCDeliveryBox : MonoBehaviour, IInteractable
             DontDestroyOnLoad(runnerObj);
         }
 
-        Canvas existingCanvas = Object.FindFirstObjectByType<Canvas>();
-        GameObject canvasObj = null;
-
-        if (existingCanvas != null)
-        {
-            canvasObj = existingCanvas.gameObject;
-        }
-        else
-        {
-            canvasObj = new GameObject("DeliveryFadeCanvas");
-            Canvas canvas = canvasObj.AddComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            canvas.sortingOrder = 9999;
-            canvasObj.AddComponent<CanvasScaler>();
-            canvasObj.AddComponent<GraphicRaycaster>();
-            DontDestroyOnLoad(canvasObj);
-        }
+        // Luôn tạo Canvas Overlay độc lập ở tầng hiển thị cao nhất (sortingOrder 9999)
+        // để tuyệt đối không bị đè bởi bất kỳ UI / Menu nào khác
+        GameObject canvasObj = new GameObject("DeliveryFadeCanvas");
+        Canvas canvas = canvasObj.AddComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.sortingOrder = 9999;
+        canvasObj.AddComponent<CanvasScaler>();
+        canvasObj.AddComponent<GraphicRaycaster>();
+        DontDestroyOnLoad(canvasObj);
 
         GameObject imageObj = new GameObject("DeliveryFadePanel");
         imageObj.transform.SetParent(canvasObj.transform, false);

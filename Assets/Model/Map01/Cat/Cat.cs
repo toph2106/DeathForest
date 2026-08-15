@@ -17,8 +17,8 @@ public class Cat : MonoBehaviour, IInteractable
     [Tooltip("Kéo BoxCollider đại diện cho vùng di chuyển trên giường/nệm vào đây")]
     public BoxCollider moveAreaBounds;
 
-    [Tooltip("Thời gian chờ ban đầu sau khi bấm F trước khi bắt đầu di chuyển (giây, Mặc định: 3.0s)")]
-    public float initialInteractDelay = 3.0f;
+    [Tooltip("Thời gian chờ ban đầu sau khi tương tác trước khi bắt đầu bật nhạc và di chuyển (giây, Mặc định: 2.0s)")]
+    public float initialInteractDelay = 2.0f;
 
     [Tooltip("Thời gian Mèo thực hiện mỗi đợt di chuyển (giây, Mặc định: 6.0s)")]
     public float animDuration = 6.0f;
@@ -43,18 +43,36 @@ public class Cat : MonoBehaviour, IInteractable
     [Tooltip("Khoảng cách bắt đầu giảm dần âm lượng (Mặc định: 1m)")]
     public float audioMinDistance = 1f;
 
-    [Header("5. Chữ Nhắc Phím Tương Tác (Prompt UI)")]
-    public string englishPrompt = "[F] Shoo the cat away";
-    public string vietnamesePrompt = "[F] Đuổi mèo đi chỗ khác";
+    [Header("5. Chữ Nhắc Tương Tác (Prompt UI)")]
+    public string englishPrompt = "Shoo the cat away";
+    public string vietnamesePrompt = "Đuổi mèo đi chỗ khác";
 
-    [Header("6. Mở Khóa Tương Tác Nệm Ngủ (Unlock Bed Mechanism)")]
-    [Tooltip("Tích chọn để khóa tương tác Mèo lúc đầu (Chờ dùng PC xong mới mở khóa)")]
-    public bool lockOnStart = true;
+    [Header("6. Mở Khóa Tương Tác Ban Đầu (Tùy chọn)")]
+    [Tooltip("Tích chọn nếu muốn khóa tương tác Mèo lúc đầu (Mặc định: false - Cho phép tương tác tự do)")]
+    public bool lockOnStart = false;
 
-    [Tooltip("Kéo Collider của Nệm Ngủ vào đây để tự động mở khóa [F] Nằm ngủ sau khi tương tác với Mèo!")]
+    [Tooltip("Kéo Collider của Nệm Ngủ vào đây (Tùy chọn)")]
     public Collider bedColliderToEnable;
 
-    [Header("7. TriggerMeow Cần Ẩn Khi Mèo Tới Hộp Giấy")]
+    [Header("7. Lời Thoại Khi Tương Tác Với Mèo")]
+    [Tooltip("Danh sách thoại khi tương tác với mèo. Thêm (+) hoặc để trống")]
+    public SmartInteractionDialogue.DialogueLine[] catDialogueLines = new SmartInteractionDialogue.DialogueLine[]
+    {
+        new SmartInteractionDialogue.DialogueLine
+        {
+            vietnameseDialogue = "Ngoan nào... đi ra chỗ khác chơi nhé.",
+            englishDialogue = "Good kitty... go play over there."
+        }
+    };
+
+    [Header("7.1. Âm Thanh Thoại Gõ Chữ (Dialogue SFX)")]
+    [Tooltip("Gói âm thanh lồng tiếng / gõ chữ khi hiện phụ đề tương tác với mèo (5s blip)")]
+    public AudioClip dialogueSound;
+    [Range(0f, 1f)]
+    [Tooltip("Âm lượng âm thanh thoại gõ chữ (Mặc định: 0.8)")]
+    public float dialogueVolume = 0.8f;
+
+    [Header("8. TriggerMeow Cần Ẩn Khi Mèo Tới Hộp Giấy")]
     [Tooltip("Kéo GameObject TriggerMeow vào đây để tự động ẩn khi mèo tới điểm Meow")]
     public GameObject triggerMeowToDisable;
 
@@ -67,6 +85,8 @@ public class Cat : MonoBehaviour, IInteractable
     private bool isCatActive = false;
     private Coroutine catLoopCoroutine;
 
+    private bool isFadingOut = false;
+
     void Awake()
     {
         catCollider = GetComponent<Collider>();
@@ -76,7 +96,17 @@ public class Cat : MonoBehaviour, IInteractable
         catAudioSource = GetComponent<AudioSource>();
         if (catAudioSource == null) catAudioSource = gameObject.AddComponent<AudioSource>();
 
+        catAudioSource.volume = catSoundVolume;
         interactPrompt = GetComponent<InteractPrompt>();
+    }
+
+    void OnValidate()
+    {
+        if (catAudioSource != null)
+        {
+            catAudioSource.volume = catSoundVolume;
+            UpdateAudio3DSettings();
+        }
     }
 
     void Start()
@@ -114,6 +144,10 @@ public class Cat : MonoBehaviour, IInteractable
         interactPrompt.vietnamesePrompt = vietnamesePrompt;
 
         UpdateAudio3DSettings();
+        if (catAudioSource != null)
+        {
+            catAudioSource.volume = catSoundVolume;
+        }
     }
 
     /// <summary>
@@ -144,6 +178,12 @@ public class Cat : MonoBehaviour, IInteractable
 
     void Update()
     {
+        // Đồng bộ âm lượng thời gian thực
+        if (catAudioSource != null && !isFadingOut)
+        {
+            catAudioSource.volume = catSoundVolume;
+        }
+
         // TỰ ĐỘNG XOAY MẶT HƯỚNG VỀ PHÍA PLAYER (Khi không nhảy)
         if (enableLookAtPlayer && playerTransform != null)
         {
@@ -158,9 +198,19 @@ public class Cat : MonoBehaviour, IInteractable
         }
     }
 
-    // TƯƠNG TÁC BẤM PHÍM F VÀO CON MÈO (OIIAOIIA MEME CAT)
+    // TƯƠNG TÁC CLICK CHUỘT TRÁI VÀO CON MÈO (OIIAOIIA MEME CAT)
     public void Interact()
     {
+        // Phát thoại tương tác với Mèo nếu có setup
+        if (catDialogueLines != null && catDialogueLines.Length > 0)
+        {
+            SmartInteractionDialogue dialoguePlayer = GetComponent<SmartInteractionDialogue>();
+            if (dialoguePlayer == null) dialoguePlayer = gameObject.AddComponent<SmartInteractionDialogue>();
+            dialoguePlayer.dialogueSound = dialogueSound;
+            dialoguePlayer.soundVolume = dialogueVolume;
+            dialoguePlayer.PlayCustomLines(catDialogueLines);
+        }
+
         // 1. Mở khóa tương tác cho Nệm Ngủ khi tương tác đuổi Mèo
         if (bedColliderToEnable != null)
         {
@@ -183,8 +233,32 @@ public class Cat : MonoBehaviour, IInteractable
         // Tắt xoay nhìn player trong lúc đang nhảy dance trên giường
         enableLookAtPlayer = false;
 
+        // BẮT ĐẦU NHẢY MÚA VÀ DI CHUYỂN NGAY LẬP TỨC
         if (catLoopCoroutine != null) StopCoroutine(catLoopCoroutine);
         catLoopCoroutine = StartCoroutine(CatBehaviorLoopRoutine());
+
+        // BẬT NHẠC SAU DELAY 2.0s TỪ LÚC TƯƠNG TÁC
+        if (catMusicCoroutine != null) StopCoroutine(catMusicCoroutine);
+        catMusicCoroutine = StartCoroutine(PlayCatMusicDelayedRoutine(initialInteractDelay));
+    }
+
+    private Coroutine catMusicCoroutine;
+
+    IEnumerator PlayCatMusicDelayedRoutine(float delay)
+    {
+        if (delay > 0f)
+        {
+            yield return new WaitForSeconds(delay);
+        }
+
+        if (catSound != null && catAudioSource != null && isCatActive)
+        {
+            catAudioSource.loop = true;
+            catAudioSource.clip = catSound;
+            catAudioSource.volume = catSoundVolume;
+            catAudioSource.time = 0f;
+            catAudioSource.Play();
+        }
     }
 
     IEnumerator SingleDanceRoutine(float duration)
@@ -192,18 +266,14 @@ public class Cat : MonoBehaviour, IInteractable
         isCatActive = true;
         enableLookAtPlayer = false;
 
-        if (catSound != null && catAudioSource != null)
-        {
-            catAudioSource.loop = false;
-            catAudioSource.clip = catSound;
-            catAudioSource.volume = catSoundVolume;
-            catAudioSource.Play();
-        }
-
         if (catAnimator != null)
         {
             catAnimator.SetTrigger("PlayAnim");
         }
+
+        // Bật nhạc sau delay
+        if (catMusicCoroutine != null) StopCoroutine(catMusicCoroutine);
+        catMusicCoroutine = StartCoroutine(PlayCatMusicDelayedRoutine(initialInteractDelay));
 
         float elapsed = 0f;
         while (elapsed < duration)
@@ -225,25 +295,9 @@ public class Cat : MonoBehaviour, IInteractable
     {
         isCatActive = true;
 
-        if (catSound != null && catAudioSource != null)
-        {
-            catAudioSource.loop = true;
-            catAudioSource.clip = catSound;
-            catAudioSource.volume = catSoundVolume;
-            if (!catAudioSource.isPlaying)
-            {
-                catAudioSource.Play();
-            }
-        }
-
         if (catAnimator != null)
         {
             catAnimator.SetTrigger("PlayAnim");
-        }
-
-        if (initialInteractDelay > 0f)
-        {
-            yield return new WaitForSeconds(initialInteractDelay);
         }
 
         while (isCatActive)
@@ -306,6 +360,7 @@ public class Cat : MonoBehaviour, IInteractable
 
     IEnumerator FadeOutCatSoundRoutine(float fadeDuration)
     {
+        isFadingOut = true;
         if (catAnimator != null) catAnimator.ResetTrigger("PlayAnim");
         enableLookAtPlayer = true;
 
@@ -324,6 +379,7 @@ public class Cat : MonoBehaviour, IInteractable
         }
 
         isCatActive = false;
+        isFadingOut = false;
     }
 
     /// <summary>

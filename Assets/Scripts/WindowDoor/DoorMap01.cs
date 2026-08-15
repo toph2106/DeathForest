@@ -27,9 +27,9 @@ public class DoorExit : MonoBehaviour, IInteractable
     [Tooltip("Kéo Object NPC Johnson vào đây để tự động mở khóa tương tác cho NPC khi vừa mở cửa!")]
     public GameObject npcToEnableOnOpen;
 
-    [Header("4. Âm Thanh Mở & Đóng Cửa (Tùy chọn)")]
-    public AudioClip doorOpenSound;
-    public AudioClip doorCloseSound;
+    [Header("4. Âm Thanh Cửa Trượt (Tùy chọn)")]
+    [Tooltip("Kéo 1 file âm thanh tiếng trượt cửa vào đây (dùng chung cho cả mở & đóng)")]
+    public AudioClip doorSlideSound;
 
     [Range(0f, 1f)]
     public float soundVolume = 0.8f;
@@ -51,6 +51,27 @@ public class DoorExit : MonoBehaviour, IInteractable
     [Tooltip("Thời gian chuyển đổi âm lượng mượt mà khi mở/đóng cửa (giây)")]
     public float volumeFadeDuration = 1.5f;
 
+    [Header("6. Danh Sách Lời Thoại (Locked vs Unlocked Dialogues)")]
+    [Tooltip("Thoại phát khi CỬA ĐANG KHÓA (chưa ngủ dậy). Thêm (+) hoặc để trống")]
+    public SmartInteractionDialogue.DialogueLine[] lockedDialogueLines = new SmartInteractionDialogue.DialogueLine[]
+    {
+        new SmartInteractionDialogue.DialogueLine
+        {
+            vietnameseDialogue = "Đêm muộn rồi, không có việc gì để ra ngoài cả.",
+            englishDialogue = "It's late at night, I have no reason to go outside."
+        }
+    };
+
+    [Tooltip("Thoại phát khi MỞ CỬA THÀNH CÔNG. Thêm (+) hoặc để trống nếu muốn mở ngay lập tức")]
+    public SmartInteractionDialogue.DialogueLine[] unlockedDialogueLines;
+
+    [Header("6.1. Âm Thanh Thoại Gõ Chữ (Dialogue SFX)")]
+    [Tooltip("Gói âm thanh lồng tiếng / gõ chữ khi hiện phụ đề cửa (5s blip)")]
+    public AudioClip dialogueSound;
+    [Range(0f, 1f)]
+    [Tooltip("Âm lượng âm thanh thoại gõ chữ (Mặc định: 0.8)")]
+    public float dialogueVolume = 0.8f;
+
     private bool isDoorOpen = false;
     private bool isInteractionBlocked = false;
     private bool isLocked = false;
@@ -58,6 +79,7 @@ public class DoorExit : MonoBehaviour, IInteractable
     private Vector3 openPosition;
     private AudioSource audioSource;
     private Coroutine fadeCoroutine;
+    private SmartInteractionDialogue dialoguePlayer;
 
     void Start()
     {
@@ -88,7 +110,9 @@ public class DoorExit : MonoBehaviour, IInteractable
         audioSource = GetComponent<AudioSource>();
         if (audioSource == null) audioSource = gameObject.AddComponent<AudioSource>();
 
-        audioSource.spatialBlend = 0f;
+        audioSource.spatialBlend = 0.65f; // Hiệu ứng âm thanh 3D chân thực, định vị vị trí cánh cửa
+        audioSource.minDistance = 1f;
+        audioSource.maxDistance = 15f;
         audioSource.playOnAwake = false;
 
         if (doorHintUI != null) doorHintUI.SetActive(false);
@@ -147,13 +171,38 @@ public class DoorExit : MonoBehaviour, IInteractable
     {
         if (isInteractionBlocked) return;
 
-        // Nếu cửa vẫn đang bị khóa (chưa ngủ dậy) thì không cho mở
+        if (dialoguePlayer == null)
+        {
+            dialoguePlayer = GetComponent<SmartInteractionDialogue>();
+            if (dialoguePlayer == null) dialoguePlayer = gameObject.AddComponent<SmartInteractionDialogue>();
+        }
+        dialoguePlayer.dialogueSound = dialogueSound;
+        dialoguePlayer.soundVolume = dialogueVolume;
+
+        // Nếu cửa vẫn đang bị khóa (chưa ngủ dậy) thì không cho mở & phát thoại Khóa
         if (isLocked)
         {
             Debug.Log("[DoorExit] 🔒 Cửa đang khóa! Bạn cần nằm ngủ trên nệm trước.");
+            if (lockedDialogueLines != null && lockedDialogueLines.Length > 0)
+            {
+                dialoguePlayer.PlayCustomLines(lockedDialogueLines);
+            }
             return;
         }
 
+        // Nếu đã mở khóa -> Kiểm tra có thoại Unlocked không
+        if (unlockedDialogueLines != null && unlockedDialogueLines.Length > 0)
+        {
+            dialoguePlayer.PlayCustomLines(unlockedDialogueLines, () => ExecuteDoorOpen());
+        }
+        else
+        {
+            ExecuteDoorOpen();
+        }
+    }
+
+    void ExecuteDoorOpen()
+    {
         // Dừng tiếng gõ cửa liên tục khi tương tác cửa
         ContinuousDoorKnocker knocker = GetComponent<ContinuousDoorKnocker>();
         if (knocker == null) knocker = Object.FindFirstObjectByType<ContinuousDoorKnocker>();
@@ -190,13 +239,9 @@ public class DoorExit : MonoBehaviour, IInteractable
     {
         isDoorOpen = !isDoorOpen;
 
-        if (audioSource != null)
+        if (audioSource != null && doorSlideSound != null)
         {
-            AudioClip clipToPlay = isDoorOpen ? doorOpenSound : doorCloseSound;
-            if (clipToPlay != null)
-            {
-                audioSource.PlayOneShot(clipToPlay, soundVolume);
-            }
+            audioSource.PlayOneShot(doorSlideSound, soundVolume);
         }
 
         UpdateAmbienceVolume();
@@ -219,7 +264,7 @@ public class DoorExit : MonoBehaviour, IInteractable
 
         if (audioSource != null)
         {
-            AudioClip clip = (customSound != null) ? customSound : doorOpenSound;
+            AudioClip clip = (customSound != null) ? customSound : doorSlideSound;
             if (clip != null)
             {
                 audioSource.PlayOneShot(clip, soundVolume);
@@ -250,9 +295,9 @@ public class DoorExit : MonoBehaviour, IInteractable
         Collider doorCollider = GetComponent<Collider>();
         if (doorCollider != null) doorCollider.enabled = true;
 
-        if (audioSource != null && doorCloseSound != null)
+        if (audioSource != null && doorSlideSound != null)
         {
-            audioSource.PlayOneShot(doorCloseSound, soundVolume);
+            audioSource.PlayOneShot(doorSlideSound, soundVolume);
         }
 
         UpdateAmbienceVolume();

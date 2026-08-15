@@ -34,23 +34,37 @@ public class GameIntroManager : MonoBehaviour
     public class IntroLine
     {
         [TextArea(2, 4)]
-        public string lineText = "";
-        public AudioClip voiceClip;
+        public string vietnameseDialogue = "";
+        [TextArea(2, 4)]
+        public string englishDialogue = "";
     }
 
     public IntroLine[] introLines = new IntroLine[]
     {
-        new IntroLine { lineText = "Lại 2 giờ sáng rồi... Dạo này mình bế tắc quá, chẳng nghĩ ra được chút ý tưởng nào ra hồn cả." },
-        new IntroLine { lineText = "Thôi thì... qua bàn bật máy tính lên lướt web xem có kiếm được chút cảm hứng nào không vậy." }
+        new IntroLine
+        {
+            vietnameseDialogue = "Lại 2 giờ sáng rồi... Dạo này mình bế tắc quá, chẳng nghĩ ra được chút ý tưởng nào ra hồn cả.",
+            englishDialogue = "It's 2 AM again... I'm so stuck lately, can't come up with any decent ideas at all."
+        },
+        new IntroLine
+        {
+            vietnameseDialogue = "Thôi thì... qua bàn bật máy tính lên lướt web xem có kiếm được chút cảm hứng nào không vậy.",
+            englishDialogue = "Well then... guess I'll turn on the computer and browse the web for some inspiration."
+        }
     };
 
-    [Header("4. Mở Khóa Tương Tác Cửa Sổ Sau Khi Hết Intro")]
+    [Header("4. Âm Thanh Thoại Chung (Dialogue SFX)")]
+    [Tooltip("Gói âm thanh lồng tiếng / tiếng thở / gõ phím chung cho toàn bộ intro thoại (Tùy chọn)")]
+    public AudioClip dialogueSound;
+    [Range(0f, 1f)] public float soundVolume = 0.8f;
+
+    [Header("5. Mở Khóa Tương Tác Cửa Sổ Sau Khi Hết Intro")]
     [Tooltip("Kéo Collider (hoặc GameObject) của Cửa Sổ vào đây để mở khóa tương tác đóng cửa sổ sau khi xem xong Intro")]
     public Collider windowColliderToUnlock;
     public GameObject windowObjectToUnlock;
     public bool lockWindowOnStart = true;
 
-    [Header("5. Tự Động Chạy Khi Vào Game")]
+    [Header("6. Tự Động Chạy Khi Vào Game")]
     public bool playOnStart = true;
 
     private AudioSource audioSource;
@@ -85,8 +99,8 @@ public class GameIntroManager : MonoBehaviour
     {
         if (!isIntroRunning) return;
 
-        // Bấm chuột trái (Mouse 0), Space hoặc F để qua thoại nhanh
-        if (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.F))
+        // Bấm chuột trái (Mouse 0) hoặc Space để qua thoại nhanh
+        if (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Space))
         {
             if (isTyping)
             {
@@ -154,14 +168,24 @@ public class GameIntroManager : MonoBehaviour
         // 4. CHẠY LẦN LƯỢT CÁC CÂU THOẠI NỘI TÂM (HỖ TRỢ BẤM CHUỘT TRÁI QUA MAU)
         foreach (var line in introLines)
         {
-            if (line == null || string.IsNullOrEmpty(line.lineText)) continue;
+            if (line == null) continue;
 
-            currentFullText = line.lineText;
+            string lang = SettingsManager.currentLanguage;
+            currentFullText = (lang == "VI") ? line.vietnameseDialogue : line.englishDialogue;
+            if (string.IsNullOrEmpty(currentFullText)) currentFullText = line.vietnameseDialogue;
+            if (string.IsNullOrEmpty(currentFullText)) currentFullText = line.englishDialogue;
+
+            if (string.IsNullOrEmpty(currentFullText)) continue;
+
             skipRequested = false;
 
-            if (line.voiceClip != null && audioSource != null)
+            // BẬT ÂM THANH THOẠI TRONG SUỐT LÚC ĐANG GÕ CHỮ
+            if (dialogueSound != null && audioSource != null)
             {
-                audioSource.PlayOneShot(line.voiceClip);
+                audioSource.clip = dialogueSound;
+                audioSource.volume = soundVolume;
+                audioSource.loop = true;
+                if (!audioSource.isPlaying) audioSource.Play();
             }
 
             // GÕ CHỮ TỪNG KÝ TỰ (TYPEWRITER)
@@ -185,6 +209,12 @@ public class GameIntroManager : MonoBehaviour
                 subtitleTextUI.text = currentFullText;
             }
 
+            // DỪNG ÂM THANH MƯỢT MÀ KHI ĐÃ GÕ XONG (HOẶC SKIP)
+            if (audioSource != null && audioSource.isPlaying)
+            {
+                StartCoroutine(FadeAudioOutRoutine(audioSource, 0.08f));
+            }
+
             // CHỜ ĐỌC XONG HOẶC CHỜ BẤM CHUỘT SANG CÂU TIẾP THEO
             isWaitingForNextLine = true;
             float waitTimer = 0f;
@@ -198,6 +228,7 @@ public class GameIntroManager : MonoBehaviour
 
         // Tắt chữ phụ đề sau khi đọc xong
         if (subtitleTextUI != null) subtitleTextUI.text = "";
+        if (audioSource != null && audioSource.isPlaying) audioSource.Stop();
 
         // 5. TRẢ CAMERA TỪ 0.5 NÂNG LÊN LẠI 0.6 VÀ THẲNG LẠI GÓC XOAY BAN ĐẦU
         if (cameraTransform != null)
@@ -243,5 +274,20 @@ public class GameIntroManager : MonoBehaviour
 
         isIntroRunning = false;
         Debug.Log("[GameIntroManager] ✅ Đã hoàn tất Intro mở màn! Mở lại di chuyển cho Player.");
+    }
+
+    IEnumerator FadeAudioOutRoutine(AudioSource src, float duration)
+    {
+        if (src == null || !src.isPlaying) yield break;
+        float startVol = src.volume;
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            src.volume = Mathf.Lerp(startVol, 0f, elapsed / duration);
+            yield return null;
+        }
+        src.Stop();
+        src.volume = startVol;
     }
 }

@@ -8,22 +8,16 @@ public class WindowAmbienceController : MonoBehaviour, IInteractable
     public AudioSource cityAmbienceAudioSource;
 
     [Header("2. Mức Âm Lượng Khi Đóng & Mở Cửa Sổ")]
-    [Range(0f, 1f)]
-    public float closedVolume = 0.35f;
-
-    [Range(0f, 1f)]
-    public float openedVolume = 0.8f;
-
+    [Range(0f, 1f)] public float closedVolume = 0.35f;
+    [Range(0f, 1f)] public float openedVolume = 0.8f;
     public float volumeFadeDuration = 1.5f;
 
     [Header("3. Trạng Thái Mặc Định Ban Đầu")]
     [Tooltip("Tích chọn nếu cửa sổ MẶC ĐỊNH MỞ khi vào game để phát âm thanh môi trường to sẵn")]
-    public bool startOpened = false;
+    public bool startOpened = true;
 
     [Header("4. Âm Thanh Thao Tác Cửa Sổ & Âm Lượng")]
-    [Range(0f, 1f)]
-    public float windowSfxVolume = 0.35f;
-
+    [Range(0f, 1f)] public float windowSfxVolume = 0.35f;
     public AudioClip windowOpenSound;
     public AudioClip windowCloseSound;
 
@@ -33,8 +27,16 @@ public class WindowAmbienceController : MonoBehaviour, IInteractable
     public GameObject caseObjectToEnable;
 
     private bool isOpen = false;
+    public bool IsOpen => isOpen;
     private AudioSource sfxAudioSource;
     private Coroutine fadeCoroutine;
+
+    private static WindowAmbienceController instance;
+
+    void Awake()
+    {
+        instance = this;
+    }
 
     void Start()
     {
@@ -45,15 +47,64 @@ public class WindowAmbienceController : MonoBehaviour, IInteractable
         sfxAudioSource.playOnAwake = false;
 
         isOpen = startOpened;
+        EnsureCityAudioSource();
 
-        // Cấu hình âm lượng ban đầu cho tiếng thành phố theo startOpened
+        // Kiểm tra toàn diện tất cả các cửa sổ trong phòng để đồng bộ âm lượng lúc Start
+        bool anyOpen = CheckIfAnyWindowOpen();
         if (cityAmbienceAudioSource != null)
         {
             cityAmbienceAudioSource.loop = true;
-            cityAmbienceAudioSource.volume = startOpened ? openedVolume : closedVolume;
+            cityAmbienceAudioSource.volume = anyOpen ? openedVolume : closedVolume;
             if (!cityAmbienceAudioSource.isPlaying)
             {
                 cityAmbienceAudioSource.Play();
+            }
+        }
+    }
+
+    public static bool CheckIfAnyWindowOpen()
+    {
+        // 1. Kiểm tra WindowAmbienceController chính
+        if (instance != null && instance.isOpen) return true;
+
+        // 2. Kiểm tra tất cả WindowL trong Scene
+        WindowL[] winLs = Object.FindObjectsByType<WindowL>(FindObjectsSortMode.None);
+        foreach (var w in winLs)
+        {
+            if (w != null && w.IsOpen) return true;
+        }
+
+        // 3. Kiểm tra tất cả WindowR trong Scene
+        WindowR[] winRs = Object.FindObjectsByType<WindowR>(FindObjectsSortMode.None);
+        foreach (var w in winRs)
+        {
+            if (w != null && w.IsOpen) return true;
+        }
+
+        return false;
+    }
+
+    public static void SyncAllWindowAmbience()
+    {
+        if (instance != null)
+        {
+            bool anyOpen = CheckIfAnyWindowOpen();
+            instance.StartVolumeFade(anyOpen ? instance.openedVolume : instance.closedVolume);
+
+            if (!anyOpen)
+            {
+                // Khi TẤT CẢ cửa sổ đã đóng kín: Mở khóa Case PC
+                if (instance.caseColliderToEnable != null) instance.caseColliderToEnable.enabled = true;
+                if (instance.caseObjectToEnable != null) instance.caseObjectToEnable.SetActive(true);
+
+                PCPowerButton pcPower = Object.FindFirstObjectByType<PCPowerButton>();
+                if (pcPower != null) pcPower.UnlockCase();
+
+                Debug.Log("[WindowAmbienceController] 🔓 TẤT CẢ CỬA SỔ ĐÃ ĐÓNG KÍN! Âm thanh giảm nhỏ & Đã mở khóa Case PC.");
+            }
+            else
+            {
+                Debug.Log("[WindowAmbienceController] 🪟 VẪN CÒN CỬA SỔ ĐANG MỞ! Âm thanh thành phố vẫn to.");
             }
         }
     }
@@ -68,7 +119,6 @@ public class WindowAmbienceController : MonoBehaviour, IInteractable
             {
                 sfxAudioSource.PlayOneShot(windowOpenSound, windowSfxVolume);
             }
-            StartVolumeFade(openedVolume);
         }
         else
         {
@@ -76,27 +126,9 @@ public class WindowAmbienceController : MonoBehaviour, IInteractable
             {
                 sfxAudioSource.PlayOneShot(windowCloseSound, windowSfxVolume);
             }
-            StartVolumeFade(closedVolume);
-
-            // MỞ KHÓA CASE PC KHI ĐÓNG CỬA SỔ
-            if (caseColliderToEnable != null)
-            {
-                caseColliderToEnable.enabled = true;
-            }
-            if (caseObjectToEnable != null)
-            {
-                caseObjectToEnable.SetActive(true);
-            }
-
-            // Tự động tìm và mở khóa PCPowerButton trong Scene (Fail-safe)
-            PCPowerButton pcPower = Object.FindFirstObjectByType<PCPowerButton>();
-            if (pcPower != null)
-            {
-                pcPower.UnlockCase();
-            }
-
-            Debug.Log("[WindowAmbienceController] 🔓 ĐÃ ĐÓNG CỬA SỔ! Mở khóa tương tác với Case PC.");
         }
+
+        SyncAllWindowAmbience();
     }
 
     void EnsureCityAudioSource()
@@ -127,5 +159,6 @@ public class WindowAmbienceController : MonoBehaviour, IInteractable
         }
 
         cityAmbienceAudioSource.volume = targetVol;
+        fadeCoroutine = null;
     }
 }

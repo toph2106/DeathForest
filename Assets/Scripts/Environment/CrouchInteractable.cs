@@ -4,7 +4,11 @@ using System.Collections;
 
 public class CrouchInteractable : MonoBehaviour, IInteractable
 {
-    [Header("1. Chiều Cao Ngồi & Đứng")]
+    [Header("0. Cấu Hình Ép Cúi Người Tự Động (Auto Crouch)")]
+    [Tooltip("Tích chọn: Tự động ép camera cúi xuống và đứng dậy. Bỏ tích (Mặc định): Người chơi tự bấm phím C cúi người tự nhiên")]
+    public bool autoCrouchCamera = false;
+
+    [Header("1. Chiều Cao Ngồi & Đứng (Khi Bật Auto Crouch)")]
     [Tooltip("Chiều cao camera ban đầu khi đứng (Mặc định: 0.6f)")]
     public float standingY = 0.6f;
 
@@ -21,20 +25,20 @@ public class CrouchInteractable : MonoBehaviour, IInteractable
     [Tooltip("Thời gian khựng lại sau khi nhặt đồ RỒI MỚI ĐỨNG DẬY (Mặc định: 0.5 giây)")]
     public float delayAfterAction = 0.5f;
 
-    [Header("3. Kích Hoạt Tương Tác / Nhặt Đồ Sau Khi Cúi Đầy Đủ")]
-    [Tooltip("Kéo script nhặt đồ (VD: CameraObjectPickup) vào đây để nó ĐỢI CÚI XONG NƠI MỚI NHẶT!")]
+    [Header("3. Kích Hoạt Tương Tác / Nhặt Đồ")]
+    [Tooltip("Kéo script tương tác (VD: CameraObjectPickup, PCPowerButton) vào đây")]
     public MonoBehaviour targetInteractableScript;
 
-    [Tooltip("Hoặc thêm các sự kiện UnityEvent chạy sau khi cúi xong (Tùy chọn)")]
+    [Tooltip("Hoặc thêm các sự kiện UnityEvent chạy sau khi tương tác (Tùy chọn)")]
     public UnityEvent onCrouchedAction;
 
-    [Tooltip("Tự động xóa vật thể sau khi cúi nhặt xong (Tùy chọn)")]
+    [Tooltip("Tự động xóa vật thể sau khi nhặt xong (Tùy chọn)")]
     public bool destroyAfterPickup = false;
 
     [Header("4. Ghim Góc Nhìn Camera Vào Điểm Chỉ Định (Pin Camera Target)")]
     [Tooltip("Tự động hướng góc nhìn Camera ghim chặt vào điểm này khi cúi xuống")]
-    public bool pinCameraToItem = true;
-    [Tooltip("Kéo 1 GameObject/Empty Object làm điểm nhìn ghim camera vào đây (Tùy chọn - Nếu trống code tự ghim vào vị trí hiện tại)")]
+    public bool pinCameraToItem = false;
+    [Tooltip("Kéo 1 GameObject/Empty Object làm điểm nhìn ghim camera vào đây (Tùy chọn)")]
     public Transform customPinTarget;
     [Tooltip("Tốc độ ghim xoay góc nhìn Camera hướng về món đồ")]
     public float lookAtSpeed = 6.0f;
@@ -54,8 +58,33 @@ public class CrouchInteractable : MonoBehaviour, IInteractable
 
     public void Interact()
     {
-        if (isCrouching) return;
-        StartCoroutine(CrouchRoutine());
+        if (autoCrouchCamera)
+        {
+            if (isCrouching) return;
+            StartCoroutine(CrouchRoutine());
+        }
+        else
+        {
+            // NGƯỜI CHƠI TỰ BẤM PHÍM C ĐỂ NGỒI TỰ NHIÊN -> KÍCH HOẠT THẲNG HÀNH ĐỘNG
+            if (targetInteractableScript != null)
+            {
+                if (targetInteractableScript is CameraObjectPickup cameraPickup)
+                {
+                    cameraPickup.Pickup();
+                }
+                else if (targetInteractableScript is IInteractable interactable)
+                {
+                    interactable.Interact();
+                }
+            }
+
+            onCrouchedAction?.Invoke();
+
+            if (destroyAfterPickup)
+            {
+                Destroy(gameObject);
+            }
+        }
     }
 
     IEnumerator CrouchRoutine()
@@ -139,7 +168,23 @@ public class CrouchInteractable : MonoBehaviour, IInteractable
 
             onCrouchedAction?.Invoke();
 
-            // BƯỚC 4: Khựng lại 0.5s sau khi nhặt đồ
+            // ĐỢI CHẠY HẾT LỜI THOẠI RỒI MỚI CHO ĐỨNG DẬY
+            yield return null; // Chờ 1 frame để SmartInteractionDialogue kịp khởi động nếu có
+            while (SmartInteractionDialogue.isAnyDialoguePlaying)
+            {
+                if (pinCameraToItem)
+                {
+                    Vector3 lookDir = targetWorldPos - mainCameraTransform.position;
+                    if (lookDir != Vector3.zero)
+                    {
+                        Quaternion targetLookRot = Quaternion.LookRotation(lookDir);
+                        mainCameraTransform.rotation = Quaternion.Slerp(mainCameraTransform.rotation, targetLookRot, Time.deltaTime * lookAtSpeed);
+                    }
+                }
+                yield return null;
+            }
+
+            // BƯỚC 4: Khựng lại sau khi kết thúc hành động / thoại
             if (delayAfterAction > 0f)
             {
                 yield return new WaitForSeconds(delayAfterAction);

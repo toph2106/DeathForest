@@ -9,12 +9,9 @@ public class NPCDialogueCutscene : MonoBehaviour, IInteractable
     public class DialogueLine
     {
         [TextArea(2, 4)]
-        public string englishDialogue;
-        [TextArea(2, 4)]
         public string vietnameseDialogue;
-
-        [Tooltip("Âm thanh lồng tiếng cho câu thoại này (Tùy chọn)")]
-        public AudioClip dialogueAudio;
+        [TextArea(2, 4)]
+        public string englishDialogue;
     }
 
     [Header("1. Điểm Vị Trí Camera Lúc Nói Chuyện (Camera Target Point)")]
@@ -37,6 +34,11 @@ public class NPCDialogueCutscene : MonoBehaviour, IInteractable
 
     [Header("3. Danh Sách Lời Thoại (Mảng Anh / Việt Dễ Sửa Số Lượng)")]
     public DialogueLine[] dialogueLines;
+
+    [Header("3.1. Âm Thanh Giọng NPC Chung (Dialogue SFX)")]
+    [Tooltip("Gói âm thanh lồng tiếng / tiếng nói chuyện chung cho toàn bộ các câu thoại của NPC")]
+    public AudioClip npcVoiceSound;
+    [Range(0f, 1f)] public float voiceVolume = 0.85f;
 
     [Header("4. Hộp Hàng Cần Bật Tương Tác Sau Khi Thoại Xong")]
     public GameObject boxInteractObject;
@@ -132,8 +134,8 @@ public class NPCDialogueCutscene : MonoBehaviour, IInteractable
             mainCameraTransform.rotation = targetCamRot;
         }
 
-        // Bấm Chuột trái hoặc phím F để chuyển câu thoại mới
-        if (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.F))
+        // Bấm Chuột trái (Mouse 0) hoặc Space để chuyển câu thoại mới
+        if (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Space))
         {
             AdvanceDialogue();
         }
@@ -263,11 +265,6 @@ public class NPCDialogueCutscene : MonoBehaviour, IInteractable
         DialogueLine line = dialogueLines[currentLineIndex];
         currentFullText = (SettingsManager.currentLanguage == "VI") ? line.vietnameseDialogue : line.englishDialogue;
 
-        if (line.dialogueAudio != null && audioSource != null)
-        {
-            audioSource.PlayOneShot(line.dialogueAudio);
-        }
-
         if (textCoroutine != null) StopCoroutine(textCoroutine);
         textCoroutine = StartCoroutine(DisplayTextRoutine(currentFullText));
     }
@@ -298,6 +295,15 @@ public class NPCDialogueCutscene : MonoBehaviour, IInteractable
         isTyping = true;
         dialogueTextUI.text = "";
 
+        // BẬT GIỌNG NÓI TRONG LÚC ĐANG GÕ CHỮ
+        if (npcVoiceSound != null && audioSource != null)
+        {
+            audioSource.clip = npcVoiceSound;
+            audioSource.volume = voiceVolume;
+            audioSource.loop = true;
+            if (!audioSource.isPlaying) audioSource.Play();
+        }
+
         if (useTypewriterEffect)
         {
             for (int i = 0; i <= targetText.Length; i++)
@@ -318,12 +324,23 @@ public class NPCDialogueCutscene : MonoBehaviour, IInteractable
         {
             dialogueTextUI.text = currentFullText;
         }
+
+        // TẮT GIỌNG NÓI KHI ĐÃ HIỆN XONG CHỮ (HOẶC SKIP)
+        if (audioSource != null && audioSource.isPlaying)
+        {
+            audioSource.Stop();
+        }
     }
 
     void EndDialogueCutscene()
     {
         if (textCoroutine != null) StopCoroutine(textCoroutine);
         if (dialogueCanvas != null) dialogueCanvas.SetActive(false);
+
+        if (audioSource != null && audioSource.isPlaying)
+        {
+            audioSource.Stop();
+        }
 
         // BAY CAMERA MƯỢT MÀ TRỞ LẠI VỊ TRÍ GỐC CỦA PLAYER
         if (transitionCoroutine != null) StopCoroutine(transitionCoroutine);

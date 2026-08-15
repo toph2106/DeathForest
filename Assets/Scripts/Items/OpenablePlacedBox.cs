@@ -4,9 +4,9 @@ using System.Collections;
 
 public class OpenablePlacedBox : MonoBehaviour, IInteractable
 {
-    [Header("1. Chữ Nhắc Phím Tương Tác (Prompt UI)")]
-    public string englishPrompt = "[F] Open Box";
-    public string vietnamesePrompt = "[F] Mở thùng hàng";
+    [Header("1. Chữ Nhắc Tương Tác (Prompt UI)")]
+    public string englishPrompt = "Open Box";
+    public string vietnamesePrompt = "Mở thùng hàng";
 
     [Header("2. Hộp Đã Mở Cần Đổi (BoxOpen Prefab / Scene Object)")]
     [Tooltip("Kéo Prefab hoặc GameObject 'BoxOpen' (mô hình hộp đã mở) vào đây")]
