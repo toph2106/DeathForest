@@ -8,12 +8,9 @@ public class BedSleepCutscene : MonoBehaviour, IInteractable
     public class SleepDialogueLine
     {
         [TextArea(2, 4)]
-        public string englishDialogue;
-        [TextArea(2, 4)]
         public string vietnameseDialogue;
-
-        [Tooltip("Âm thanh lồng tiếng / ngáp / ư ử tương ứng (Tùy chọn)")]
-        public AudioClip dialogueAudio;
+        [TextArea(2, 4)]
+        public string englishDialogue;
     }
 
     // =================================================================
@@ -58,8 +55,8 @@ public class BedSleepCutscene : MonoBehaviour, IInteractable
     // 3. PROMPT
     // =================================================================
     [Header("3. Prompt UI")]
-    public string englishPrompt = "[F] Go to Sleep";
-    public string vietnamesePrompt = "[F] Nằm xuống ngủ";
+    public string englishPrompt = "Go to Sleep";
+    public string vietnamesePrompt = "Nằm xuống ngủ";
 
     // =================================================================
     // 4. FADE
@@ -91,11 +88,66 @@ public class BedSleepCutscene : MonoBehaviour, IInteractable
     };
 
     // =================================================================
-    // 6. ÂM THANH
+    // 5.1. ĐIỀU KIỆN THÔNG MINH ĐỂ ĐƯỢC ĐI NGỦ (SMART SLEEP REQUIREMENTS)
     // =================================================================
-    [Header("6. Âm Thanh Khi Nằm Ngủ (Tùy chọn)")]
-    public AudioClip sleepAudio;
-    [Range(0f, 1f)] public float audioVolume = 0.8f;
+    [Header("5.1. Điều Kiện Để Nằm Ngủ (Smart Sleep Conditions)")]
+    [Tooltip("Bắt buộc phải lướt máy tính PC trước khi nằm ngủ")]
+    public bool requireComputerBeforeSleep = true;
+
+    [Tooltip("Bắt buộc phải TẮT ĐÈN CHÍNH (chuyển sang đèn ngủ đỏ) trước khi nằm ngủ")]
+    public bool requireLightOffBeforeSleep = true;
+
+    [Header("5.2. Thoại Khi CHƯA ĐỦ ĐIỀU KIỆN (Locked Dialogues)")]
+    [Tooltip("Thoại khi chưa dùng máy tính. Thêm (+) hoặc để trống")]
+    public SmartInteractionDialogue.DialogueLine[] lockedNeedComputerDialogues = new SmartInteractionDialogue.DialogueLine[]
+    {
+        new SmartInteractionDialogue.DialogueLine
+        {
+            vietnameseDialogue = "Vẫn chưa buồn ngủ lắm... qua xem máy tính chút đã.",
+            englishDialogue = "Not sleepy yet... I should check my computer first."
+        }
+    };
+
+    [Tooltip("Thoại khi chưa tắt đèn chính. Thêm (+) hoặc để trống")]
+    public SmartInteractionDialogue.DialogueLine[] lockedNeedTurnOffLightDialogues = new SmartInteractionDialogue.DialogueLine[]
+    {
+        new SmartInteractionDialogue.DialogueLine
+        {
+            vietnameseDialogue = "Chói mắt quá, phải tắt đèn trước khi ngủ...",
+            englishDialogue = "Too bright, I need to turn off the light before going to sleep..."
+        }
+    };
+
+    // =================================================================
+    // 6. ÂM THANH TỪNG LOẠI & THANH ÂM LƯỢNG RIÊNG BIỆT (AUDIO SETTINGS)
+    // =================================================================
+    [Header("6. Âm Thanh Ngồi/Nằm Nệm (Bed Sit/Lie Down Sound)")]
+    [Tooltip("Tiếng sột soạt chăn gối / ngồi lún xuống nệm khi bắt đầu nằm ngủ (Ví dụ: rustling-duvet)")]
+    public AudioClip sitDownBedAudio;
+    [Range(0f, 1f)]
+    [Tooltip("Âm lượng tiếng ngồi/nằm xuống nệm (Mặc định: 0.9 - To rõ đầm tai)")]
+    public float sitDownVolume = 0.9f;
+
+    [Header("6.1. Âm Thanh Ngáy / Thở Khi Ngủ Trong Đêm (Snoring Sound)")]
+    [Tooltip("Tiếng ngáy ngủ / thở êm đềm khi màn hình tối đen và tua đồng hồ (Ví dụ: snoring-sounds)")]
+    public AudioClip snoringSleepAudio;
+    [Range(0f, 1f)]
+    [Tooltip("Âm lượng tiếng ngáy ngủ (Mặc định: 0.25 - Nhỏ dịu êm tai)")]
+    public float snoringVolume = 0.25f;
+
+    [Header("6.2. Âm Thanh Thoại Gõ Chữ (Dialogue SFX)")]
+    [Tooltip("Gói âm thanh lồng tiếng / tiếng gõ chữ chung khi chạy các câu thoại (5s blip)")]
+    public AudioClip generalDialogueSound;
+    [Range(0f, 1f)]
+    [Tooltip("Âm lượng âm thanh thoại gõ chữ (Mặc định: 0.8)")]
+    public float dialogueVolume = 0.8f;
+
+    [Header("6.3. Âm Thanh Rên / Ngáp Thức Giấc (Wake Up Groan SFX)")]
+    [Tooltip("Tiếng ngáp / thở dài uể oải khi bị gõ cửa đợt 2 đánh thức (Tùy chọn)")]
+    public AudioClip wakeUpGroanAudio;
+    [Range(0f, 1f)]
+    [Tooltip("Âm lượng tiếng thức giấc (Mặc định: 0.7)")]
+    public float wakeUpGroanVolume = 0.7f;
 
     // =================================================================
     // 7. MÈO
@@ -134,7 +186,6 @@ public class BedSleepCutscene : MonoBehaviour, IInteractable
     public AudioClip doorKnockSound;
     [Range(0f, 1f)] public float knockVolume = 0.5f;
     public AudioSource doorAudioSource;
-    public AudioClip wakeUpGroanAudio;
 
     // =================================================================
     // 10b. THỜI GIAN GÕ CỬA & TỈNH DẬY
@@ -209,8 +260,8 @@ public class BedSleepCutscene : MonoBehaviour, IInteractable
     {
         if (interactPrompt == null)
             interactPrompt = gameObject.AddComponent<InteractPrompt>();
-        interactPrompt.englishPrompt = englishPrompt;
-        interactPrompt.vietnamesePrompt = vietnamesePrompt;
+        interactPrompt.englishPrompt = englishPrompt.Replace("[F] ", "").Replace("[F]", "").Trim();
+        interactPrompt.vietnamesePrompt = vietnamesePrompt.Replace("[F] ", "").Replace("[F]", "").Trim();
 
         if (lockOnStart && bedCollider != null)
             bedCollider.enabled = false;
@@ -235,15 +286,19 @@ public class BedSleepCutscene : MonoBehaviour, IInteractable
     {
         if (!isSleeping) return;
 
-        // BẤM CHUỘT TRÁI (Mouse 0), SPACE HOẶC F ĐỂ SKIP / QUA THOẠI NHANH
-        if (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.F))
+        // BẤM CHUỘT TRÁI (Mouse 0) HOẶC SPACE ĐỂ SKIP / QUA THOẠI NHANH
+        if (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Space))
         {
             if (isTyping)
             {
-                // BẤM LẦN 1 KHI ĐANG GÕ ➔ HIỆN TOÀN BỘ CÂU NGAY LẬP TỨC
+                // BẤM LẦN 1 KHI ĐANG GÕ ➔ HIỆN TOÀN BỘ CÂU NGAY LẬP TỨC & DỪNG ÂM THANH
                 isTyping = false;
                 skipRequested = true;
                 if (subtitleTextUI != null) subtitleTextUI.text = currentFullText;
+                if (localAudioSource != null && localAudioSource.isPlaying && localAudioSource.clip == generalDialogueSound)
+                {
+                    localAudioSource.Stop();
+                }
             }
             else if (isWaitingForNextLine)
             {
@@ -256,7 +311,37 @@ public class BedSleepCutscene : MonoBehaviour, IInteractable
     public void Interact()
     {
         if (isSleeping) return;
-        Debug.Log("[BedSleepCutscene] 🛌 Bắt đầu chuỗi nằm ngủ!");
+
+        SmartInteractionDialogue dialoguePlayer = GetComponent<SmartInteractionDialogue>();
+        if (dialoguePlayer == null) dialoguePlayer = gameObject.AddComponent<SmartInteractionDialogue>();
+        dialoguePlayer.dialogueSound = generalDialogueSound;
+        dialoguePlayer.soundVolume = dialogueVolume;
+
+        // 1. Kiểm tra nếu chưa dùng máy tính PC
+        if (requireComputerBeforeSleep && !InWorldComputerCutscene.hasCompletedComputer && !CameraObjectPickup.isComputerCutsceneFinished)
+        {
+            Debug.Log("[BedSleepCutscene] 🔒 Chưa dùng máy tính! Phát thoại nhắc nhở.");
+            if (lockedNeedComputerDialogues != null && lockedNeedComputerDialogues.Length > 0)
+            {
+                dialoguePlayer.PlayCustomLines(lockedNeedComputerDialogues);
+            }
+            return;
+        }
+
+        // 2. Kiểm tra nếu đèn chính chưa tắt (chưa chuyển sang đèn đỏ)
+        RoomLightSwitch lightSwitch = Object.FindFirstObjectByType<RoomLightSwitch>();
+        if (requireLightOffBeforeSleep && lightSwitch != null && lightSwitch.isLightOn)
+        {
+            Debug.Log("[BedSleepCutscene] 🔒 Đèn chính còn đang bật! Phát thoại nhắc tắt đèn.");
+            if (lockedNeedTurnOffLightDialogues != null && lockedNeedTurnOffLightDialogues.Length > 0)
+            {
+                dialoguePlayer.PlayCustomLines(lockedNeedTurnOffLightDialogues);
+            }
+            return;
+        }
+
+        // 3. Đã đủ điều kiện nằm ngủ
+        Debug.Log("[BedSleepCutscene] 🛌 Đủ điều kiện! Bắt đầu chuỗi nằm ngủ!");
         StartCoroutine(SleepSequenceRoutine());
     }
 
@@ -322,7 +407,13 @@ public class BedSleepCutscene : MonoBehaviour, IInteractable
         // TỪ ĐÂY TRỞ ĐI: CHỈ DI CHUYỂN CAMERA
         // ============================
 
-        // BƯỚC 2: HẠ THẤP CAMERA Y (NGỒI XUỐNG)
+        // BƯỚC 2: HẠ THẤP CAMERA Y (NGỒI XUỐNG) + PHÁT ÂM THANH NẰM/SỘT SOẠT NỆM
+        if (sitDownBedAudio != null)
+        {
+            if (localAudioSource != null) localAudioSource.PlayOneShot(sitDownBedAudio, sitDownVolume);
+            else AudioSource.PlayClipAtPoint(sitDownBedAudio, pillowCameraPoint.position, sitDownVolume);
+        }
+
         {
             Vector3 startLocal = camTrans.localPosition;
             Vector3 targetLocal = new Vector3(startLocal.x, startLocal.y - 0.4f, startLocal.z);
@@ -355,7 +446,13 @@ public class BedSleepCutscene : MonoBehaviour, IInteractable
             camTrans.rotation = targetRot;
         }
 
-        // BƯỚC 4+5: HẠ CAMERA XUỐNG PILLOW + XOAY X → -90°
+        // BƯỚC 4+5: HẠ CAMERA XUỐNG PILLOW (ĐẶT ĐẦU XUỐNG GỐI) + XOAY X → -90°
+        if (sitDownBedAudio != null)
+        {
+            if (localAudioSource != null) localAudioSource.PlayOneShot(sitDownBedAudio, sitDownVolume);
+            else AudioSource.PlayClipAtPoint(sitDownBedAudio, pillowCameraPoint.position, sitDownVolume);
+        }
+
         {
             Vector3 startPos = camTrans.position;
             Quaternion startRot = camTrans.rotation;
@@ -402,14 +499,11 @@ public class BedSleepCutscene : MonoBehaviour, IInteractable
         }
 
         // BƯỚC 8: THOẠI TRƯỚC KHI NGỦ (HỖ TRỢ CLICK SKIP) + MÈO CHẠY VỀ MEOW
-        if (sleepAudio != null)
-            AudioSource.PlayClipAtPoint(sleepAudio, pillowCameraPoint.position, audioVolume);
-
         if (catScript != null && catMeowTargetPoint != null)
             StartCoroutine(TriggerCatRunSequence());
 
-        // Chạy thoại trước khi ngủ và chờ người chơi bấm click hoặc hết thời gian
-        yield return StartCoroutine(PlayDialogueLineRoutine(0, holdEyesOpenDuration));
+        // Chạy thoại trước khi ngủ kèm âm thanh gõ chữ
+        yield return StartCoroutine(PlayDialogueLineRoutine(0, holdEyesOpenDuration, playAudio: true));
 
         ClearSubtitle();
 
@@ -427,6 +521,15 @@ public class BedSleepCutscene : MonoBehaviour, IInteractable
 
         // Ẩn dưới màn đen: trả camera về nằm ngửa nhìn trần (cho lúc mở mắt)
         camTrans.rotation = Quaternion.Euler(-90f, sitCameraPoint.eulerAngles.y, 0f);
+
+        // BẮT ĐẦU TIẾNG NGÁY / THỞ DỊU ÊM TRONG BÓNG TỐI
+        if (snoringSleepAudio != null && localAudioSource != null)
+        {
+            localAudioSource.clip = snoringSleepAudio;
+            localAudioSource.volume = snoringVolume;
+            localAudioSource.loop = true;
+            localAudioSource.Play();
+        }
 
         // HIỆN DẦN & TUA ĐỒNG HỒ (GIỮ NGUYÊN TRONG BÓNG TỐI)
         if (enableClockFastForward && clockTextUI != null)
@@ -505,6 +608,12 @@ public class BedSleepCutscene : MonoBehaviour, IInteractable
     // =================================================================
     IEnumerator KnockAndWakeUpRoutine(MovePl player, CharacterController cc, Transform camTrans)
     {
+        // DỪNG TIẾNG NGÁY KHI BẮT ĐẦU CÓ TIẾNG GÕ CỬA ĐỢT 1
+        if (localAudioSource != null && localAudioSource.isPlaying && localAudioSource.clip == snoringSleepAudio)
+        {
+            StartCoroutine(FadeAudioOutRoutine(localAudioSource, 0.15f));
+        }
+
         // ─── ĐỢT 1: GÕ CỬA (IM LẶNG - ĐỒNG HỒ VẪN SÁNG) ───
         PlayDoorKnock(knockVolume);
         Debug.Log("[BedSleepCutscene] 🚪 Gõ cửa ĐỢT 1");
@@ -515,7 +624,7 @@ public class BedSleepCutscene : MonoBehaviour, IInteractable
         Debug.Log("[BedSleepCutscene] 🚪 Gõ cửa ĐỢT 2");
 
         if (wakeUpGroanAudio != null && localAudioSource != null)
-            localAudioSource.PlayOneShot(wakeUpGroanAudio, audioVolume);
+            localAudioSource.PlayOneShot(wakeUpGroanAudio, wakeUpGroanVolume);
 
         yield return StartCoroutine(PlayDialogueLineRoutine(1, delayBetweenKnock2And3));
         ClearSubtitle();
@@ -749,7 +858,7 @@ public class BedSleepCutscene : MonoBehaviour, IInteractable
     // =================================================================
     // THOẠI VỚI HIỆU ỨNG TYPEWRITER & CLICK SKIP CHUẨN DỰ ÁN
     // =================================================================
-    IEnumerator PlayDialogueLineRoutine(int index, float holdTime = 3.0f)
+    IEnumerator PlayDialogueLineRoutine(int index, float holdTime = 3.0f, bool playAudio = true)
     {
         if (sleepDialogues == null || index < 0 || index >= sleepDialogues.Length) yield break;
 
@@ -761,8 +870,19 @@ public class BedSleepCutscene : MonoBehaviour, IInteractable
         skipRequested = false;
         skipWaitRequested = false;
 
-        if (line.dialogueAudio != null && localAudioSource != null)
-            localAudioSource.PlayOneShot(line.dialogueAudio, audioVolume);
+        bool playedAudio = false;
+
+        // BẬT ÂM THANH TRONG SUỐT LÚC ĐANG GÕ CHỮ (NẾU ĐƯỢC PHÉP)
+        if (playAudio && generalDialogueSound != null && localAudioSource != null)
+        {
+            localAudioSource.spatialBlend = 0f; // 2D UI audio
+            localAudioSource.clip = generalDialogueSound;
+            localAudioSource.volume = dialogueVolume;
+            localAudioSource.loop = true;
+            localAudioSource.time = 0f;
+            localAudioSource.Play();
+            playedAudio = true;
+        }
 
         if (subtitleTextUI != null)
         {
@@ -792,6 +912,12 @@ public class BedSleepCutscene : MonoBehaviour, IInteractable
             {
                 subtitleTextUI.text = currentFullText;
             }
+        }
+
+        // DỪNG ÂM THANH MƯỢT MÀ KHI ĐÃ GÕ XONG (HOẶC SKIP) - CHỈ DỪNG NẾU ĐÃ PHÁT DIALOGUE SOUND
+        if (playedAudio && localAudioSource != null && localAudioSource.isPlaying && localAudioSource.clip == generalDialogueSound)
+        {
+            StartCoroutine(FadeAudioOutRoutine(localAudioSource, 0.08f));
         }
 
         // CHỜ ĐỌC XONG HOẶC BẤM CHUỘT QUA NHANH
@@ -825,6 +951,25 @@ public class BedSleepCutscene : MonoBehaviour, IInteractable
     }
 
     // =================================================================
+    // MỞ KHÓA / KHÓA NỆM TỪ BÊN NGOÀI (VD: KHI TẮT ĐÈN)
+    // =================================================================
+    public void UnlockBed()
+    {
+        if (bedCollider == null) bedCollider = GetComponent<Collider>();
+        if (bedCollider != null) bedCollider.enabled = true;
+        lockOnStart = false;
+        Debug.Log("[BedSleepCutscene] 🔓 Đã tắt đèn -> Nệm đã được mở khóa để nằm ngủ!");
+    }
+
+    public void LockBed()
+    {
+        if (bedCollider == null) bedCollider = GetComponent<Collider>();
+        if (bedCollider != null) bedCollider.enabled = false;
+        HidePrompt();
+        Debug.Log("[BedSleepCutscene] 🔒 Đèn đang bật -> Nệm đã bị khóa (Cần tắt đèn trước khi ngủ)!");
+    }
+
+    // =================================================================
     // PROMPT
     // =================================================================
     public void ShowPrompt()
@@ -836,5 +981,20 @@ public class BedSleepCutscene : MonoBehaviour, IInteractable
     public void HidePrompt()
     {
         if (interactPrompt != null) interactPrompt.HidePrompt();
+    }
+
+    IEnumerator FadeAudioOutRoutine(AudioSource src, float duration)
+    {
+        if (src == null || !src.isPlaying) yield break;
+        float startVol = src.volume;
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            src.volume = Mathf.Lerp(startVol, 0f, elapsed / duration);
+            yield return null;
+        }
+        src.Stop();
+        src.volume = startVol;
     }
 }

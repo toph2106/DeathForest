@@ -10,6 +10,12 @@ public class InteractPro : MonoBehaviour
     public GameObject interactionUI;      
     public TextMeshProUGUI interactText; 
 
+    [Header("Tâm Ngắm Tương Tác (Crosshair Icons)")]
+    [Tooltip("Kéo GameObject Peroid (chấm tròn) vào đây")]
+    public GameObject dotObject;
+    [Tooltip("Kéo GameObject Hand (bàn tay) vào đây")]
+    public GameObject handObject;
+
     [Header("Chống Spam Phím F (Cooldown Settings)")]
     [Tooltip("Thời gian tạm ẩn chữ [F] và vô hiệu hóa bấm phím F sau khi tương tác (Mặc định: 0.4 giây)")]
     public float interactCooldown = 0.4f;
@@ -38,6 +44,10 @@ public class InteractPro : MonoBehaviour
         }
 
         SettingsManager.onLanguageChanged += UpdateCurrentPromptText;
+
+        // Trạng thái ban đầu: Hiện chấm tròn, ẩn bàn tay
+        if (dotObject != null) dotObject.SetActive(true);
+        if (handObject != null) handObject.SetActive(false);
     }
 
     void OnDestroy()
@@ -49,16 +59,27 @@ public class InteractPro : MonoBehaviour
     {
         if (cachedMovePl == null) cachedMovePl = Object.FindFirstObjectByType<MovePl>();
 
-        // 1. TỰ ĐỘNG ẨN GIAO DIỆN [F] KHI ĐANG COOLDOWN, ĐANG DÙNG PC, HOẶC TRONG BẤT KỲ CUTSCENE/FADE NÀO (CAMERA LOCKED)
-        if (isCooldown || InWorldComputerCutscene.isUsingComputer || (cachedMovePl != null && cachedMovePl.isCameraLocked))
+        // 1. TỰ ĐỘNG ẨN HOÀN TOÀN TÂM NGẮM KHI ĐANG DÙNG PC HOẶC CAMERA BỊ KHÓA TRONG CUTSCENE
+        if (InWorldComputerCutscene.isUsingComputer || (cachedMovePl != null && cachedMovePl.isCameraLocked))
         {
             ClearSelection();
+            if (dotObject != null) dotObject.SetActive(false);
+            if (handObject != null) handObject.SetActive(false);
             return;
         }
 
-        // Nếu đang trong cutscene thoại NPC thì không quét tia
+        // Nếu đang trong cutscene thoại NPC thì ẩn hoàn toàn tâm ngắm
         NPCDialogueCutscene npcCutscene = Object.FindFirstObjectByType<NPCDialogueCutscene>();
         if (npcCutscene != null && npcCutscene.isInCutscene)
+        {
+            ClearSelection();
+            if (dotObject != null) dotObject.SetActive(false);
+            if (handObject != null) handObject.SetActive(false);
+            return;
+        }
+
+        // 2. KHI ĐANG HỒI CHIÊU (VỪA TƯƠNG TÁC XONG): CHUYỂN BÀN TAY VỀ LẠI CHẤM TRÒN (KHÔNG MẤT TÂM)
+        if (isCooldown)
         {
             ClearSelection();
             return;
@@ -81,7 +102,11 @@ public class InteractPro : MonoBehaviour
 
             if (interactables != null && interactables.Length > 0)
             {
-                // Bật UI hiển thị chữ [F]
+                // BẬT ICON BÀN TAY, TẮT CHẤM TRÒN
+                if (dotObject != null) dotObject.SetActive(false);
+                if (handObject != null) handObject.SetActive(true);
+
+                // Bật UI hiển thị chữ [F] (nếu có dùng)
                 if (interactionUI != null) interactionUI.SetActive(true);
 
                 // Tìm script InteractPrompt trên vật thể
@@ -98,10 +123,10 @@ public class InteractPro : MonoBehaviour
 
                 UpdateCurrentPromptText();
 
-                // Bấm phím F để tương tác
-                if (Input.GetKeyDown(KeyCode.F))
+                // Bấm Chuột Trái (Mouse 0) để tương tác
+                if (Input.GetMouseButtonDown(0))
                 {
-                    Debug.Log("[InteractPro] ⚡ Bấm F! Tia nhìn trúng: " + hit.collider.gameObject.name + " (IInteractable count: " + interactables.Length + ")");
+                    Debug.Log("[InteractPro] ⚡ Click Chuột Trái! Tia nhìn trúng: " + hit.collider.gameObject.name + " (IInteractable count: " + interactables.Length + ")");
 
                     StartCoroutine(CooldownRoutine());
 
@@ -136,7 +161,7 @@ public class InteractPro : MonoBehaviour
         }
         else
         {
-            interactText.text = (SettingsManager.currentLanguage == "VI") ? "[F] Tương tác" : "[F] Interact";
+            interactText.text = (SettingsManager.currentLanguage == "VI") ? "Tương tác" : "Interact";
         }
     }
 
@@ -149,5 +174,9 @@ public class InteractPro : MonoBehaviour
         }
 
         if (interactionUI != null) interactionUI.SetActive(false);
+
+        // TRẢ VỀ: HIỆN CHẤM TRÒN, TẮT BÀN TAY
+        if (dotObject != null) dotObject.SetActive(true);
+        if (handObject != null) handObject.SetActive(false);
     }
 }

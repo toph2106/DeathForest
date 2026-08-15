@@ -4,8 +4,8 @@ using System.Collections;
 public class BoxDropZone : MonoBehaviour, IInteractable
 {
     [Header("1. Chữ Nhắc Tương Tác (Prompt UI)")]
-    public string englishPrompt = "[F] Drop Box";
-    public string vietnamesePrompt = "[F] Đặt thùng hàng xuống";
+    public string englishPrompt = "Drop Box";
+    public string vietnamesePrompt = "Đặt thùng hàng xuống";
 
     [Header("2. Thùng Hàng Trên Tay Player (Cần Kiểm Tra & Ẩn Đi)")]
     [Tooltip("Kéo Object thùng hàng trên tay Player (dưới Main Camera) vào đây")]

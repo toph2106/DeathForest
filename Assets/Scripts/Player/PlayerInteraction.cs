@@ -80,9 +80,9 @@ public class PlayerInteraction : MonoBehaviour
                     ClearCurrentDoor();
                     currentDoor = door;
                     currentDoor.ShowPrompt();
-                    ShowPromptUI("[F] Mở cửa");
+                    ShowPromptUI("Mở cửa");
                 }
-                if (Input.GetKeyDown(KeyCode.F)) currentDoor.ToggleDoor();
+                if (Input.GetMouseButtonDown(0)) currentDoor.ToggleDoor();
             }
             // 2. Xử lý nhìn vào GIẤY
             else if (paper != null)
@@ -94,10 +94,10 @@ public class PlayerInteraction : MonoBehaviour
                     ClearCurrentPaper();
                     currentPaper = paper;
                     currentPaper.ShowPrompt();
-                    ShowPromptUI("[F] Đọc tài liệu");
+                    ShowPromptUI("Đọc tài liệu");
                 }
 
-                if (Input.GetKeyDown(KeyCode.F))
+                if (Input.GetMouseButtonDown(0))
                 {
                     currentPaper.HidePrompt();
                     HidePromptUI();
@@ -114,9 +114,9 @@ public class PlayerInteraction : MonoBehaviour
                     ClearCurrentSingleDoor();
                     currentSingleDoor = singleDoor;
                     currentSingleDoor.ShowPrompt();
-                    ShowPromptUI("[F] Mở cửa");
+                    ShowPromptUI("Mở cửa");
                 }
-                if (Input.GetKeyDown(KeyCode.F)) currentSingleDoor.ToggleDoor();
+                if (Input.GetMouseButtonDown(0)) currentSingleDoor.ToggleDoor();
             }
             // 4. XỬ LÝ NHÌN VÀO CỬA KÉO MAP01 (DOOR EXIT)
             else if (doorExit != null)
@@ -128,10 +128,10 @@ public class PlayerInteraction : MonoBehaviour
                     ClearCurrentDoorExit();
                     currentDoorExit = doorExit;
                     currentDoorExit.ShowPrompt();
-                    ShowPromptUI("[F] Mở cửa");
+                    ShowPromptUI("Mở cửa");
                 }
 
-                if (Input.GetKeyDown(KeyCode.F))
+                if (Input.GetMouseButtonDown(0))
                 {
                     currentDoorExit.Interact();
                 }
@@ -148,9 +148,9 @@ public class PlayerInteraction : MonoBehaviour
                     if (currentSlidingDoor != null) currentSlidingDoor.HidePrompt();
                     currentSlidingDoor = slidingDoor;
                     currentSlidingDoor.ShowPrompt();
-                    ShowPromptUI("[F] Mở cửa");
+                    ShowPromptUI("Mở cửa");
                 }
-                if (Input.GetKeyDown(KeyCode.F)) slidingDoor.ToggleDoor();
+                if (Input.GetMouseButtonDown(0)) slidingDoor.ToggleDoor();
             }
             // 6. XỬ LÝ NHÌN VÀO NPC THOẠI (JOHNSON)
             else if (npc != null)
@@ -162,10 +162,10 @@ public class PlayerInteraction : MonoBehaviour
                     ClearCurrentNPC();
                     currentNPC = npc;
                     currentNPC.ShowPrompt();
-                    ShowPromptUI("[F] Nói chuyện");
+                    ShowPromptUI("Nói chuyện");
                 }
 
-                if (Input.GetKeyDown(KeyCode.F))
+                if (Input.GetMouseButtonDown(0))
                 {
                     HidePromptUI();
                     currentNPC.Interact();
@@ -186,11 +186,11 @@ public class PlayerInteraction : MonoBehaviour
                     currentItem = item;
                     currentItem.ShowPrompt();
 
-                    string promptMsg = (item != null && item.itemType == InteractableItem.ItemType.Battery) ? "[F] Nhặt Pin" : "[F] Nhặt đồ";
+                    string promptMsg = (item != null && item.itemType == InteractableItem.ItemType.Battery) ? "Nhặt Pin" : "Nhặt đồ";
                     ShowPromptUI(promptMsg);
                 }
 
-                if (Input.GetKeyDown(KeyCode.F))
+                if (Input.GetMouseButtonDown(0))
                 {
                     currentItem.HidePrompt();
                     HidePromptUI();
@@ -211,10 +211,10 @@ public class PlayerInteraction : MonoBehaviour
                     ClearCurrentCorpse();
                     currentCorpse = corpse;
                     currentCorpse.ShowPrompt();
-                    ShowPromptUI("[F] Kiểm tra xác");
+                    ShowPromptUI("Kiểm tra xác");
                 }
 
-                if (Input.GetKeyDown(KeyCode.F))
+                if (Input.GetMouseButtonDown(0))
                 {
                     currentCorpse.HidePrompt();
                     HidePromptUI();
@@ -234,10 +234,10 @@ public class PlayerInteraction : MonoBehaviour
                     ClearCurrentComputer();
                     currentComputer = computer;
                     currentComputer.ShowPrompt();
-                    ShowPromptUI("[F] Sử dụng máy tính");
+                    ShowPromptUI("Sử dụng máy tính");
                 }
 
-                if (Input.GetKeyDown(KeyCode.F))
+                if (Input.GetMouseButtonDown(0))
                 {
                     HidePromptUI();
                     currentComputer.Interact();
@@ -255,7 +255,7 @@ public class PlayerInteraction : MonoBehaviour
         }
     }
 
-    private void ShowPromptUI(string text = "[F] Tương tác")
+    private void ShowPromptUI(string text = "Tương tác")
     {
         if (interactionUI != null) interactionUI.SetActive(true);
         if (interactText != null)
@@ -263,14 +263,14 @@ public class PlayerInteraction : MonoBehaviour
             string lang = PlayerPrefs.GetString("Language", SettingsManager.currentLanguage);
             if (lang == "EN")
             {
-                if (text.Contains("Nhặt Pin")) text = "[F] Pick up Battery";
-                else if (text.Contains("Nhặt đồ")) text = "[F] Pick up Item";
-                else if (text.Contains("Đọc tài liệu")) text = "[F] Read Note";
-                else if (text.Contains("Mở cửa")) text = "[F] Open Door";
-                else if (text.Contains("Kiểm tra xác")) text = "[F] Examine Corpse";
-                else if (text.Contains("Sử dụng máy tính")) text = "[F] Use Computer";
-                else if (text.Contains("Nói chuyện")) text = "[F] Talk";
-                else text = "[F] Interact";
+                if (text.Contains("Nhặt Pin")) text = "Pick up Battery";
+                else if (text.Contains("Nhặt đồ")) text = "Pick up Item";
+                else if (text.Contains("Đọc tài liệu")) text = "Read Note";
+                else if (text.Contains("Mở cửa")) text = "Open Door";
+                else if (text.Contains("Kiểm tra xác")) text = "Examine Corpse";
+                else if (text.Contains("Sử dụng máy tính")) text = "Use Computer";
+                else if (text.Contains("Nói chuyện")) text = "Talk";
+                else text = "Interact";
             }
             interactText.text = text;
         }

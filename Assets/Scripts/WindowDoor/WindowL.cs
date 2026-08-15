@@ -5,8 +5,13 @@ public class WindowL : MonoBehaviour, IInteractable
     public float slideDistance = 0.5f;
     public float slideSpeed = 2f;
 
-    [Tooltip("Tích chọn nếu muốn cửa sổ MẶC ĐỊNH MỞ NGAY KHI VÀO GAME")]
-    public bool startOpened = false;
+    [Tooltip("Tích chọn nếu muốn cửa sổ MẶC ĐỊNH MỞ NGAY KHI VÀO GAME (Mặc định: true)")]
+    public bool startOpened = true;
+
+    [Header("Âm Thanh Thao Tác Cửa Sổ (Tùy Chọn)")]
+    public AudioClip windowOpenSound;
+    public AudioClip windowCloseSound;
+    [Range(0f, 1f)] public float windowSfxVolume = 0.35f;
 
     [Header("Mở Khóa Case PC Sau Khi Đóng Cửa Sổ")]
     [Tooltip("Kéo Collider của Case PC vào đây để mở khóa tương tác khi đóng cửa sổ")]
@@ -16,10 +21,17 @@ public class WindowL : MonoBehaviour, IInteractable
     private Vector3 closedPos;
     private Vector3 openPos;
     private Vector3 targetPos;
-    private bool isOpen = false;
+    private bool isOpen = true;
+    public bool IsOpen => isOpen;
+    private AudioSource audioSource;
 
     void Start()
     {
+        audioSource = GetComponent<AudioSource>();
+        if (audioSource == null) audioSource = gameObject.AddComponent<AudioSource>();
+        audioSource.spatialBlend = 0f;
+        audioSource.playOnAwake = false;
+
         closedPos = transform.position;
         openPos = closedPos - (transform.right * slideDistance);
 
@@ -30,6 +42,8 @@ public class WindowL : MonoBehaviour, IInteractable
         {
             transform.position = openPos;
         }
+
+        WindowAmbienceController.SyncAllWindowAmbience();
     }
 
     void Update()
@@ -42,15 +56,21 @@ public class WindowL : MonoBehaviour, IInteractable
         isOpen = !isOpen;
         targetPos = isOpen ? openPos : closedPos;
 
-        if (!isOpen)
+        if (isOpen)
         {
-            if (caseColliderToEnable != null) caseColliderToEnable.enabled = true;
-            if (caseObjectToEnable != null) caseObjectToEnable.SetActive(true);
-
-            PCPowerButton pcPower = Object.FindFirstObjectByType<PCPowerButton>();
-            if (pcPower != null) pcPower.UnlockCase();
-
-            Debug.Log("[WindowL] 🔓 Đã đóng cửa sổ! Mở khóa tương tác với Case PC.");
+            if (windowOpenSound != null && audioSource != null)
+            {
+                audioSource.PlayOneShot(windowOpenSound, windowSfxVolume);
+            }
         }
+        else
+        {
+            if (windowCloseSound != null && audioSource != null)
+            {
+                audioSource.PlayOneShot(windowCloseSound, windowSfxVolume);
+            }
+        }
+
+        WindowAmbienceController.SyncAllWindowAmbience();
     }
 }

@@ -7,17 +7,15 @@ using System.Collections.Generic;
 public class InWorldComputerCutscene : MonoBehaviour, IInteractable
 {
     public static bool isUsingComputer = false;
+    public static bool hasCompletedComputer = false;
 
     [System.Serializable]
     public class DialogueLine
     {
         [TextArea(2, 4)]
-        public string englishDialogue;
-        [TextArea(2, 4)]
         public string vietnameseDialogue;
-
-        [Tooltip("Âm thanh lồng tiếng cho câu thoại này (Tùy chọn)")]
-        public AudioClip dialogueAudio;
+        [TextArea(2, 4)]
+        public string englishDialogue;
     }
 
     [System.Serializable]
@@ -54,7 +52,9 @@ public class InWorldComputerCutscene : MonoBehaviour, IInteractable
     [Tooltip("Ảnh 0: Màn hình Windows Boot / Desktop lúc mới nhấn nút nguồn Case PC")]
     public Texture windowsBootTexture;
 
-    [Header("4. Âm Thanh Click Chuột Chuyển ẢNH (taira-komori__click.wav)")]
+    [Header("4. Âm Thanh Thoại & Click Chuột")]
+    [Tooltip("Gói âm thanh lồng tiếng / tiếng thở / gõ phím chung khi chạy các câu thoại PC")]
+    public AudioClip generalDialogueSound;
     [Tooltip("Kéo âm thanh click chuột (taira-komori__click.wav) vào đây")]
     public AudioClip mouseClickSound;
 
@@ -116,6 +116,7 @@ public class InWorldComputerCutscene : MonoBehaviour, IInteractable
     private Coroutine cursorBlinkCoroutine;
     private bool isTyping = false;
     private string currentFullDialogue = "";
+    private float cutsceneStartTime = 0f;
 
     void Start()
     {
@@ -213,6 +214,8 @@ public class InWorldComputerCutscene : MonoBehaviour, IInteractable
 
         ApplyColorToScreen(Color.white);
 
+        cutsceneStartTime = Time.unscaledTime;
+
         if (playerMoveScript != null) playerMoveScript.enabled = false;
         if (playerController != null) playerController.enabled = false;
 
@@ -252,8 +255,8 @@ public class InWorldComputerCutscene : MonoBehaviour, IInteractable
             mainCameraTransform.position = Vector3.Lerp(mainCameraTransform.position, targetPos, Time.deltaTime * cameraSmoothSpeed);
             mainCameraTransform.rotation = Quaternion.Slerp(mainCameraTransform.rotation, targetRot, Time.deltaTime * cameraSmoothSpeed);
 
-            // BẤM CHUỘT TRÁI ĐỂ CHẠY HẾT CHỮ HOẶC SANG THOẠI MỚI
-            if (Input.GetMouseButtonDown(0))
+            // BẤM CHUỘT TRÁI ĐỂ CHẠY HẾT CHỮ HOẶC SANG THOẠI MỚI (Lọc click đầu)
+            if (Input.GetMouseButtonDown(0) && (Time.unscaledTime - cutsceneStartTime >= 0.2f))
             {
                 AdvanceDialogue();
             }
@@ -315,55 +318,48 @@ public class InWorldComputerCutscene : MonoBehaviour, IInteractable
         if (dialogueCoroutine != null) StopCoroutine(dialogueCoroutine);
         if (cursorBlinkCoroutine != null) StopCoroutine(cursorBlinkCoroutine);
 
-        dialogueCoroutine = StartCoroutine(DisplayDialogueRoutine(currentFullDialogue, line.dialogueAudio));
+        dialogueCoroutine = StartCoroutine(DisplayDialogueRoutine(currentFullDialogue, generalDialogueSound));
     }
 
     IEnumerator DisplayDialogueRoutine(string targetDialogue, AudioClip dialogueAudio)
     {
-        if (subtitleText == null) yield break;
+        if (subtitleText == null)
+        {
+            GameObject subObj = GameObject.Find("SubtitleText");
+            if (subObj == null) subObj = GameObject.Find("Subtitle");
+            if (subObj != null) subtitleText = subObj.GetComponent<TextMeshProUGUI>();
+        }
 
-        subtitleText.gameObject.SetActive(true);
+        if (subtitleText != null)
+        {
+            if (subtitleText.transform.parent != null)
+                subtitleText.transform.parent.gameObject.SetActive(true);
+            subtitleText.gameObject.SetActive(true);
+
+            Color c = subtitleText.color;
+            c.a = 1f;
+            subtitleText.color = c;
+        }
+
         if (promptText != null)
         {
             promptText.gameObject.SetActive(true);
             promptText.text = (SettingsManager.currentLanguage == "VI") ? "Click chuột trái để tiếp tục..." : "Left Click to continue...";
         }
 
-        if (dialogueAudio != null && audioSource != null)
-        {
-            audioSource.Stop();
-            audioSource.PlayOneShot(dialogueAudio);
-        }
-
-        // BƯỚC 1: FADE IN MỜ DẦN KHI XUẤT HIỆN
-        if (useFadeEffect)
-        {
-            float elapsed = 0f;
-            Color c = subtitleText.color;
-            c.a = 0f;
-            subtitleText.color = c;
-
-            while (elapsed < fadeDuration)
-            {
-                elapsed += Time.deltaTime;
-                c.a = Mathf.Lerp(0f, 1f, elapsed / fadeDuration);
-                subtitleText.color = c;
-                yield return null;
-            }
-            c.a = 1f;
-            subtitleText.color = c;
-        }
-        else
-        {
-            Color c = subtitleText.color;
-            c.a = 1f;
-            subtitleText.color = c;
-        }
-
         // BƯỚC 2: HIỆU ỨNG GÕ CHỮ TỪNG KÝ TỰ (TYPEWRITER EFFECT)
         isTyping = true;
 
-        if (useTypewriterEffect)
+        if (dialogueAudio != null && audioSource != null)
+        {
+            audioSource.spatialBlend = 0f;
+            audioSource.clip = dialogueAudio;
+            audioSource.loop = true;
+            audioSource.time = 0f;
+            audioSource.Play();
+        }
+
+        if (useTypewriterEffect && subtitleText != null)
         {
             subtitleText.text = "";
             for (int i = 0; i <= targetDialogue.Length; i++)
@@ -382,9 +378,18 @@ public class InWorldComputerCutscene : MonoBehaviour, IInteractable
                 yield return new WaitForSeconds(typingSpeed);
             }
         }
+        else if (subtitleText != null)
+        {
+            subtitleText.text = targetDialogue;
+        }
 
         isTyping = false;
-        subtitleText.text = targetDialogue;
+        if (subtitleText != null) subtitleText.text = targetDialogue;
+
+        if (audioSource != null && audioSource.isPlaying)
+        {
+            audioSource.Stop();
+        }
 
         // BƯỚC 3: CON TRỎ NHẤP NHÁY '_' KHI GÕ XONG DÒNG THOẠI
         if (showBlinkingCursor)
@@ -406,11 +411,12 @@ public class InWorldComputerCutscene : MonoBehaviour, IInteractable
 
     void AdvanceDialogue()
     {
-        // 1. NẾU ĐANG GÕ DỞ CHỮ -> NICK VÀO CHẠY RA HẾT TOÀN BỘ CHỮ NAY LẬP TỨC
+        // 1. NẾU ĐANG GÕ DỞ CHỮ -> NICK VÀO CHẠY RA HẾT TOÀN BỘ CHỮ NAY LẬP TỨC VÀ NGẮT ÂM THANH
         if (isTyping)
         {
             isTyping = false;
             if (dialogueCoroutine != null) StopCoroutine(dialogueCoroutine);
+            if (audioSource != null && audioSource.isPlaying) audioSource.Stop();
 
             subtitleText.text = currentFullDialogue;
             Color c = subtitleText.color;
@@ -432,6 +438,7 @@ public class InWorldComputerCutscene : MonoBehaviour, IInteractable
     IEnumerator TransitionToNextLineRoutine()
     {
         if (cursorBlinkCoroutine != null) StopCoroutine(cursorBlinkCoroutine);
+        if (audioSource != null && audioSource.isPlaying) audioSource.Stop();
 
         // BƯỚC 4: FADE OUT MỜ DẦN BIẾN MẤT KHI CHUYỂN THOẠI
         if (useFadeEffect && subtitleText != null)
@@ -580,6 +587,7 @@ public class InWorldComputerCutscene : MonoBehaviour, IInteractable
     {
         isCutsceneRunning = false;
         isUsingComputer = false;
+        hasCompletedComputer = true;
 
         CameraObjectPickup.isComputerCutsceneFinished = true;
 

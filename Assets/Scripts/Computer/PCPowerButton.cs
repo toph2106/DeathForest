@@ -6,15 +6,43 @@ public class PCPowerButton : MonoBehaviour, IInteractable
     [Tooltip("Kéo cái 3D Computer Screen (hoặc Object chứa script InWorldComputerCutscene) vào đây")]
     public InWorldComputerCutscene computerCutscene;
 
-    [Header("2. Âm Thanh Nút Bật/Tắt Case PC (unfa__short-ping.wav)")]
+    [Header("2. Chữ Nhắc Tương Tác (Prompt UI)")]
+    public string englishPrompt = "Turn On PC";
+    public string vietnamesePrompt = "Bật máy tính";
+    public string englishTurnOffPrompt = "Turn Off PC";
+    public string vietnameseTurnOffPrompt = "Tắt máy tính";
+
+    [Header("3. Điều Kiện Bắt Buộc Đóng Cửa Sổ (Require Window Closed)")]
+    [Tooltip("Tích chọn để bắt buộc phải ĐÓNG CỬA SỔ thì mới được bật máy tính")]
+    public bool requireWindowClosed = true;
+
+    [Tooltip("Thoại khi chưa đóng cửa sổ (Locked Dialogue)")]
+    public SmartInteractionDialogue.DialogueLine[] lockedNeedCloseWindowDialogues = new SmartInteractionDialogue.DialogueLine[]
+    {
+        new SmartInteractionDialogue.DialogueLine
+        {
+            vietnameseDialogue = "Gió lạnh quá... Mình nên đóng cửa sổ lại trước đã.",
+            englishDialogue = "It's too cold... I should close the window first.",
+            holdDuration = 2.5f
+        }
+    };
+
+    [Header("3.1. Âm Thanh Thoại Gõ Chữ (Dialogue SFX)")]
+    [Tooltip("Gói âm thanh lồng tiếng / gõ chữ khi hiện phụ đề nhắc nhở (5s blip)")]
+    public AudioClip dialogueSound;
+    [Range(0f, 1f)]
+    [Tooltip("Âm lượng âm thanh thoại gõ chữ (Mặc định: 0.8)")]
+    public float dialogueVolume = 0.8f;
+
+    [Header("4. Âm Thanh Nút Bật/Tắt Case PC (unfa__short-ping.wav)")]
     [Tooltip("Kéo âm thanh click phím nguồn (unfa__short-ping.wav) vào đây")]
     public AudioClip powerClickSound;
 
-    [Header("3. Âm Thanh Quạt PC Chạy Rì Rầm (loud-computer.wav)")]
+    [Header("5. Âm Thanh Quạt PC Chạy Rì Rầm (loud-computer.wav)")]
     [Tooltip("Kéo tiếng quạt PC chạy vòng lặp (loud-computer.wav) vào đây")]
     public AudioClip fanHummingSound;
 
-    [Header("4. Âm Lượng")]
+    [Header("6. Âm Lượng")]
     [Range(0f, 1f)]
     [Tooltip("Âm lượng tiếng bíp/click nguồn (Mặc định: 0.6)")]
     public float clickVolume = 0.6f;
@@ -23,17 +51,14 @@ public class PCPowerButton : MonoBehaviour, IInteractable
     [Tooltip("Âm lượng tiếng quạt Case PC chạy rì rầm (Mặc định: 0.5)")]
     public float fanVolume = 0.5f;
 
-    [Header("5. Cấu Hình Vùng Âm Thanh 3D (Spatial Sound Radius)")]
+    [Header("7. Cấu Hình Vùng Âm Thanh 3D (Spatial Sound Radius)")]
     [Tooltip("Bật âm thanh 3D (Lại gần gầm bàn nghe to, đi ra xa phòng nhỏ dần và mất hẳn)")]
     public bool use3DSound = true;
 
     [Tooltip("Bán kính tối đa nghe thấy tiếng quạt Case PC (Mặc định: 5m)")]
     public float maxSoundDistance = 5f;
 
-    [Header("6. Cơ Chế Khóa Ban Đầu & Mở Khóa Mèo Sau Khi Tắt PC")]
-    [Tooltip("Tích chọn: Khóa tương tác Case PC lúc đầu (Chờ đóng cửa sổ mới mở khóa)")]
-    public bool lockOnStart = true;
-
+    [Header("8. Mở Khóa Mèo Sau Khi Tắt PC")]
     [Tooltip("Kéo Collider của Con Mèo vào đây để tự động mở khóa tương tác đuổi Mèo sau khi TẮT CASE PC!")]
     public Collider catColliderToEnable;
     public GameObject catObjectToEnable;
@@ -41,24 +66,25 @@ public class PCPowerButton : MonoBehaviour, IInteractable
     public static bool IsPCPowerOn { get; private set; } = false;
 
     private Collider caseCollider;
+    private InteractPrompt interactPrompt;
     private AudioSource audioSource;
     private AudioSource fanAudioSource;
 
     void Awake()
     {
         caseCollider = GetComponent<Collider>();
+        if (caseCollider == null) caseCollider = gameObject.AddComponent<BoxCollider>();
+        caseCollider.enabled = true; // Luôn mở collider để người chơi nhìn vào hiện bàn tay và click được
+
+        interactPrompt = GetComponent<InteractPrompt>();
+        if (interactPrompt == null) interactPrompt = gameObject.AddComponent<InteractPrompt>();
     }
 
     void Start()
     {
         IsPCPowerOn = false;
 
-        if (caseCollider == null) caseCollider = GetComponent<Collider>();
-
-        if (lockOnStart && caseCollider != null)
-        {
-            caseCollider.enabled = false;
-        }
+        if (caseCollider != null) caseCollider.enabled = true;
 
         // Tự động tìm màn hình PC nếu chưa kéo
         if (computerCutscene == null)
@@ -83,19 +109,13 @@ public class PCPowerButton : MonoBehaviour, IInteractable
         fanAudioSource.playOnAwake = false;
 
         Update3DSoundSettings();
+        UpdatePromptText();
     }
 
-    /// <summary>
-    /// GỌI HÀM NÀY ĐỂ MỞ KHÓA TƯƠNG TÁC VỚI CASE PC (Được gọi khi ĐÓNG CỬA SỔ)
-    /// </summary>
     public void UnlockCase()
     {
         if (caseCollider == null) caseCollider = GetComponent<Collider>();
-        if (caseCollider != null)
-        {
-            caseCollider.enabled = true;
-            Debug.Log("[PCPowerButton] 🔓 ĐÃ MỞ KHÓA TƯƠNG TÁC CHO CASE PC!");
-        }
+        if (caseCollider != null) caseCollider.enabled = true;
     }
 
     void Update3DSoundSettings()
@@ -125,15 +145,57 @@ public class PCPowerButton : MonoBehaviour, IInteractable
         }
     }
 
-    // Khi người chơi nhìn vào Case PC bấm phím F
+    public bool IsWindowStillOpen()
+    {
+        return WindowAmbienceController.CheckIfAnyWindowOpen();
+    }
+
+    void PlayLockedDialogue()
+    {
+        if (lockedNeedCloseWindowDialogues != null && lockedNeedCloseWindowDialogues.Length > 0)
+        {
+            SmartInteractionDialogue dialoguePlayer = GetComponent<SmartInteractionDialogue>();
+            if (dialoguePlayer == null) dialoguePlayer = gameObject.AddComponent<SmartInteractionDialogue>();
+            dialoguePlayer.dialogueSound = dialogueSound;
+            dialoguePlayer.soundVolume = dialogueVolume;
+            dialoguePlayer.PlayCustomLines(lockedNeedCloseWindowDialogues);
+        }
+    }
+
+    public void UpdatePromptText()
+    {
+        if (interactPrompt == null) return;
+        if (IsPCPowerOn)
+        {
+            interactPrompt.englishPrompt = englishTurnOffPrompt;
+            interactPrompt.vietnamesePrompt = vietnameseTurnOffPrompt;
+        }
+        else
+        {
+            interactPrompt.englishPrompt = englishPrompt;
+            interactPrompt.vietnamesePrompt = vietnamesePrompt;
+        }
+        interactPrompt.UpdateText();
+    }
+
+    // Khi người chơi nhìn vào Case PC bấm Chuột Trái (Mouse 0)
     public void Interact()
     {
         Update3DSoundSettings();
 
         if (!IsPCPowerOn)
         {
+            // KIỂM TRA ĐIỀU KIỆN ĐÓNG CỬA SỔ
+            if (requireWindowClosed && IsWindowStillOpen())
+            {
+                Debug.Log("[PCPowerButton] 🔒 Cửa sổ chưa đóng -> Hiện thoại nhắc người chơi đóng cửa sổ trước!");
+                PlayLockedDialogue();
+                return;
+            }
+
             // BẤM LẦN 1 -> BẬT MÁY TÍNH
             IsPCPowerOn = true;
+            UpdatePromptText();
 
             // 1. Phát tiếng bíp nguồn
             if (powerClickSound != null && audioSource != null)
@@ -159,6 +221,7 @@ public class PCPowerButton : MonoBehaviour, IInteractable
         {
             // BẤM LẦN 2 -> TẮT MÁY TÍNH
             IsPCPowerOn = false;
+            UpdatePromptText();
 
             // 1. Phát tiếng bíp tắt nguồn
             if (powerClickSound != null && audioSource != null)

@@ -45,6 +45,10 @@ public class MovePl : MonoBehaviour
     public float slowSprintSpeed = 1.5f;
     public Transform forcedLookTarget;
 
+    [Header("Camera Clipping Settings (Chống Thủng Tường)")]
+    [Tooltip("Khoảng cách gần nhất Camera bắt đầu vẽ vật thể. 0.01m (1cm) giúp đứng sát tường không bị thủng nhìn xuyên ra ngoài trời")]
+    public float cameraNearClip = 0.01f;
+
     private float xRotation = 0f;
     private Vector3 velocity;
     private bool isGrounded;
@@ -74,6 +78,13 @@ public class MovePl : MonoBehaviour
             }
 
             crouchCamY = standingCamY * crouchHeightMultiplier;
+        }
+
+        // TỰ ĐỘNG CHỈNH NEAR CLIP PLANE ĐỂ KHÔNG BỊ CẮT THỦNG TƯỜNG KHI ĐỨNG SÁT
+        Camera cam = (cameraTransform != null) ? cameraTransform.GetComponent<Camera>() : Camera.main;
+        if (cam != null && cameraNearClip > 0f)
+        {
+            cam.nearClipPlane = cameraNearClip;
         }
 
         SyncRotationWithCurrentCamera();
