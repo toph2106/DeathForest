@@ -23,6 +23,7 @@ public class InteractPro : MonoBehaviour
     private InteractPrompt currentPromptComp = null;
     private bool isCooldown = false;
     private MovePl cachedMovePl;
+    private bool wasDialogueOrCutsceneActive = false;
 
     void Start()
     {
@@ -59,26 +60,34 @@ public class InteractPro : MonoBehaviour
     {
         if (cachedMovePl == null) cachedMovePl = Object.FindFirstObjectByType<MovePl>();
 
-        // 1. TỰ ĐỘNG ẨN HOÀN TOÀN TÂM NGẮM KHI ĐANG DÙNG PC HOẶC CAMERA BỊ KHÓA TRONG CUTSCENE
-        if (InWorldComputerCutscene.isUsingComputer || (cachedMovePl != null && cachedMovePl.isCameraLocked))
-        {
-            ClearSelection();
-            if (dotObject != null) dotObject.SetActive(false);
-            if (handObject != null) handObject.SetActive(false);
-            return;
-        }
-
-        // Nếu đang trong cutscene thoại NPC thì ẩn hoàn toàn tâm ngắm
         NPCDialogueCutscene npcCutscene = Object.FindFirstObjectByType<NPCDialogueCutscene>();
-        if (npcCutscene != null && npcCutscene.isInCutscene)
+        bool isDialogueActive = SmartInteractionDialogue.isAnyDialoguePlaying ||
+                                GameIntroManager.isIntroRunning ||
+                                BedSleepCutscene.isSleeping ||
+                                InWorldComputerCutscene.isUsingComputer ||
+                                (npcCutscene != null && npcCutscene.isInCutscene) ||
+                                (cachedMovePl != null && cachedMovePl.isCameraLocked);
+
+        // NẾU VỪA MỚI CHẠY XONG THOẠI / CẮT CẢNH -> BẮT ĐẦU COOLDOWN NGAY ĐỂ TRÁNH CLICK THỪA KÍCH HOẠT LẠI
+        if (wasDialogueOrCutsceneActive && !isDialogueActive)
+        {
+            StartCoroutine(CooldownRoutine());
+        }
+        wasDialogueOrCutsceneActive = isDialogueActive;
+
+        // 1. KHI ĐANG TRONG THOẠI HOẶC CẮT CẢNH -> KHÓA HOÀN TOÀN TƯƠNG TÁC
+        if (isDialogueActive)
         {
             ClearSelection();
-            if (dotObject != null) dotObject.SetActive(false);
-            if (handObject != null) handObject.SetActive(false);
+            if (InWorldComputerCutscene.isUsingComputer || (npcCutscene != null && npcCutscene.isInCutscene) || (cachedMovePl != null && cachedMovePl.isCameraLocked))
+            {
+                if (dotObject != null) dotObject.SetActive(false);
+                if (handObject != null) handObject.SetActive(false);
+            }
             return;
         }
 
-        // 2. KHI ĐANG HỒI CHIÊU (VỪA TƯƠNG TÁC XONG): CHUYỂN BÀN TAY VỀ LẠI CHẤM TRÒN (KHÔNG MẤT TÂM)
+        // 2. KHI ĐANG HỒI CHIÊU (VỪA TƯƠNG TÁC XONG HOẶC VỪA HẾT THOẠI): CHUYỂN BÀN TAY VỀ LẠI CHẤM TRÒN (KHÔNG MẤT TÂM)
         if (isCooldown)
         {
             ClearSelection();
@@ -86,57 +95,76 @@ public class InteractPro : MonoBehaviour
         }
 
         Ray ray = new Ray(transform.position, transform.forward);
-        RaycastHit hit;
 
-        if (Physics.Raycast(ray, out hit, interactDistance, interactLayer))
+        RaycastHit[] hits = Physics.RaycastAll(ray, interactDistance, interactLayer);
+        if (hits != null && hits.Length > 0)
         {
-            IInteractable[] interactables = hit.collider.GetComponents<IInteractable>();
-            if (interactables == null || interactables.Length == 0)
+            System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+
+            for (int hIdx = 0; hIdx < hits.Length; hIdx++)
             {
-                interactables = hit.collider.GetComponentsInParent<IInteractable>();
-            }
-            if (interactables == null || interactables.Length == 0)
-            {
-                interactables = hit.collider.GetComponentsInChildren<IInteractable>();
-            }
+                RaycastHit currentHit = hits[hIdx];
 
-            if (interactables != null && interactables.Length > 0)
-            {
-                // BẬT ICON BÀN TAY, TẮT CHẤM TRÒN
-                if (dotObject != null) dotObject.SetActive(false);
-                if (handObject != null) handObject.SetActive(true);
-
-                // Bật UI hiển thị chữ [F] (nếu có dùng)
-                if (interactionUI != null) interactionUI.SetActive(true);
-
-                // Tìm script InteractPrompt trên vật thể
-                InteractPrompt promptComp = hit.collider.GetComponent<InteractPrompt>();
-                if (promptComp == null) promptComp = hit.collider.GetComponentInParent<InteractPrompt>();
-                if (promptComp == null) promptComp = hit.collider.GetComponentInChildren<InteractPrompt>();
-
-                if (currentPromptComp != promptComp)
+                // Bỏ qua các Box Collider vùng tường (CockroachWL, CockroachWR, CockroachW...)
+                if (currentHit.collider.gameObject.name.Contains("CockroachW") && currentHit.collider.isTrigger)
                 {
-                    if (currentPromptComp != null) currentPromptComp.HidePrompt();
-                    currentPromptComp = promptComp;
-                    if (currentPromptComp != null) currentPromptComp.ShowPrompt();
+                    continue;
                 }
 
-                UpdateCurrentPromptText();
-
-                // Bấm Chuột Trái (Mouse 0) để tương tác
-                if (Input.GetMouseButtonDown(0))
+                IInteractable[] interactables = currentHit.collider.GetComponents<IInteractable>();
+                if (interactables == null || interactables.Length == 0)
                 {
-                    Debug.Log("[InteractPro] ⚡ Click Chuột Trái! Tia nhìn trúng: " + hit.collider.gameObject.name + " (IInteractable count: " + interactables.Length + ")");
+                    interactables = currentHit.collider.GetComponentsInParent<IInteractable>();
+                }
+                if (interactables == null || interactables.Length == 0)
+                {
+                    interactables = currentHit.collider.GetComponentsInChildren<IInteractable>();
+                }
 
-                    StartCoroutine(CooldownRoutine());
+                if (interactables != null && interactables.Length > 0)
+                {
+                    // BẬT ICON BÀN TAY, TẮT CHẤM TRÒN
+                    if (dotObject != null) dotObject.SetActive(false);
+                    if (handObject != null) handObject.SetActive(true);
 
-                    foreach (IInteractable interactable in interactables)
+                    // Bật UI hiển thị chữ [F] (nếu có dùng)
+                    if (interactionUI != null) interactionUI.SetActive(true);
+
+                    // Tìm script InteractPrompt trên vật thể
+                    InteractPrompt promptComp = currentHit.collider.GetComponent<InteractPrompt>();
+                    if (promptComp == null) promptComp = currentHit.collider.GetComponentInParent<InteractPrompt>();
+                    if (promptComp == null) promptComp = currentHit.collider.GetComponentInChildren<InteractPrompt>();
+
+                    if (currentPromptComp != promptComp)
                     {
-                        Debug.Log("[InteractPro] → Gọi Interact() trên: " + interactable.GetType().Name);
-                        interactable.Interact();
+                        if (currentPromptComp != null) currentPromptComp.HidePrompt();
+                        currentPromptComp = promptComp;
+                        if (currentPromptComp != null) currentPromptComp.ShowPrompt();
                     }
+
+                    UpdateCurrentPromptText();
+
+                    // Bấm Chuột Trái (Mouse 0) để tương tác
+                    if (Input.GetMouseButtonDown(0))
+                    {
+                        Debug.Log("[InteractPro] ⚡ Click Chuột Trái! Tia nhìn trúng: " + currentHit.collider.gameObject.name + " (IInteractable count: " + interactables.Length + ")");
+
+                        StartCoroutine(CooldownRoutine());
+
+                        foreach (IInteractable interactable in interactables)
+                        {
+                            Debug.Log("[InteractPro] → Gọi Interact() trên: " + interactable.GetType().Name);
+                            interactable.Interact();
+                        }
+                    }
+                    return;
                 }
-                return;
+
+                // Nếu chạm vào vật thể đặc cản tầm nhìn (không phải trigger) mà không tương tác được -> Dừng tia nhìn
+                if (!currentHit.collider.isTrigger)
+                {
+                    break;
+                }
             }
         }
 

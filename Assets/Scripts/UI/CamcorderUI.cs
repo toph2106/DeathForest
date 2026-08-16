@@ -105,14 +105,6 @@ public class CamcorderUI : MonoBehaviour
         // Thời gian trôi qua mỗi frame (Thời gian thực)
         activeTimer += Time.deltaTime;
 
-        // KÍCH HOẠT SỰ KIỆN KHI BỘ ĐẾM CÁN MỐC 10 GIÂY (00:00:10)
-        if (!hasTriggered10s && activeTimer >= 10.0f)
-        {
-            hasTriggered10s = true;
-            OnTimerReached10s?.Invoke();
-            Debug.Log("[CamcorderUI] ⏱️ Bộ đếm máy quay đã cán mốc 10 giây (00:00:10)! Kích hoạt sự kiện...");
-        }
-
         // ============================================
         // 1. CẬP NHẬT THỜI GIAN QUAY (00:00:00)
         // ============================================
@@ -184,6 +176,18 @@ public class CamcorderUI : MonoBehaviour
     public static void MarkCameraPickedUp()
     {
         HasPickedUpCamera = true;
+    }
+
+    public static void ResetPickedUpCameraState()
+    {
+        HasPickedUpCamera = false;
+        savedTimer = -1f;
+        if (Instance != null)
+        {
+            Instance.hasTriggered10s = false;
+            Instance.activeTimer = 0f;
+            Instance.gameObject.SetActive(false);
+        }
     }
 
     /// <summary>

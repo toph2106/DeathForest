@@ -219,6 +219,15 @@ public class FlashlightToggle : MonoBehaviour
         }
     }
 
+    public void UnequipFlashlight()
+    {
+        hasFlashlight = false;
+        savedHasFlashlight = 0;
+        SetFlashlightState(false, true);
+        if (batterySliderUI != null) batterySliderUI.gameObject.SetActive(false);
+        if (batteryTextUI != null) batteryTextUI.gameObject.SetActive(false);
+    }
+
     public void RechargeBattery(float amount)
     {
         if (!hasFlashlight) return;

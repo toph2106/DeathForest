@@ -908,6 +908,7 @@ GameObject:
   - component: {fileID: 1218712871196330766}
   - component: {fileID: 1783132124335672339}
   - component: {fileID: 7443897310236535862}
+  - component: {fileID: 96824288119178312}
   m_Layer: 0
   m_Name: CockroachC
   m_TagString: Untagged
@@ -965,20 +966,44 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 20d0b3712cd7b4b4da2dc5a43144ea01, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BabyCockroachCrawler
-  playerTarget: {fileID: 0}
-  triggerOnDoorOpen10s: 1
-  delayAfterDoorOpen: 0.8
-  hideUntilTriggered: 1
-  doorStartPoint: {fileID: 0}
-  minDistanceToPlayer: 0.7
-  maxDistanceToPlayer: 2.2
-  baseCrawlSpeed: 2.8
+  movementArea: {fileID: 0}
+  crawlSpeed: 1.8
   turnSpeed: 16
+  minMoveDuration: 1
+  maxMoveDuration: 2.5
+  minPauseDuration: 0.5
+  maxPauseDuration: 1.4
   modelRotationOffset: {x: 0, y: 180, z: 0}
+  isLastJumpscareCockroach: 0
+  jumpscareFlyDuration: 0.45
   walkAnimState: giant_cockroach_armature|walking
+  flyAnimState: giant_cockroach_armature|flying_kidnapping
   skitterSound: {fileID: 0}
-  soundVolume: 0.65
-  debugTriggerKey: 106
+  squishSound: {fileID: 8300000, guid: c9bd8c9b2e92b714a98511603b9fbcf9, type: 3}
+  jumpscareFlySound: {fileID: 0}
+  soundVolume: 0.2
+  hideUntilTriggered: 1
+--- !u!65 &96824288119178312
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5133170446180238151}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 3.769918, y: 0.50163865, z: 4.3206663}
+  m_Center: {x: -0.14447503, y: 0.38762707, z: 0.58078045}
 --- !u!1 &5339592024640238536
 GameObject:
   m_ObjectHideFlags: 0

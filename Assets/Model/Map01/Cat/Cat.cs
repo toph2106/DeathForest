@@ -76,27 +76,51 @@ public class Cat : MonoBehaviour, IInteractable
     [Tooltip("Kéo GameObject TriggerMeow vào đây để tự động ẩn khi mèo tới điểm Meow")]
     public GameObject triggerMeowToDisable;
 
+    [Header("9. Điểm Mèo Dỗi Đi Về (Cat Pout / Rest Target Point)")]
+    [Tooltip("Kéo Target Point mà mèo sẽ đi về sau khi bị bấm dỗi. Nếu để trống sẽ tự lấy từ BedSleepCutscene hoặc tìm trong Scene")]
+    public Transform catRestTargetPoint;
+
+    [Header("10. Cấu Hình Khi Bấm Làm Mèo Bẹp Dỗi (Squish / Pout Settings)")]
+    [Tooltip("Thời gian con mèo bị làm bẹp dí xuống sàn trước khi đứng dậy đi về chỗ (giây - Mặc định: 2.0s)")]
+    public float squishDuration = 2.0f;
+
+    [Tooltip("Âm thanh phát ra ngay khi người chơi bấm làm bẹp con mèo (Ví dụ: tiếng bẹp / squeak / meow dỗi)")]
+    public AudioClip squishSound;
+    [Range(0f, 1f)] public float squishSoundVolume = 0.9f;
+
+    [Tooltip("Tốc độ mèo đi về điểm đích sau khi hết bẹp (Mặc định: 1.5)")]
+    public float returnSpeed = 1.5f;
+
     public bool hasArrivedAtTargetPoint { get; private set; } = false;
+    public bool IsDancingOrRunning => (isCatActive && !hasArrivedAtTargetPoint) || isSquished;
 
     private Collider catCollider;
     private Animator catAnimator;
     private AudioSource catAudioSource;
+    private AudioSource sfx2DAudioSource;
     private InteractPrompt interactPrompt;
     private bool isCatActive = false;
     private Coroutine catLoopCoroutine;
-
     private bool isFadingOut = false;
+    private Vector3 originalCatScale;
+    private bool isSquished = false;
 
     void Awake()
     {
+        originalCatScale = transform.localScale;
         catCollider = GetComponent<Collider>();
         catAnimator = GetComponent<Animator>();
         if (catAnimator == null) catAnimator = GetComponentInChildren<Animator>();
 
         catAudioSource = GetComponent<AudioSource>();
         if (catAudioSource == null) catAudioSource = gameObject.AddComponent<AudioSource>();
-
         catAudioSource.volume = catSoundVolume;
+
+        // Kênh âm thanh 2D riêng biệt phát BONK ngay lập tức 0ms không bị delay
+        sfx2DAudioSource = gameObject.AddComponent<AudioSource>();
+        sfx2DAudioSource.spatialBlend = 0f;
+        sfx2DAudioSource.playOnAwake = false;
+
         interactPrompt = GetComponent<InteractPrompt>();
     }
 
@@ -111,6 +135,8 @@ public class Cat : MonoBehaviour, IInteractable
 
     void Start()
     {
+        if (originalCatScale == Vector3.zero) originalCatScale = transform.localScale;
+
         if (lockOnStart && catCollider != null)
         {
             catCollider.enabled = false;
@@ -184,8 +210,8 @@ public class Cat : MonoBehaviour, IInteractable
             catAudioSource.volume = catSoundVolume;
         }
 
-        // TỰ ĐỘNG XOAY MẶT HƯỚNG VỀ PHÍA PLAYER (Khi không nhảy)
-        if (enableLookAtPlayer && playerTransform != null)
+        // TỰ ĐỘNG XOAY MẶT HƯỚNG VỀ PHÍA PLAYER (Khi không nhảy và không bị bẹp)
+        if (enableLookAtPlayer && !isSquished && playerTransform != null)
         {
             Vector3 direction = playerTransform.position - transform.position;
             direction.y = 0;
@@ -201,26 +227,36 @@ public class Cat : MonoBehaviour, IInteractable
     // TƯƠNG TÁC CLICK CHUỘT TRÁI VÀO CON MÈO (OIIAOIIA MEME CAT)
     public void Interact()
     {
-        // Phát thoại tương tác với Mèo nếu có setup
-        if (catDialogueLines != null && catDialogueLines.Length > 0)
+        // 1. NẾU MÈO ĐANG NHẢY / CHẠY VÒNG QUANH -> CLICK LẦN 2 ĐỂ LÀM BẸP NÓ XUỐNG DỖI & ĐI VỀ CHỖ!
+        if (isCatActive && !isSquished && !hasArrivedAtTargetPoint)
         {
-            SmartInteractionDialogue dialoguePlayer = GetComponent<SmartInteractionDialogue>();
-            if (dialoguePlayer == null) dialoguePlayer = gameObject.AddComponent<SmartInteractionDialogue>();
-            dialoguePlayer.dialogueSound = dialogueSound;
-            dialoguePlayer.soundVolume = dialogueVolume;
-            dialoguePlayer.PlayCustomLines(catDialogueLines);
+            // PHÁT NGAY LẬP TỨC 0ms TIẾNG BONK KHI VỪA CLICK CHUỘT TRƯỚC MỌI TÍNH TOÁN!
+            if (squishSound != null)
+            {
+                if (sfx2DAudioSource != null)
+                {
+                    sfx2DAudioSource.PlayOneShot(squishSound, squishSoundVolume);
+                }
+                else
+                {
+                    AudioSource.PlayClipAtPoint(squishSound, Camera.main != null ? Camera.main.transform.position : transform.position, squishSoundVolume);
+                }
+                Debug.Log($"[Cat] 🔊 ĐÃ PHÁT ÂM THANH BONK NGAY TRONG FRAME CLICK (0ms)!");
+            }
+
+            // Dừng ngay nhạc & animation nhảy ngay lập tức
+            StopCatDanceSoundAndAnimation();
+
+            // Làm bẹp ngay lập tức trong frame này
+            Vector3 baseScale = (originalCatScale != Vector3.zero) ? originalCatScale : transform.localScale;
+            transform.localScale = new Vector3(baseScale.x * 1.35f, baseScale.y * 0.25f, baseScale.z * 1.35f);
+
+            if (catLoopCoroutine != null) StopCoroutine(catLoopCoroutine);
+            catLoopCoroutine = StartCoroutine(SquishAndSendCatHomeRoutine());
+            return;
         }
 
-        // 1. Mở khóa tương tác cho Nệm Ngủ khi tương tác đuổi Mèo
-        if (bedColliderToEnable != null)
-        {
-            bedColliderToEnable.enabled = true;
-            Debug.Log("[Cat] 🔓 Đã mở khóa tương tác cho Nệm Ngủ!");
-        }
-
-        if (isCatActive) return;
-
-        UpdateAudio3DSettings();
+        if (isSquished) return;
 
         // 2. NẾU MÈO ĐÃ TỚI TRÊN HỘP GIẤY: CHỈ XOAY TẠI CHỖ 1 ĐỢT RỒI DỪNG, TẮT LOOP
         if (hasArrivedAtTargetPoint)
@@ -230,35 +266,75 @@ public class Cat : MonoBehaviour, IInteractable
             return;
         }
 
+        // 3. CLICK LẦN 1: PHÁT THOẠI & BẮT ĐẦU NHẢY MÚA VÀ DI CHUYỂN
+        if (catDialogueLines != null && catDialogueLines.Length > 0)
+        {
+            SmartInteractionDialogue dialoguePlayer = GetComponent<SmartInteractionDialogue>();
+            if (dialoguePlayer == null) dialoguePlayer = gameObject.AddComponent<SmartInteractionDialogue>();
+            dialoguePlayer.dialogueSound = dialogueSound;
+            dialoguePlayer.soundVolume = dialogueVolume;
+            dialoguePlayer.PlayCustomLines(catDialogueLines);
+        }
+
+        // Mở khóa tương tác cho Nệm Ngủ khi tương tác đuổi Mèo
+        if (bedColliderToEnable != null)
+        {
+            bedColliderToEnable.enabled = true;
+            Debug.Log("[Cat] 🔓 Đã mở khóa tương tác cho Nệm Ngủ!");
+        }
+
+        UpdateAudio3DSettings();
+
         // Tắt xoay nhìn player trong lúc đang nhảy dance trên giường
         enableLookAtPlayer = false;
 
-        // BẮT ĐẦU NHẢY MÚA VÀ DI CHUYỂN NGAY LẬP TỨC
+        // BẮT ĐẦU NHẢY MÚA VÀ DI CHUYỂN
         if (catLoopCoroutine != null) StopCoroutine(catLoopCoroutine);
         catLoopCoroutine = StartCoroutine(CatBehaviorLoopRoutine());
-
-        // BẬT NHẠC SAU DELAY 2.0s TỪ LÚC TƯƠNG TÁC
-        if (catMusicCoroutine != null) StopCoroutine(catMusicCoroutine);
-        catMusicCoroutine = StartCoroutine(PlayCatMusicDelayedRoutine(initialInteractDelay));
     }
 
-    private Coroutine catMusicCoroutine;
-
-    IEnumerator PlayCatMusicDelayedRoutine(float delay)
+    IEnumerator SquishAndSendCatHomeRoutine()
     {
-        if (delay > 0f)
+        isSquished = true;
+
+        if (catAnimator != null)
         {
-            yield return new WaitForSeconds(delay);
+            catAnimator.ResetTrigger("PlayAnim");
+            catAnimator.Play("Idle", 0, 0f);
+            catAnimator.enabled = false; // Tắt hẳn Animator để con mèo đứng yên bẹp dí
         }
 
-        if (catSound != null && catAudioSource != null && isCatActive)
+        // Giữ trạng thái bẹp dí trong squishDuration (Mặc định: 2.0s)
+        yield return new WaitForSeconds(squishDuration);
+
+        // Hồi phục lại kích thước ban đầu & bật lại Animator ở trạng thái Idle
+        Vector3 baseScale = (originalCatScale != Vector3.zero) ? originalCatScale : transform.localScale;
+        transform.localScale = baseScale;
+        if (catAnimator != null)
         {
-            catAudioSource.loop = true;
-            catAudioSource.clip = catSound;
-            catAudioSource.volume = catSoundVolume;
-            catAudioSource.time = 0f;
-            catAudioSource.Play();
+            catAnimator.enabled = true;
+            catAnimator.Play("Idle", 0, 0f);
         }
+        isSquished = false;
+
+        // Tìm điểm đích nếu chưa kéo vào Inspector
+        if (catRestTargetPoint == null)
+        {
+            BedSleepCutscene bed = Object.FindFirstObjectByType<BedSleepCutscene>(FindObjectsInactive.Include);
+            if (bed != null && bed.catMeowTargetPoint != null)
+            {
+                catRestTargetPoint = bed.catMeowTargetPoint;
+            }
+            else
+            {
+                GameObject pointObj = GameObject.Find("CatMeowTargetPoint") ?? GameObject.Find("PointCatMeow") ?? GameObject.Find("TargetPointCat");
+                if (pointObj != null) catRestTargetPoint = pointObj.transform;
+            }
+        }
+
+        // Cho con mèo dỗi đi về điểm setup trong trạng thái Idle (không nhảy múa)
+        MoveToPointAndStop(catRestTargetPoint, returnSpeed);
+        Debug.Log("[Cat] 🐈 Con mèo đã hồi phục và đang dỗi đi về chỗ nghỉ!");
     }
 
     IEnumerator SingleDanceRoutine(float duration)
@@ -266,14 +342,25 @@ public class Cat : MonoBehaviour, IInteractable
         isCatActive = true;
         enableLookAtPlayer = false;
 
+        // Đợi delay trước khi bật đồng thời CẢ NHẠC LẪN ANIMATION
+        if (initialInteractDelay > 0f)
+        {
+            yield return new WaitForSeconds(initialInteractDelay);
+        }
+
         if (catAnimator != null)
         {
             catAnimator.SetTrigger("PlayAnim");
         }
 
-        // Bật nhạc sau delay
-        if (catMusicCoroutine != null) StopCoroutine(catMusicCoroutine);
-        catMusicCoroutine = StartCoroutine(PlayCatMusicDelayedRoutine(initialInteractDelay));
+        if (catSound != null && catAudioSource != null)
+        {
+            catAudioSource.loop = true;
+            catAudioSource.clip = catSound;
+            catAudioSource.volume = catSoundVolume;
+            catAudioSource.time = 0f;
+            catAudioSource.Play();
+        }
 
         float elapsed = 0f;
         while (elapsed < duration)
@@ -294,6 +381,21 @@ public class Cat : MonoBehaviour, IInteractable
     IEnumerator CatBehaviorLoopRoutine()
     {
         isCatActive = true;
+
+        // Đợi delay trước khi bật đồng thời CẢ NHẠC LẪN ANIMATION
+        if (initialInteractDelay > 0f)
+        {
+            yield return new WaitForSeconds(initialInteractDelay);
+        }
+
+        if (catSound != null && catAudioSource != null)
+        {
+            catAudioSource.loop = true;
+            catAudioSource.clip = catSound;
+            catAudioSource.volume = catSoundVolume;
+            catAudioSource.time = 0f;
+            catAudioSource.Play();
+        }
 
         if (catAnimator != null)
         {
@@ -389,7 +491,12 @@ public class Cat : MonoBehaviour, IInteractable
     {
         if (catLoopCoroutine != null) StopCoroutine(catLoopCoroutine);
         if (catAudioSource != null && catAudioSource.isPlaying) catAudioSource.Stop();
-        if (catAnimator != null) catAnimator.ResetTrigger("PlayAnim");
+        if (catAnimator != null)
+        {
+            catAnimator.ResetTrigger("PlayAnim");
+            catAnimator.Play("Idle", 0, 0f);
+            catAnimator.Update(0f);
+        }
         isCatActive = false;
         enableLookAtPlayer = true;
     }

@@ -34,21 +34,30 @@ public class SmartInteractionDialogue : MonoBehaviour, IInteractable
     public bool useTypewriterEffect = true;
     public float typewriterSpeed = 0.035f;
 
-    [Header("5. Cấu Hình Hành Vi Thoại")]
+    [Header("5. Hiệu Ứng Con Trỏ '_' & Fade Mờ Dần (Đồng Bộ Chuẩn)")]
+    [Tooltip("Bật hiệu ứng con trỏ '_' nhấp nháy cuối câu thoại")]
+    public bool showBlinkingCursor = true;
+    [Tooltip("Bật hiệu ứng mờ dần Fade Out khi chuyển câu thoại")]
+    public bool useFadeEffect = true;
+    [Tooltip("Thời gian mờ dần Fade (Mặc định: 0.2 giây)")]
+    public float fadeDuration = 0.2f;
+
+    [Header("6. Cấu Hình Hành Vi Thoại")]
     [Tooltip("Chỉ chạy thoại 1 lần duy nhất trong game")]
     public bool playOnce = false;
     [Tooltip("Khóa di chuyển của người chơi khi đang đọc thoại")]
     public bool lockMovementWhileSpeaking = false;
 
-    [Header("6. TextMeshPro UI Phụ Đề")]
+    [Header("7. TextMeshPro UI Phụ Đề")]
     public TextMeshProUGUI subtitleTextUI;
 
-    public static bool isAnyDialoguePlaying { get; private set; } = false;
+    public static bool isAnyDialoguePlaying { get; set; } = false;
 
     private AudioSource audioSource;
     private bool hasPlayed = false;
     private Coroutine dialogueCoroutine;
     private Coroutine fadeAudioCoroutine;
+    private Coroutine cursorBlinkCoroutine;
 
     // Biến điều khiển Click Skip
     private bool isTyping = false;
@@ -132,12 +141,14 @@ public class SmartInteractionDialogue : MonoBehaviour, IInteractable
 
     public void Interact()
     {
+        if (isAnyDialoguePlaying) return;
         PlayDialogue();
     }
 
     public void PlayDialogue(System.Action onComplete = null)
     {
         if (playOnce && hasPlayed) return;
+        if (isAnyDialoguePlaying) return;
 
         DialogueLine[] linesToPlay = isLocked ? lockedDialogueLines : unlockedDialogueLines;
 
@@ -211,6 +222,20 @@ public class SmartInteractionDialogue : MonoBehaviour, IInteractable
 
             if (string.IsNullOrEmpty(currentFullText)) continue;
 
+            // Khôi phục Alpha = 1 cho Text
+            if (subtitleTextUI != null)
+            {
+                Color sc = subtitleTextUI.color;
+                sc.a = 1f;
+                subtitleTextUI.color = sc;
+            }
+
+            if (cursorBlinkCoroutine != null)
+            {
+                StopCoroutine(cursorBlinkCoroutine);
+                cursorBlinkCoroutine = null;
+            }
+
             // BẬT ÂM THANH TRONG SUỐT THỜI GIAN ĐANG GÕ CHỮ
             bool playedAudioThisLine = false;
             if (dialogueSound != null && audioSource != null)
@@ -243,7 +268,9 @@ public class SmartInteractionDialogue : MonoBehaviour, IInteractable
                         subtitleTextUI.text = currentFullText;
                         break;
                     }
-                    subtitleTextUI.text = currentFullText.Substring(0, c);
+                    string typed = currentFullText.Substring(0, c);
+                    if (showBlinkingCursor) typed += "_";
+                    subtitleTextUI.text = typed;
                     yield return new WaitForSeconds(typewriterSpeed);
                 }
             }
@@ -253,12 +280,20 @@ public class SmartInteractionDialogue : MonoBehaviour, IInteractable
             }
 
             isTyping = false;
+            if (subtitleTextUI != null) subtitleTextUI.text = currentFullText;
 
             // DỪNG ÂM THANH MƯỢT MÀ KHI ĐÃ GÕ XONG (HOẶC SKIP)
             if (playedAudioThisLine && audioSource != null && audioSource.isPlaying && audioSource.clip == dialogueSound)
             {
                 if (fadeAudioCoroutine != null) StopCoroutine(fadeAudioCoroutine);
                 fadeAudioCoroutine = StartCoroutine(FadeAudioOutRoutine(audioSource, 0.08f));
+            }
+
+            // Bật con trỏ nhấp nháy '_' trong lúc chờ đọc
+            if (showBlinkingCursor && subtitleTextUI != null)
+            {
+                if (cursorBlinkCoroutine != null) StopCoroutine(cursorBlinkCoroutine);
+                cursorBlinkCoroutine = StartCoroutine(BlinkCursorRoutine(subtitleTextUI, currentFullText));
             }
 
             // Chờ đọc xong hoặc bấm click để qua nhanh
@@ -274,12 +309,33 @@ public class SmartInteractionDialogue : MonoBehaviour, IInteractable
             }
 
             isWaitingForNextLine = false;
+
+            if (cursorBlinkCoroutine != null)
+            {
+                StopCoroutine(cursorBlinkCoroutine);
+                cursorBlinkCoroutine = null;
+            }
+
+            // Hiệu ứng Fade Out mờ dần khi chuyển câu thoại
+            if (useFadeEffect && subtitleTextUI != null)
+            {
+                yield return StartCoroutine(FadeTextOutRoutine(subtitleTextUI, fadeDuration));
+            }
+        }
+
+        if (cursorBlinkCoroutine != null)
+        {
+            StopCoroutine(cursorBlinkCoroutine);
+            cursorBlinkCoroutine = null;
         }
 
         // Tắt subtitle
         if (subtitleTextUI != null)
         {
             subtitleTextUI.text = "";
+            Color sc = subtitleTextUI.color;
+            sc.a = 1f;
+            subtitleTextUI.color = sc;
         }
 
         if (audioSource != null && audioSource.isPlaying && audioSource.clip == dialogueSound)
@@ -303,6 +359,36 @@ public class SmartInteractionDialogue : MonoBehaviour, IInteractable
     public void SetLockedState(bool locked)
     {
         isLocked = locked;
+    }
+
+    IEnumerator BlinkCursorRoutine(TextMeshProUGUI txt, string baseText)
+    {
+        bool showUnderscore = true;
+        while (true)
+        {
+            if (txt != null)
+            {
+                txt.text = baseText + (showUnderscore ? " _" : "  ");
+            }
+            showUnderscore = !showUnderscore;
+            yield return new WaitForSeconds(0.4f);
+        }
+    }
+
+    IEnumerator FadeTextOutRoutine(TextMeshProUGUI txt, float duration)
+    {
+        if (txt == null) yield break;
+        float elapsed = 0f;
+        Color c = txt.color;
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            c.a = Mathf.Lerp(1f, 0f, elapsed / duration);
+            txt.color = c;
+            yield return null;
+        }
+        c.a = 0f;
+        txt.color = c;
     }
 
     IEnumerator FadeAudioOutRoutine(AudioSource src, float duration)
