@@ -164,6 +164,10 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 0}
     - target: {fileID: 1184405620310900102, guid: 4a19be2a299c65547822969ac63d4b4f, type: 3}
+      propertyPath: dialogueSound
+      value: 
+      objectReference: {fileID: 8300000, guid: dec3467b5c808584e80c526ba4e16518, type: 3}
+    - target: {fileID: 1184405620310900102, guid: 4a19be2a299c65547822969ac63d4b4f, type: 3}
       propertyPath: cameraUICanvas
       value: 
       objectReference: {fileID: 0}
@@ -175,6 +179,38 @@ PrefabInstance:
       propertyPath: camcorderClickSound
       value: 
       objectReference: {fileID: 8300000, guid: 842660450a56e134d9c7cb1d7ff36e30, type: 3}
+    - target: {fileID: 1184405620310900102, guid: 4a19be2a299c65547822969ac63d4b4f, type: 3}
+      propertyPath: pickupDialogues.Array.size
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 1184405620310900102, guid: 4a19be2a299c65547822969ac63d4b4f, type: 3}
+      propertyPath: pickupDialogues.Array.data[2].holdDuration
+      value: 2.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 1184405620310900102, guid: 4a19be2a299c65547822969ac63d4b4f, type: 3}
+      propertyPath: pickupDialogues.Array.data[0].englishDialogue
+      value: ...
+      objectReference: {fileID: 0}
+    - target: {fileID: 1184405620310900102, guid: 4a19be2a299c65547822969ac63d4b4f, type: 3}
+      propertyPath: pickupDialogues.Array.data[1].englishDialogue
+      value: ...
+      objectReference: {fileID: 0}
+    - target: {fileID: 1184405620310900102, guid: 4a19be2a299c65547822969ac63d4b4f, type: 3}
+      propertyPath: pickupDialogues.Array.data[2].englishDialogue
+      value: ...
+      objectReference: {fileID: 0}
+    - target: {fileID: 1184405620310900102, guid: 4a19be2a299c65547822969ac63d4b4f, type: 3}
+      propertyPath: pickupDialogues.Array.data[0].vietnameseDialogue
+      value: "Th\u1EED b\u1EADt l\xEAn xem n\xE0o"
+      objectReference: {fileID: 0}
+    - target: {fileID: 1184405620310900102, guid: 4a19be2a299c65547822969ac63d4b4f, type: 3}
+      propertyPath: pickupDialogues.Array.data[1].vietnameseDialogue
+      value: "U\u1EA7y d\xF9ng v\u1EABn \u0111\u01B0\u1EE3c n\xE0y"
+      objectReference: {fileID: 0}
+    - target: {fileID: 1184405620310900102, guid: 4a19be2a299c65547822969ac63d4b4f, type: 3}
+      propertyPath: pickupDialogues.Array.data[2].vietnameseDialogue
+      value: "Th\u1EED m\u1EDF c\u1EEDa s\u1ED5 quay th\xE0nh ph\u1ED1 xem sao"
+      objectReference: {fileID: 0}
     - target: {fileID: 1348259308778549445, guid: 4a19be2a299c65547822969ac63d4b4f, type: 3}
       propertyPath: m_LocalScale.x
       value: 0.08632707
@@ -283,6 +319,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7da39f2589bac1a4b9a94f02b02bbd7f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CrouchInteractable
+  autoCrouchCamera: 0
   standingY: 0.6
   crouchY: 0
   moveSpeed: 2

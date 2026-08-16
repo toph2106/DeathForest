@@ -22,8 +22,8 @@ public class BoxDropZone : MonoBehaviour, IInteractable
     [Tooltip("Kích thước Scale của thùng khi thả xuống sàn (Mặc định X, Y, Z: 0.5)")]
     public Vector3 spawnScale = new Vector3(0.5f, 0.5f, 0.5f);
 
-    [Tooltip("Độ cao (Trục Y) thả thùng rơi xuống (Mặc định: 0.5m trên sàn để rơi tự nhiên)")]
-    public float dropHeightOffset = 0.5f;
+    [Tooltip("Độ cao nâng đáy thùng hàng nằm chuẩn trên mặt chiếu (Mặc định: 0.15m để không bị chìm xuống chiếu)")]
+    public float dropHeightOffset = 0.15f;
 
     [Tooltip("Tích chọn: Thả ngay tại điểm tia mắt người chơi nhìn vào thảm. Bỏ tích: Thả cố định tại tâm vùng này")]
     public bool dropAtRaycastPoint = true;
@@ -45,6 +45,29 @@ public class BoxDropZone : MonoBehaviour, IInteractable
     [Header("7. Hộp Mở Hàng Khi Bấm Mở (Open Box Settings)")]
     [Tooltip("Kéo Prefab hoặc Object 'BoxOpen' (hộp đã mở) vào đây để cho phép bấm [F] mở hộp sau khi thả")]
     public GameObject openBoxPrefab;
+
+    [Header("8. Thoại Sau Khi Mở Hộp Trên Chiếu (Post Open Dialogues)")]
+    [Tooltip("Danh sách câu thoại phát ngay khi mở nắp hộp nhìn thấy máy quay")]
+    public SmartInteractionDialogue.DialogueLine[] postOpenDialogues = new SmartInteractionDialogue.DialogueLine[]
+    {
+        new SmartInteractionDialogue.DialogueLine
+        {
+            vietnameseDialogue = "Một chiếc máy quay cũ... kèm theo mấy cuộn băng cát-xét à?",
+            englishDialogue = "An old camcorder... along with some cassette tapes?",
+            holdDuration = 3.0f
+        },
+        new SmartInteractionDialogue.DialogueLine
+        {
+            vietnameseDialogue = "Cô ta gửi mớ đồ này cho mình với mục đích gì cơ chứ...",
+            englishDialogue = "Why on earth did she send me all of this...",
+            holdDuration = 3.0f
+        }
+    };
+
+    [Header("8.1. Âm Thanh Thoại Gõ Chữ (Dialogue SFX)")]
+    [Tooltip("Gói âm thanh lồng tiếng / gõ chữ khi hiện phụ đề (5s blip)")]
+    public AudioClip openDialogueSound;
+    [Range(0f, 1f)] public float openDialogueVolume = 0.8f;
 
     private Collider zoneCollider;
     private InteractPrompt interactPrompt;
@@ -98,25 +121,22 @@ public class BoxDropZone : MonoBehaviour, IInteractable
             return;
         }
 
+        hasDropped = true;
+
+        // Tắt ngay collider vùng thả để tránh xung đột vật lý
+        if (zoneCollider != null) zoneCollider.enabled = false;
+        HidePrompt();
+
         Debug.Log("[BoxDropZone] 📦 Đặt thùng hàng xuống chiếu!");
 
         // 1. Ẩn thùng hàng trên tay Player
         playerHandBox.SetActive(false);
 
-        // 2. Tính toán vị trí & góc xoay thả thùng (X = -90f)
+        // 2. Xác định vị trí thả: dùng tâm vùng chiếu + nâng lên một chút để rơi tự nhiên
         Vector3 spawnPosition = transform.position + Vector3.up * dropHeightOffset;
         Quaternion targetRotation = Quaternion.Euler(spawnRotationEuler);
 
-        if (dropAtRaycastPoint && Camera.main != null)
-        {
-            Ray ray = new Ray(Camera.main.transform.position, Camera.main.transform.forward);
-            RaycastHit hit;
-            if (Physics.Raycast(ray, out hit, 5f))
-            {
-                spawnPosition = hit.point + Vector3.up * dropHeightOffset;
-            }
-        }
-        else if (fixedDropPoint != null)
+        if (fixedDropPoint != null)
         {
             spawnPosition = fixedDropPoint.position + Vector3.up * dropHeightOffset;
             targetRotation = fixedDropPoint.rotation * Quaternion.Euler(spawnRotationEuler);
@@ -128,80 +148,101 @@ public class BoxDropZone : MonoBehaviour, IInteractable
         {
             if (worldBoxPrefab.scene.rootCount > 0)
             {
-                // Nếu là Object có sẵn trong Scene
                 spawnedBox = worldBoxPrefab;
-                spawnedBox.transform.position = spawnPosition;
-                spawnedBox.transform.rotation = targetRotation;
                 spawnedBox.SetActive(true);
             }
             else
             {
-                // Nếu là Prefab từ Project
                 spawnedBox = Instantiate(worldBoxPrefab, spawnPosition, targetRotation);
             }
         }
 
-        // 4. Đảm bảo Thùng Hàng có Rigidbody & Collider để RƠI TỰ NHIÊN xuống sàn
+        // 4. Cấu hình vật lý: rơi tự nhiên nhưng KHÓA XOAY để không nghiêng/lật
         if (spawnedBox != null)
         {
-            // Tháo ra khỏi Camera để nằm độc lập trên sàn
             if (spawnedBox.transform.parent != null)
             {
                 spawnedBox.transform.SetParent(null);
             }
 
-            // Đặt Scale chuẩn (0.5, 0.5, 0.5)
+            spawnedBox.transform.position = spawnPosition;
+            spawnedBox.transform.rotation = targetRotation;
             spawnedBox.transform.localScale = spawnScale;
 
             Rigidbody rb = spawnedBox.GetComponent<Rigidbody>();
             if (rb == null) rb = spawnedBox.AddComponent<Rigidbody>();
 
+            // Cho rơi tự nhiên nhưng KHÓA TOÀN BỘ XOAY để thùng luôn đứng thẳng
             rb.isKinematic = false;
             rb.useGravity = true;
+            rb.linearVelocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+            rb.constraints = RigidbodyConstraints.FreezeRotation; // Chỉ khóa xoay, cho phép rơi Y
+            rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+            rb.mass = 3f; // Nặng hơn một chút để rơi ổn định, ít bị nảy
+            rb.linearDamping = 2f; // Giảm bật nảy
 
             // Bật lại đổ bóng cho thùng dưới sàn
             MeshRenderer mr = spawnedBox.GetComponent<MeshRenderer>();
             if (mr != null) mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
 
-            // 5. KHÓA CỐ ĐỊNH VỊ TRÍ SAU KHỊ THÙNG RƠI XUỐNG THẢM
-            if (lockPositionAfterDrop)
+            // Bỏ qua va chạm với Player để không bị đá văng
+            Collider boxCol = spawnedBox.GetComponent<Collider>();
+            if (boxCol != null)
             {
-                StartCoroutine(LockBoxPositionRoutine(spawnedBox));
+                boxCol.enabled = true;
+                MovePl player = Object.FindFirstObjectByType<MovePl>();
+                if (player != null)
+                {
+                    Collider[] playerCols = player.GetComponentsInChildren<Collider>();
+                    foreach (Collider pc in playerCols)
+                    {
+                        Physics.IgnoreCollision(boxCol, pc, true);
+                    }
+                    CharacterController cc = player.GetComponent<CharacterController>();
+                    if (cc != null) Physics.IgnoreCollision(boxCol, cc, true);
+                }
             }
 
-            // 6. CẤU HÌNH TƯƠNG TÁC MỞ HỘP (BoxOpen) CHO THÙNG VỪA THẢ
+            // Sau lockDelay giây thùng chạm đất -> khóa cứng hoàn toàn
+            if (lockPositionAfterDrop)
+            {
+                StartCoroutine(LockBoxAfterLanding(spawnedBox));
+            }
+
+            // 5. CẤU HÌNH TƯƠNG TÁC MỞ HỘP (BoxOpen) CHO THÙNG VỪA THẢ
             NPCDeliveryBox oldDelivery = spawnedBox.GetComponent<NPCDeliveryBox>();
             if (oldDelivery != null) oldDelivery.enabled = false;
 
             InteractableItem oldItem = spawnedBox.GetComponent<InteractableItem>();
             if (oldItem != null) oldItem.enabled = false;
 
-            Collider col = spawnedBox.GetComponent<Collider>();
-            if (col != null) col.enabled = true;
-
             if (openBoxPrefab != null)
             {
                 OpenablePlacedBox openable = spawnedBox.GetComponent<OpenablePlacedBox>();
                 if (openable == null) openable = spawnedBox.AddComponent<OpenablePlacedBox>();
                 openable.openBoxPrefab = openBoxPrefab;
+                if (postOpenDialogues != null && postOpenDialogues.Length > 0)
+                {
+                    openable.postOpenDialogues = postOpenDialogues;
+                }
+                if (openDialogueSound != null)
+                {
+                    openable.dialogueSound = openDialogueSound;
+                    openable.dialogueVolume = openDialogueVolume;
+                }
                 openable.enabled = true;
             }
         }
 
-        // 6. Phát âm thanh thả thùng (nếu có)
+        // 6. Phát âm thanh thả thùng
         if (dropSound != null)
         {
             AudioSource.PlayClipAtPoint(dropSound, spawnPosition, soundVolume);
         }
-
-        hasDropped = true;
-
-        // Tắt collider vùng thả để không hiện [F] nữa
-        if (zoneCollider != null) zoneCollider.enabled = false;
-        HidePrompt();
     }
 
-    IEnumerator LockBoxPositionRoutine(GameObject targetBox)
+    IEnumerator LockBoxAfterLanding(GameObject targetBox)
     {
         yield return new WaitForSeconds(lockDelay);
 
@@ -210,10 +251,12 @@ public class BoxDropZone : MonoBehaviour, IInteractable
             Rigidbody rb = targetBox.GetComponent<Rigidbody>();
             if (rb != null)
             {
-                rb.isKinematic = true; // Khóa hoàn toàn chuyển động vật lý
+                rb.linearVelocity = Vector3.zero;
+                rb.angularVelocity = Vector3.zero;
+                rb.isKinematic = true;
+                rb.constraints = RigidbodyConstraints.FreezeAll;
             }
-
-            Debug.Log("[BoxDropZone] 🔒 Đã lưu & khóa cố định vị trí thùng hàng tại: " + targetBox.transform.position);
+            Debug.Log("[BoxDropZone] 🔒 Đã khóa cố định vị trí thùng hàng tại: " + targetBox.transform.position);
         }
     }
 

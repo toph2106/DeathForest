@@ -145,6 +145,82 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 3.5053189, y: 4.796564, z: 4.462558}
   m_Center: {x: 0.031930037, y: 0.1002359, z: -2.531045}
+--- !u!1 &59377606
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 59377608}
+  - component: {fileID: 59377607}
+  m_Layer: 0
+  m_Name: CockroachManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &59377607
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 59377606}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 812ba49a1f511624ca7375cbb222e32a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CockroachMinigameManager
+  babyCockroaches:
+  - {fileID: 1399255924}
+  - {fileID: 331313139}
+  - {fileID: 1243921377}
+  - {fileID: 712550379}
+  - {fileID: 1536634675}
+  - {fileID: 1824341921}
+  - {fileID: 763369963}
+  - {fileID: 1435210282}
+  motherCockroach: {fileID: 8897093225949993421}
+  triggerOnDoorOpen10s: 1
+  delayAfterDoorOpen: 0.8
+  sightCockroachDialogues:
+  - vietnameseDialogue: "Tf!!! Gi\xE1n \u0111\xE2u nhi\u1EC1u v\u1EADyy"
+    englishDialogue: ...
+    holdDuration: 2.8
+  - vietnameseDialogue: "Sao c\u1EEDa t\u1EF1 m\u1EDF v\u1EADy, n\xE3y m\xECnh ch\u01B0a
+      \u0111\xF3ng c\u1EEDa \xE0"
+    englishDialogue: ...
+    holdDuration: 2.8
+  - vietnameseDialogue: "M\xECnh c\u1EA7n x\u1EED l\xFD b\u1ECDn ch\xFAng"
+    englishDialogue: ...
+    holdDuration: 2.8
+  sightMotherCockroachDialogues:
+  - vietnameseDialogue: "C\xE1i qu\xE1i "
+    englishDialogue: ...
+    holdDuration: 2.8
+  dialogueSound: {fileID: 8300000, guid: dec3467b5c808584e80c526ba4e16518, type: 3}
+  dialogueVolume: 0.8
+  sightDelayBeforeDialogue: 1
+  debugTriggerKey: 106
+  debugKillNextKey: 107
+--- !u!4 &59377608
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 59377606}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 222.50682, y: 69.74432, z: 180.75543}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &75757557
 GameObject:
   m_ObjectHideFlags: 0
@@ -1198,6 +1274,103 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: -159.03, y: 30.604004, z: -94.050995}
+--- !u!1001 &331313137
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 1289906637}
+    m_Modifications:
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -6.3069954
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 2.8130088
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.81606317
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0.57796276
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: -70.615
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5133170446180238151, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_Name
+      value: CockroachC
+      objectReference: {fileID: 0}
+    - target: {fileID: 5199321306587138950, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 62bb5cbd0d43afd44ae686f7c5f7ea7d, type: 2}
+    - target: {fileID: 7443897310236535862, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: turnSpeed
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 7443897310236535862, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: doorWaypoint
+      value: 
+      objectReference: {fileID: 155335913}
+    - target: {fileID: 7443897310236535862, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: movementArea
+      value: 
+      objectReference: {fileID: 997318250}
+    - target: {fileID: 7443897310236535862, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: playerTarget
+      value: 
+      objectReference: {fileID: 3872007059106641197}
+    - target: {fileID: 7443897310236535862, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: doorStartPoint
+      value: 
+      objectReference: {fileID: 155335913}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+--- !u!4 &331313138 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+  m_PrefabInstance: {fileID: 331313137}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &331313139 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7443897310236535862, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+  m_PrefabInstance: {fileID: 331313137}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 20d0b3712cd7b4b4da2dc5a43144ea01, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BabyCockroachCrawler
 --- !u!1 &354812786
 GameObject:
   m_ObjectHideFlags: 0
@@ -1397,7 +1570,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 1, y: -6.000061}
+  m_AnchoredPosition: {x: 1, y: -6.000244}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &397743317
@@ -1519,10 +1692,22 @@ PrefabInstance:
       propertyPath: m_Name
       value: CockroachC
       objectReference: {fileID: 0}
+    - target: {fileID: 5199321306587138950, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 62bb5cbd0d43afd44ae686f7c5f7ea7d, type: 2}
     - target: {fileID: 7443897310236535862, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
       propertyPath: turnSpeed
       value: 10
       objectReference: {fileID: 0}
+    - target: {fileID: 7443897310236535862, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: doorWaypoint
+      value: 
+      objectReference: {fileID: 155335913}
+    - target: {fileID: 7443897310236535862, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: movementArea
+      value: 
+      objectReference: {fileID: 997318250}
     - target: {fileID: 7443897310236535862, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
       propertyPath: playerTarget
       value: 
@@ -2330,6 +2515,103 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_IsOn: 1
+--- !u!1001 &712550377
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 1289906637}
+    m_Modifications:
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -6.3069954
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 2.8130088
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.81606317
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0.57796276
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: -70.615
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5133170446180238151, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_Name
+      value: CockroachC
+      objectReference: {fileID: 0}
+    - target: {fileID: 5199321306587138950, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 62bb5cbd0d43afd44ae686f7c5f7ea7d, type: 2}
+    - target: {fileID: 7443897310236535862, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: turnSpeed
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 7443897310236535862, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: doorWaypoint
+      value: 
+      objectReference: {fileID: 155335913}
+    - target: {fileID: 7443897310236535862, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: movementArea
+      value: 
+      objectReference: {fileID: 997318250}
+    - target: {fileID: 7443897310236535862, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: playerTarget
+      value: 
+      objectReference: {fileID: 3872007059106641197}
+    - target: {fileID: 7443897310236535862, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: doorStartPoint
+      value: 
+      objectReference: {fileID: 155335913}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+--- !u!4 &712550378 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+  m_PrefabInstance: {fileID: 712550377}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &712550379 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7443897310236535862, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+  m_PrefabInstance: {fileID: 712550377}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 20d0b3712cd7b4b4da2dc5a43144ea01, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BabyCockroachCrawler
 --- !u!1 &716318684
 GameObject:
   m_ObjectHideFlags: 0
@@ -2473,13 +2755,38 @@ MonoBehaviour:
   useTypewriterEffect: 1
   typewriterSpeed: 0.03
   holdTimePerLine: 3.2
+  showBlinkingCursor: 1
+  useFadeEffect: 1
+  fadeDuration: 0.2
   introLines:
-  - vietnameseDialogue: 'Haizz... '
-    englishDialogue: 'Haizz... '
-  - vietnameseDialogue: "Ch\xE1n qu\xE1aa"
-    englishDialogue: 
+  - vietnameseDialogue: Haizz
+    englishDialogue: ...
+  - vietnameseDialogue: Haizzzz
+    englishDialogue: ...
+  - vietnameseDialogue: Haizzzzzzzzzzzzzzzzzzzzzzz
+    englishDialogue: ...
+  - vietnameseDialogue: "S\xE1ng gi\u1EDD r\u1ED3i m\xE0 v\u1EABn ch\u1EA3 ngh\u0129
+      \u0111\u01B0\u1EE3c g\xEC m\u1EDBi cho video l\u1EA7n t\u1EDBi"
+    englishDialogue: ...
+  - vietnameseDialogue: "M\u1EA5y c\xE1i content nh\u1EA3m x\xE0o \u0111i x\xE0o
+      l\u1EA1i th\xEC ch\u1EB3ng ma n\xE0o th\xE8m xem"
+    englishDialogue: ...
+  - vietnameseDialogue: "Haizz... M\xE0 gi\u1EDD quay c\xE1i qu\xE1i g\xEC gi\u1EDD"
+    englishDialogue: ...
+  - vietnameseDialogue: 
+    englishDialogue: ...
+  - vietnameseDialogue: "Sao th\xE0nh ph\u1ED1 v\u1EABn \u1ED3n \xE0o nh\u01B0 m\u1ECDi
+      khi v\u1EADyy"
+    englishDialogue: ...
+  - vietnameseDialogue: "\u0110au h\u1EBFt c\u1EA3 \u0111\u1EA7u"
+    englishDialogue: ...
+  - vietnameseDialogue: Haizz
+    englishDialogue: ...
+  - vietnameseDialogue: "Gi\u1EDD th\u1EED l\xEAn m\u1EA5y k\xEAnh kh\xE1c xem xem
+      c\xF3 \u0103n c\u1EAFp \u0111\u01B0\u1EE3c \xFD t\u01B0\u1EDFng g\xEC"
+    englishDialogue: ...
   dialogueSound: {fileID: 8300000, guid: dec3467b5c808584e80c526ba4e16518, type: 3}
-  soundVolume: 0.6
+  soundVolume: 1
   windowColliderToUnlock: {fileID: 2131922350}
   windowObjectToUnlock: {fileID: 2131922346}
   lockWindowOnStart: 1
@@ -2760,6 +3067,115 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 763178599}
   m_CullTransparentMesh: 1
+--- !u!1001 &763369961
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 1289906637}
+    m_Modifications:
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.07549266
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.07549266
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.07549266
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -6.3069916
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 2.8130035
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.81606317
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0.57796276
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: -70.615
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5133170446180238151, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_Name
+      value: CockroachC
+      objectReference: {fileID: 0}
+    - target: {fileID: 5199321306587138950, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 62bb5cbd0d43afd44ae686f7c5f7ea7d, type: 2}
+    - target: {fileID: 7443897310236535862, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: turnSpeed
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 7443897310236535862, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: doorWaypoint
+      value: 
+      objectReference: {fileID: 155335913}
+    - target: {fileID: 7443897310236535862, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: movementArea
+      value: 
+      objectReference: {fileID: 997318250}
+    - target: {fileID: 7443897310236535862, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: playerTarget
+      value: 
+      objectReference: {fileID: 3872007059106641197}
+    - target: {fileID: 7443897310236535862, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: doorStartPoint
+      value: 
+      objectReference: {fileID: 155335913}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+--- !u!4 &763369962 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+  m_PrefabInstance: {fileID: 763369961}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &763369963 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7443897310236535862, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+  m_PrefabInstance: {fileID: 763369961}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 20d0b3712cd7b4b4da2dc5a43144ea01, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BabyCockroachCrawler
 --- !u!1 &764443432
 GameObject:
   m_ObjectHideFlags: 0
@@ -3530,78 +3946,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 905055977}
   m_CullTransparentMesh: 1
---- !u!1 &933747590
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 933747592}
-  - component: {fileID: 933747591}
-  - component: {fileID: 933747593}
-  m_Layer: 0
-  m_Name: CockroachDoorTrigger
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!65 &933747591
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 933747590}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 1
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 18.786343, y: 4.469288, z: 16.678308}
-  m_Center: {x: -1.0567799, y: 1.7346442, z: -5.2335076}
---- !u!4 &933747592
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 933747590}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0.5299079, z: -0, w: 0.84805524}
-  m_LocalPosition: {x: 221.322, y: 68.281, z: 182.175}
-  m_LocalScale: {x: 0.075492665, y: 0.07549266, z: 0.075492665}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: -63.998, z: 0}
---- !u!114 &933747593
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 933747590}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 940556c68aa0e5445ad5d6e9fcd8b8a0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CockroachDoorAttackTrigger
-  motherCockroach: {fileID: 8897093225949993421}
-  armOnlyAfterBabiesDisappear: 1
-  delayBeforeAttack: 0.1
-  jumpScareCueSound: {fileID: 0}
-  soundVolume: 0.9
-  debugTriggerKey: 108
 --- !u!1 &938698073
 GameObject:
   m_ObjectHideFlags: 0
@@ -3856,6 +4200,16 @@ MonoBehaviour:
   dropSound: {fileID: 8300000, guid: 28ec41d953d24584f8aff465212085a8, type: 3}
   soundVolume: 0.5
   openBoxPrefab: {fileID: 8207320389027696632, guid: 0d1192cd00febb9479add4d37b0be202, type: 3}
+  postOpenDialogues:
+  - vietnameseDialogue: "M\u1ED9t chi\u1EBFc m\xE1y quay c\u0169"
+    englishDialogue: ...
+    holdDuration: 3
+  - vietnameseDialogue: "C\xF4 ta g\u1EEDi cho m\xECnh v\u1EDBi m\u1EE5c \u0111\xEDch
+      g\xEC c\u01A1 ch\u1EE9"
+    englishDialogue: ...
+    holdDuration: 3
+  openDialogueSound: {fileID: 8300000, guid: dec3467b5c808584e80c526ba4e16518, type: 3}
+  openDialogueVolume: 0.8
 --- !u!1 &986679119
 GameObject:
   m_ObjectHideFlags: 0
@@ -4021,6 +4375,59 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &997318249
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 997318251}
+  - component: {fileID: 997318250}
+  m_Layer: 0
+  m_Name: CockroachWR
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!65 &997318250
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 997318249}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.9962822, y: 23.927502, z: 50.945183}
+  m_Center: {x: -10.845667, y: 11.701497, z: -31.001795}
+--- !u!4 &997318251
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 997318249}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0.5299079, z: -0, w: 0.84805524}
+  m_LocalPosition: {x: -1.443, y: 0.02999878, z: 0.563}
+  m_LocalScale: {x: 0.075492665, y: 0.07549266, z: 0.075492665}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1289906637}
+  m_LocalEulerAnglesHint: {x: 0, y: -63.998, z: 0}
 --- !u!1 &1029524831 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 3597403344497731463, guid: 81779a7bc04583a49bf86b1fbcc80c7c, type: 3}
@@ -4849,6 +5256,103 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1174421191}
   m_CullTransparentMesh: 1
+--- !u!1001 &1243921375
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 1289906637}
+    m_Modifications:
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -6.3069954
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 2.8130088
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.81606317
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0.57796276
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: -70.615
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5133170446180238151, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_Name
+      value: CockroachC
+      objectReference: {fileID: 0}
+    - target: {fileID: 5199321306587138950, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 62bb5cbd0d43afd44ae686f7c5f7ea7d, type: 2}
+    - target: {fileID: 7443897310236535862, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: turnSpeed
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 7443897310236535862, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: doorWaypoint
+      value: 
+      objectReference: {fileID: 155335913}
+    - target: {fileID: 7443897310236535862, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: movementArea
+      value: 
+      objectReference: {fileID: 997318250}
+    - target: {fileID: 7443897310236535862, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: playerTarget
+      value: 
+      objectReference: {fileID: 3872007059106641197}
+    - target: {fileID: 7443897310236535862, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: doorStartPoint
+      value: 
+      objectReference: {fileID: 155335913}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+--- !u!4 &1243921376 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+  m_PrefabInstance: {fileID: 1243921375}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1243921377 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7443897310236535862, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+  m_PrefabInstance: {fileID: 1243921375}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 20d0b3712cd7b4b4da2dc5a43144ea01, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BabyCockroachCrawler
 --- !u!1 &1262810430
 GameObject:
   m_ObjectHideFlags: 0
@@ -5000,7 +5504,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &1289906637
 Transform:
   m_ObjectHideFlags: 0
@@ -5015,8 +5519,15 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 8897093225949993420}
-  - {fileID: 8201005970830685392}
   - {fileID: 430843374}
+  - {fileID: 331313138}
+  - {fileID: 1243921376}
+  - {fileID: 712550378}
+  - {fileID: 1536634674}
+  - {fileID: 1824341920}
+  - {fileID: 763369962}
+  - {fileID: 1435210281}
+  - {fileID: 997318251}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1299891428
@@ -5623,7 +6134,49 @@ MonoBehaviour:
   audioVolume: 0.85
   doorToClose: {fileID: 1968526448}
   fadeScreenImage: {fileID: 1981951292}
+  wakeUpDialogues:
+  - vietnameseDialogue: "C\xE1i qu\xE1i g\xEC v\u1EEBa x\u1EA3y ra v\u1EADy"
+    englishDialogue: ...
+    holdDuration: 3
+  - vietnameseDialogue: "M\u01A1 \xE0"
+    englishDialogue: ...
+    holdDuration: 3
+  - vietnameseDialogue: "B\u1EADt \u0111i\u1EC7n xem chuy\u1EC7n g\xEC \u0111ang
+      x\u1EA3y ra v\u1EADy"
+    englishDialogue: ...
+    holdDuration: 3
+  dialogueSound: {fileID: 8300000, guid: dec3467b5c808584e80c526ba4e16518, type: 3}
+  dialogueVolume: 0.8
+  openBoxPrefab: {fileID: 8207320389027696632, guid: 0d1192cd00febb9479add4d37b0be202, type: 3}
+  lookAtBoxDialogues:
+  - vietnameseDialogue: "H\u1EA3... sao c\xE1i th\xF9ng h\xE0ng l\u1EA1i v\u1EABn
+      n\u1EB1m \u1EDF \u0111\xE2y"
+    englishDialogue: ...
+    holdDuration: 3.5
+  - vietnameseDialogue: "Kh\xF4ng ph\u1EA3i n\xE3y l\xE0 m\u01A1 sao"
+    englishDialogue: ...
+    holdDuration: 3.5
+  - vietnameseDialogue: "M\xECnh ng\u1EE7 l\xFAc n\xE0o v\u1EADy"
+    englishDialogue: ...
+    holdDuration: 3.5
+  - vietnameseDialogue: "Th\u1EADt s\u1EF1 c\xF3 chuy\u1EC7n qu\xE1i g\xEC \u0111ang
+      x\u1EA3y ra v\u1EDBi m\xECnh v\u1EADy"
+    englishDialogue: ...
+    holdDuration: 3.5
+  lookAtBoxMaxDistance: 3
   debugWakeUpKey: 117
+  delayBeforeFaint: 5
+  faintDialogues:
+  - vietnameseDialogue: "Chuy\u1EC7n g\xEC th\u1EBF..."
+    englishDialogue: What is happening...
+    holdDuration: 2.5
+  nextSceneName: Map02
+  dizzyDuration: 2.5
+  dizzyShakeIntensity: 0.4
+  collapseDuration: 1.2
+  faintHeartbeatAudio: {fileID: 0}
+  faintCollapseAudio: {fileID: 8300000, guid: 3f8cd219cc1eab84e9cc0459d1c31975, type: 3}
+  faintAudioVolume: 0.9
 --- !u!4 &1370461719
 Transform:
   m_ObjectHideFlags: 0
@@ -5853,6 +6406,17 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1394330133}
   m_CullTransparentMesh: 1
+--- !u!114 &1399255924 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7443897310236535862, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+  m_PrefabInstance: {fileID: 430843373}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 20d0b3712cd7b4b4da2dc5a43144ea01, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BabyCockroachCrawler
 --- !u!1 &1403929749
 GameObject:
   m_ObjectHideFlags: 0
@@ -5985,6 +6549,115 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 7010516086435220056, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
   m_PrefabInstance: {fileID: 2389170069935875899}
   m_PrefabAsset: {fileID: 0}
+--- !u!1001 &1435210280
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 1289906637}
+    m_Modifications:
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.07549266
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.07549266
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.07549266
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -6.3069916
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 2.8130035
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.81606317
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0.57796276
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: -70.615
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5133170446180238151, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_Name
+      value: CockroachC
+      objectReference: {fileID: 0}
+    - target: {fileID: 5199321306587138950, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 62bb5cbd0d43afd44ae686f7c5f7ea7d, type: 2}
+    - target: {fileID: 7443897310236535862, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: turnSpeed
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 7443897310236535862, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: doorWaypoint
+      value: 
+      objectReference: {fileID: 155335913}
+    - target: {fileID: 7443897310236535862, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: movementArea
+      value: 
+      objectReference: {fileID: 997318250}
+    - target: {fileID: 7443897310236535862, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: playerTarget
+      value: 
+      objectReference: {fileID: 3872007059106641197}
+    - target: {fileID: 7443897310236535862, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: doorStartPoint
+      value: 
+      objectReference: {fileID: 155335913}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+--- !u!4 &1435210281 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+  m_PrefabInstance: {fileID: 1435210280}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1435210282 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7443897310236535862, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+  m_PrefabInstance: {fileID: 1435210280}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 20d0b3712cd7b4b4da2dc5a43144ea01, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BabyCockroachCrawler
 --- !u!1 &1469086521
 GameObject:
   m_ObjectHideFlags: 0
@@ -6472,6 +7145,103 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1513566967}
   m_CullTransparentMesh: 1
+--- !u!1001 &1536634673
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 1289906637}
+    m_Modifications:
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -6.3069954
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 2.8130088
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.81606317
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0.57796276
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: -70.615
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5133170446180238151, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_Name
+      value: CockroachC
+      objectReference: {fileID: 0}
+    - target: {fileID: 5199321306587138950, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 62bb5cbd0d43afd44ae686f7c5f7ea7d, type: 2}
+    - target: {fileID: 7443897310236535862, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: turnSpeed
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 7443897310236535862, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: doorWaypoint
+      value: 
+      objectReference: {fileID: 155335913}
+    - target: {fileID: 7443897310236535862, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: movementArea
+      value: 
+      objectReference: {fileID: 997318250}
+    - target: {fileID: 7443897310236535862, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: playerTarget
+      value: 
+      objectReference: {fileID: 3872007059106641197}
+    - target: {fileID: 7443897310236535862, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: doorStartPoint
+      value: 
+      objectReference: {fileID: 155335913}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+--- !u!4 &1536634674 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+  m_PrefabInstance: {fileID: 1536634673}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1536634675 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7443897310236535862, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+  m_PrefabInstance: {fileID: 1536634673}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 20d0b3712cd7b4b4da2dc5a43144ea01, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BabyCockroachCrawler
 --- !u!1 &1544981496
 GameObject:
   m_ObjectHideFlags: 0
@@ -6866,16 +7636,18 @@ MonoBehaviour:
   vietnameseTurnOffPrompt: "T\u1EAFt m\xE1y t\xEDnh"
   requireWindowClosed: 1
   lockedNeedCloseWindowDialogues:
-  - vietnameseDialogue: "Gi\xF3 l\u1EA1nh qu\xE1... M\xECnh n\xEAn \u0111\xF3ng c\u1EEDa
-      s\u1ED5 l\u1EA1i tr\u01B0\u1EDBc \u0111\xE3."
-    englishDialogue: It's too cold... I should close the window first.
+  - vietnameseDialogue: "B\xEAn ngo\xE0i \u1ED3n \u1EA3o qu\xE1"
+    englishDialogue: ...
+    holdDuration: 2.5
+  - vietnameseDialogue: "M\xECnh n\xEAn \u0111\xF3ng c\u1EEDa s\u1ED5 l\u1EA1i \u0111\xE3"
+    englishDialogue: ...
     holdDuration: 2.5
   dialogueSound: {fileID: 8300000, guid: dec3467b5c808584e80c526ba4e16518, type: 3}
-  dialogueVolume: 0.8
+  dialogueVolume: 1
   powerClickSound: {fileID: 8300000, guid: 77b81d4827a189846a70389ecbd6a856, type: 3}
   fanHummingSound: {fileID: 8300000, guid: 58f037c7ee5b1e047a5f30dac5089bc1, type: 3}
   clickVolume: 0.6
-  fanVolume: 0.6
+  fanVolume: 0.4
   use3DSound: 1
   maxSoundDistance: 1.5
   catColliderToEnable: {fileID: 1029524832}
@@ -6897,6 +7669,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7da39f2589bac1a4b9a94f02b02bbd7f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CrouchInteractable
+  autoCrouchCamera: 0
   standingY: 0.6
   crouchY: 0
   moveSpeed: 2
@@ -7320,6 +8093,103 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1802532477}
   m_CullTransparentMesh: 1
+--- !u!1001 &1824341919
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 1289906637}
+    m_Modifications:
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -6.3069954
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 2.8130088
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.81606317
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0.57796276
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: -70.615
+      objectReference: {fileID: 0}
+    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5133170446180238151, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: m_Name
+      value: CockroachC
+      objectReference: {fileID: 0}
+    - target: {fileID: 5199321306587138950, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 62bb5cbd0d43afd44ae686f7c5f7ea7d, type: 2}
+    - target: {fileID: 7443897310236535862, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: turnSpeed
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 7443897310236535862, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: doorWaypoint
+      value: 
+      objectReference: {fileID: 155335913}
+    - target: {fileID: 7443897310236535862, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: movementArea
+      value: 
+      objectReference: {fileID: 997318250}
+    - target: {fileID: 7443897310236535862, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: playerTarget
+      value: 
+      objectReference: {fileID: 3872007059106641197}
+    - target: {fileID: 7443897310236535862, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+      propertyPath: doorStartPoint
+      value: 
+      objectReference: {fileID: 155335913}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+--- !u!4 &1824341920 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+  m_PrefabInstance: {fileID: 1824341919}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1824341921 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7443897310236535862, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
+  m_PrefabInstance: {fileID: 1824341919}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 20d0b3712cd7b4b4da2dc5a43144ea01, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BabyCockroachCrawler
 --- !u!1 &1833141554
 GameObject:
   m_ObjectHideFlags: 0
@@ -7585,13 +8455,23 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3a6339edbb239b147b65ceea87e1dfd0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Camera10sDoorEvent
-  triggerTime: 10
+  delayAfterWindowOpen: 2
+  fiveSecondDialogues:
+  - vietnameseDialogue: "U\u1EA7y n\xE9t ph\u1EBFt"
+    englishDialogue: ...
+    holdDuration: 2.5
+  countdownToDoorOpen: 5
   doorToOpen: {fileID: 1968526448}
   customDoorOpenSound: {fileID: 0}
   eerieCueSound: {fileID: 0}
   soundVolume: 0.85
-  cockroachToTrigger: {fileID: 0}
-  cockroachTriggerDelay: 0.5
+  tenSecondDialogues:
+  - vietnameseDialogue: "Th\xF4i \u0111\u1EE7 r\u1ED3i, t\u1EAFt m\xE1y \u0111i ng\u1EE7"
+    englishDialogue: ...
+    holdDuration: 3
+  cockroachSpawnDelay: 1
+  dialogueSound: {fileID: 8300000, guid: dec3467b5c808584e80c526ba4e16518, type: 3}
+  dialogueVolume: 0.8
 --- !u!4 &1919524144
 Transform:
   m_ObjectHideFlags: 0
@@ -7688,11 +8568,14 @@ MonoBehaviour:
   openedVolume: 0.8
   volumeFadeDuration: 1.5
   lockedDialogueLines:
-  - vietnameseDialogue: "\u0110\xEAm mu\u1ED9n r\u1ED3i, kh\xF4ng c\xF3 vi\u1EC7c
-      g\xEC \u0111\u1EC3 ra ngo\xE0i c\u1EA3."
-    englishDialogue: It's late at night, I have no reason to go outside.
+  - vietnameseDialogue: "Mu\u1ED9n r\u1ED3i, kh\xF4ng c\xF3 vi\u1EC7c g\xEC \u0111\u1EC3
+      ra ngo\xE0i"
+    englishDialogue: ...
     holdDuration: 2.5
-  unlockedDialogueLines: []
+  unlockedDialogueLines:
+  - vietnameseDialogue: "\u0110\xE2y \u0111\xE2y \u0111ang ra"
+    englishDialogue: ...
+    holdDuration: 0
   dialogueSound: {fileID: 8300000, guid: dec3467b5c808584e80c526ba4e16518, type: 3}
   dialogueVolume: 0.8
 --- !u!65 &1968526449
@@ -8594,7 +9477,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 313581237770996245, guid: 3fc956b64fdcf10419348906b163d39a, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: -7.381195
+      value: -7.3811646
       objectReference: {fileID: 0}
     - target: {fileID: 902939756833343999, guid: 3fc956b64fdcf10419348906b163d39a, type: 3}
       propertyPath: m_UiScaleMode
@@ -9465,75 +10348,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4462920611020176966}
   m_CullTransparentMesh: 1
---- !u!1001 &958346259565638729
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 1289906637}
-    m_Modifications:
-    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: -6.524
-      objectReference: {fileID: 0}
-    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 2.608
-      objectReference: {fileID: 0}
-    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 0.81606317
-      objectReference: {fileID: 0}
-    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: -0.57796276
-      objectReference: {fileID: 0}
-    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: -70.615
-      objectReference: {fileID: 0}
-    - target: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5133170446180238151, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
-      propertyPath: m_Name
-      value: CockroachC
-      objectReference: {fileID: 0}
-    - target: {fileID: 7443897310236535862, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
-      propertyPath: turnSpeed
-      value: 10
-      objectReference: {fileID: 0}
-    - target: {fileID: 7443897310236535862, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
-      propertyPath: playerTarget
-      value: 
-      objectReference: {fileID: 3872007059106641197}
-    - target: {fileID: 7443897310236535862, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
-      propertyPath: doorStartPoint
-      value: 
-      objectReference: {fileID: 155335913}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
 --- !u!114 &1187650828604201565
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -9706,6 +10520,16 @@ MonoBehaviour:
   questItemName: "Th\xF9ng H\xE0ng"
   npcToDisableAfterDelivery: {fileID: 8771091789252207039}
   cockroachesToEnableAfterNPC: {fileID: 1289906636}
+  postDeliveryDialogues:
+  - vietnameseDialogue: "Sao nh\u1EB9 t\xEAnh v\u1EADy"
+    englishDialogue: ...
+    holdDuration: 2.5
+  - vietnameseDialogue: "\u0110\u1EB7t t\u1EA1m \u0111\xE2u m\u1EDF xem th\u1EED
+      lu\xF4n a"
+    englishDialogue: ...
+    holdDuration: 3
+  dialogueSound: {fileID: 8300000, guid: dec3467b5c808584e80c526ba4e16518, type: 3}
+  dialogueVolume: 1
 --- !u!1 &1401232884403952295
 GameObject:
   m_ObjectHideFlags: 0
@@ -10041,6 +10865,253 @@ PrefabInstance:
       propertyPath: 'uisToHide.Array.data[0]'
       value: 
       objectReference: {fileID: 2099319323}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[1].dialogueLines.Array.size
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[2].dialogueLines.Array.size
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[3].dialogueLines.Array.size
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[4].dialogueLines.Array.size
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[5].dialogueLines.Array.size
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: lockedNeedPowerOnDialogues.Array.data[0].englishDialogue
+      value: ...
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: lockedNeedPowerOnDialogues.Array.data[0].vietnameseDialogue
+      value: "M\xECnh c\u1EA7n b\u1EADt case tr\u01B0\u1EDBc"
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[0].dialogueLines.Array.data[0].englishDialogue
+      value: ...
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[0].dialogueLines.Array.data[1].englishDialogue
+      value: ...
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[1].dialogueLines.Array.data[0].englishDialogue
+      value: ...
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[1].dialogueLines.Array.data[1].englishDialogue
+      value: ...
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[2].dialogueLines.Array.data[0].englishDialogue
+      value: ...
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[2].dialogueLines.Array.data[1].englishDialogue
+      value: ...
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[2].dialogueLines.Array.data[2].englishDialogue
+      value: ...
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[2].dialogueLines.Array.data[3].englishDialogue
+      value: ...
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[2].dialogueLines.Array.data[4].englishDialogue
+      value: ...
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[3].dialogueLines.Array.data[0].englishDialogue
+      value: ...
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[3].dialogueLines.Array.data[1].englishDialogue
+      value: ...
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[3].dialogueLines.Array.data[2].englishDialogue
+      value: ...
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[3].dialogueLines.Array.data[3].englishDialogue
+      value: ...
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[3].dialogueLines.Array.data[4].englishDialogue
+      value: ...
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[4].dialogueLines.Array.data[0].englishDialogue
+      value: ...
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[4].dialogueLines.Array.data[1].englishDialogue
+      value: ...
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[4].dialogueLines.Array.data[2].englishDialogue
+      value: ...
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[4].dialogueLines.Array.data[3].englishDialogue
+      value: ...
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[4].dialogueLines.Array.data[4].englishDialogue
+      value: ...
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[4].dialogueLines.Array.data[5].englishDialogue
+      value: ...
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[5].dialogueLines.Array.data[0].englishDialogue
+      value: ...
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[5].dialogueLines.Array.data[1].englishDialogue
+      value: ...
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[5].dialogueLines.Array.data[2].englishDialogue
+      value: ...
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[5].dialogueLines.Array.data[3].englishDialogue
+      value: ...
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[5].dialogueLines.Array.data[4].englishDialogue
+      value: ...
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[5].dialogueLines.Array.data[5].englishDialogue
+      value: ...
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[0].dialogueLines.Array.data[0].vietnameseDialogue
+      value: "C\xE1i m\xE1y t\xEDnh ch\u1EBFt ti\u1EC7t n\xE0y"
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[0].dialogueLines.Array.data[1].vietnameseDialogue
+      value: "Sao \u0111\u1EBFn c\u1EA3 m\xE0y c\u0169ng \u1ED3n \xE0o v\u1EADy"
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[1].dialogueLines.Array.data[0].vietnameseDialogue
+      value: "\u0110\u1EE3i n\xE0o tao c\xF3 ti\u1EC1n"
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[1].dialogueLines.Array.data[1].vietnameseDialogue
+      value: "Cho nh\xE0 ng\u01B0\u01A1i ra chu\u1ED3ng"
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[2].dialogueLines.Array.data[0].vietnameseDialogue
+      value: Haizz
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[2].dialogueLines.Array.data[1].vietnameseDialogue
+      value: "M\u1EA5y k\xEAnh ki\u1EC3u n\xE0y c\u0169ng to\xE0n l\u1EA5y content
+        c\u1EE7a nhau ch\xE1n ch\xEA r\u1ED3i"
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[2].dialogueLines.Array.data[2].vietnameseDialogue
+      value: "Ch\u1EA3 hi\u1EC3u sao v\u1EABn n\u1ED5i trong khi m\xECnh l\u1EA1i
+        l\u1EB9t \u0111\u1EB9t v\xE0i view"
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[2].dialogueLines.Array.data[3].vietnameseDialogue
+      value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[2].dialogueLines.Array.data[4].vietnameseDialogue
+      value: "C\xF3 ng\u01B0\u1EDDi g\u1EEDi tin nh\u1EAFn g\xEC \u0111\xE2y"
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[3].dialogueLines.Array.data[0].vietnameseDialogue
+      value: "C\xE1i g\xEC \u0111\xE2y, g\u1EEDi cho m\xECnh \u0111\u01B0\u1EDDng
+        link l\u1EA1"
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[3].dialogueLines.Array.data[1].vietnameseDialogue
+      value: "N\xF3i g\xEC m\xE0 s\u1EBD gi\xFAp m\xECnh c\xF3 content m\u1EDBi m\u1EBB"
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[3].dialogueLines.Array.data[2].vietnameseDialogue
+      value: "C\xF2n n\xF3i s\u1EBD g\u1EEDi cho m\xECnh \u0111\u1EA1o c\u1EE5 \u0111\u1EC3
+        quay video c\u01A1 \xE0"
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[3].dialogueLines.Array.data[3].vietnameseDialogue
+      value: "Tr\xF4ng \u0111\u01B0\u1EDDng link c\u0169ng kh\xF4ng c\xF3 g\xEC nguy
+        hi\u1EC3m"
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[3].dialogueLines.Array.data[4].vietnameseDialogue
+      value: "Xem th\u1EED xem"
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[4].dialogueLines.Array.data[0].vietnameseDialogue
+      value: "M\u1ED9t b\xE0i vi\u1EBFt v\u1EC1 1 khu r\u1EEBng nghe t\xEAn c\xF3
+        v\u1EBB l\u1EA1"
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[4].dialogueLines.Array.data[1].vietnameseDialogue
+      value: "G\xEC m\xE0 \u0111i v\xE0o l\xE0 kh\xF4ng c\xF3 \u0111\u01B0\u1EDDng
+        ra v\u1EADy"
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[4].dialogueLines.Array.data[2].vietnameseDialogue
+      value: "Haha l\u1EA1i m\u1EA5y b\xE0i \u0111\u0103ng nh\u1EA3m nh\xED n\xE0y
+        n\u1EEFa"
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[4].dialogueLines.Array.data[3].vietnameseDialogue
+      value: "C\u01A1 m\xE0 sao t\u01B0\u01A1ng t\xE1c kh\u1EE7ng v\u1EADy m\xE0
+        sao m\xECnh ch\u01B0a nghe qua v\u1EADy"
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[4].dialogueLines.Array.data[4].vietnameseDialogue
+      value: "Qua th\u1EED m\u1EA5y trang kh\xE1c t\xECm xem"
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[4].dialogueLines.Array.data[5].vietnameseDialogue
+      value: "C\u01A1 m\xE0 sao t\u01B0\u01A1ng t\xE1c kh\u1EE7ng v\u1EADy"
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[5].dialogueLines.Array.data[0].vietnameseDialogue
+      value: "H\u1EA3... C\xE1i qu\xE1i g\xEC v\u1EADy"
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[5].dialogueLines.Array.data[1].vietnameseDialogue
+      value: "Sao kh\xF4ng t\xECm th\u1EA5y b\u1EA5t k\xEC b\xE0i vi\u1EBFt n\xE0o
+        v\u1EC1 khu r\u1EEBng n\xE3y v\u1EADy"
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[5].dialogueLines.Array.data[2].vietnameseDialogue
+      value: "T\u01B0\u01A1ng t\xE1c kh\u1EE7ng m\xE0 ch\u1EC9 duy nh\u1EA5t 1 b\xE0i
+        vi\u1EBFt v\u1EC1 n\xF3"
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[5].dialogueLines.Array.data[3].vietnameseDialogue
+      value: "H\xE0i th\u1EADt ... n\xE0y l\xE0 tr\xF2 \u0111\xF9a \xE0"
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[5].dialogueLines.Array.data[4].vietnameseDialogue
+      value: "Kh\xF4ng bi\u1EBFt n\xF3i s\u1EBD giao cho m\xECnh c\xE1i g\xEC"
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601109673232194525, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
+      propertyPath: imageSteps.Array.data[5].dialogueLines.Array.data[5].vietnameseDialogue
+      value: "Th\xF4iiii \u0111i ng\u1EE7"
+      objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 7235984959516502737, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
     - {fileID: 6186719916009283289, guid: 0b3f6e0229821e94fbaa4140bf46cad3, type: 3}
@@ -10523,6 +11594,10 @@ PrefabInstance:
       value: 0.3
       objectReference: {fileID: 0}
     - target: {fileID: 1849913150461109301, guid: 21002320188e8b140bc738e28c17dcf4, type: 3}
+      propertyPath: soundVolume
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1849913150461109301, guid: 21002320188e8b140bc738e28c17dcf4, type: 3}
       propertyPath: playerTarget
       value: 
       objectReference: {fileID: 482138625982386437}
@@ -10534,6 +11609,10 @@ PrefabInstance:
       propertyPath: panicDuration
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 1849913150461109301, guid: 21002320188e8b140bc738e28c17dcf4, type: 3}
+      propertyPath: hitJumpscareSound
+      value: 
+      objectReference: {fileID: 8300000, guid: 4d05326db92a76a41a3e587884e3be2c, type: 3}
     - target: {fileID: 1849913150461109301, guid: 21002320188e8b140bc738e28c17dcf4, type: 3}
       propertyPath: postProcessVolume
       value: 
@@ -10562,6 +11641,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: CockroachM
       objectReference: {fileID: 0}
+    - target: {fileID: 7436558523384149356, guid: 21002320188e8b140bc738e28c17dcf4, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 7067573799366336741, guid: c40f9d422f207124aa5aa2828517f3b4, type: 3}
     - target: {fileID: 8906540143693767769, guid: 21002320188e8b140bc738e28c17dcf4, type: 3}
       propertyPath: m_LocalScale.x
       value: 0.4682919
@@ -10576,7 +11659,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8906540143693767769, guid: 21002320188e8b140bc738e28c17dcf4, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -5.934
+      value: -1.23
       objectReference: {fileID: 0}
     - target: {fileID: 8906540143693767769, guid: 21002320188e8b140bc738e28c17dcf4, type: 3}
       propertyPath: m_LocalPosition.y
@@ -10584,7 +11667,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8906540143693767769, guid: 21002320188e8b140bc738e28c17dcf4, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 2.547
+      value: -1.76
       objectReference: {fileID: 0}
     - target: {fileID: 8906540143693767769, guid: 21002320188e8b140bc738e28c17dcf4, type: 3}
       propertyPath: m_LocalRotation.w
@@ -10772,25 +11855,43 @@ MonoBehaviour:
   subtitleTextUI: {fileID: 1324252486}
   useTypewriterEffect: 1
   typewriterSpeed: 0.03
+  showBlinkingCursor: 1
+  useFadeEffect: 1
+  fadeDuration: 0.2
   sleepDialogues:
-  - vietnameseDialogue: "M\u1EC7t m\u1ECFi qu\xE1... Cu\u1ED1i c\xF9ng c\u0169ng
-      \u0111\u01B0\u1EE3c ch\u1EE3p m\u1EAFt."
-    englishDialogue: So tired... Finally I can get some sleep.
-  - vietnameseDialogue: "\u01AFm... Ai g\xF5 c\u1EEDa gi\u1EDD n\xE0y th\u1EBF...?"
-    englishDialogue: Ugh... Who is knocking at this hour...?
-  - vietnameseDialogue: "Chuy\u1EC7n g\xEC \u0111ang x\u1EA3y ra v\u1EADy...?"
-    englishDialogue: What's going on...?
+  - vietnameseDialogue: "Qu\xE1 m\u1EC7t m\u1ECFi"
+    englishDialogue: ...
+  - vietnameseDialogue: Ughhh
+    englishDialogue: Ughhh
+  - vietnameseDialogue: "Ughhh... t\xEAn qu\xE1i n\xE0o t\xECm m\xECnh gi\u1EDD n\xE0y
+      v\u1EADy"
+    englishDialogue: ...
+  - vietnameseDialogue: "\u0110\xF9a... c\xF3 ph\u1EA3i nh\u1ECF kia g\u1EEDi h\xE0ng
+      th\u1EADt \xE0"
+    englishDialogue: ...
+  - vietnameseDialogue: "\xCDt ra \u0111\u1EC3 mai ch\u1EE9, gi\u1EDD n\xE0y n\u1EEDa
+      \u0111\xEAm r\u1ED3i m\xE0"
+    englishDialogue: ...
   requireComputerBeforeSleep: 1
+  requireComputerOffBeforeSleep: 1
   requireLightOffBeforeSleep: 1
+  requireCatCalmedBeforeSleep: 1
   lockedNeedComputerDialogues:
-  - vietnameseDialogue: "V\u1EABn ch\u01B0a bu\u1ED3n ng\u1EE7 l\u1EAFm... qua xem
-      m\xE1y t\xEDnh ch\xFAt \u0111\xE3."
-    englishDialogue: Not sleepy yet... I should check my computer first.
+  - vietnameseDialogue: "V\u1EABn ch\u01B0a bu\u1ED3n ng\u1EE7 l\u1EAFm"
+    englishDialogue: ...
+    holdDuration: 2.5
+  lockedNeedTurnOffComputerDialogues:
+  - vietnameseDialogue: "M\xE1y t\xEDnh \u1ED3n \xE0o qu\xE1"
+    englishDialogue: ...
     holdDuration: 2.5
   lockedNeedTurnOffLightDialogues:
-  - vietnameseDialogue: "Ch\xF3i m\u1EAFt qu\xE1, ph\u1EA3i t\u1EAFt \u0111\xE8n
-      tr\u01B0\u1EDBc khi ng\u1EE7..."
-    englishDialogue: Too bright, I need to turn off the light before going to sleep...
+  - vietnameseDialogue: "\u0110\xE8n ch\xF3i qu\xE1"
+    englishDialogue: ...
+    holdDuration: 2.5
+  lockedNeedCatCalmedDialogues:
+  - vietnameseDialogue: "Con m\xE8o \u1ED3n \xE0o qu\xE1... Ph\u1EA3i l\xE0m n\xF3
+      im l\u1EA1i"
+    englishDialogue: ...
     holdDuration: 2.5
   sitDownBedAudio: {fileID: 8300000, guid: b8966b8808291de4a943a96a8c82460f, type: 3}
   sitDownVolume: 0.9
@@ -11500,7 +12601,7 @@ MonoBehaviour:
   interactText: {fileID: 0}
   dotObject: {fileID: 1802532477}
   handObject: {fileID: 518137878}
-  interactCooldown: 3
+  interactCooldown: 1
 --- !u!114 &6479380075904686148
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -11902,6 +13003,14 @@ PrefabInstance:
       value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 3138978350642296563, guid: 81779a7bc04583a49bf86b1fbcc80c7c, type: 3}
+      propertyPath: returnSpeed
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3138978350642296563, guid: 81779a7bc04583a49bf86b1fbcc80c7c, type: 3}
+      propertyPath: squishSound
+      value: 
+      objectReference: {fileID: 8300000, guid: d5f684015b38fde43ba1013268db162c, type: 3}
+    - target: {fileID: 3138978350642296563, guid: 81779a7bc04583a49bf86b1fbcc80c7c, type: 3}
       propertyPath: animDuration
       value: 4
       objectReference: {fileID: 0}
@@ -11942,12 +13051,24 @@ PrefabInstance:
       value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 3138978350642296563, guid: 81779a7bc04583a49bf86b1fbcc80c7c, type: 3}
+      propertyPath: squishSoundVolume
+      value: 0.706
+      objectReference: {fileID: 0}
+    - target: {fileID: 3138978350642296563, guid: 81779a7bc04583a49bf86b1fbcc80c7c, type: 3}
       propertyPath: bedColliderToEnable
       value: 
       objectReference: {fileID: 4473045507406598178}
     - target: {fileID: 3138978350642296563, guid: 81779a7bc04583a49bf86b1fbcc80c7c, type: 3}
       propertyPath: initialInteractDelay
       value: 1.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 3138978350642296563, guid: 81779a7bc04583a49bf86b1fbcc80c7c, type: 3}
+      propertyPath: catDialogueLines.Array.data[0].englishDialogue
+      value: ...
+      objectReference: {fileID: 0}
+    - target: {fileID: 3138978350642296563, guid: 81779a7bc04583a49bf86b1fbcc80c7c, type: 3}
+      propertyPath: catDialogueLines.Array.data[0].vietnameseDialogue
+      value: "C\xFAt ra ngo\xE0iii"
       objectReference: {fileID: 0}
     - target: {fileID: 3262109887934499963, guid: 81779a7bc04583a49bf86b1fbcc80c7c, type: 3}
       propertyPath: m_LocalPosition.x
@@ -12308,11 +13429,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &8201005970830685392 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 1218712871196330766, guid: 2f9d4e8206fbec2439c338b9f32302c5, type: 3}
-  m_PrefabInstance: {fileID: 958346259565638729}
-  m_PrefabAsset: {fileID: 0}
 --- !u!114 &8207033102140578697
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -12556,11 +13672,23 @@ MonoBehaviour:
   dialogueTextUI: {fileID: 1262810433}
   useTypewriterEffect: 1
   typewriterSpeed: 0.02
+  showBlinkingCursor: 1
+  useFadeEffect: 1
+  fadeDuration: 0.2
   dialogueLines:
-  - vietnameseDialogue: "ch\xE0o e nha"
-    englishDialogue: heloo Baby
-  - vietnameseDialogue: 
-    englishDialogue: Hahahhaha
+  - vietnameseDialogue: "Ch\xE0o e nha"
+    englishDialogue: ...
+  - vietnameseDialogue: "Em c\xF3 \u0111\u01A1n h\xE0ng t\u1EEB xxxx"
+    englishDialogue: ...
+  - vietnameseDialogue: Ok anh
+    englishDialogue: ...
+  - vietnameseDialogue: "M\xE0 ch\u1ED7 l\u1EA5y h\xE0ng n\xE0y c\xF3 g\u1EA7n \u0111\xE2y
+      kh\xF4ng anh? Sao \u0111\u1EBFn nhanh v\u1EADy"
+    englishDialogue: ...
+  - vietnameseDialogue: "Haha... Thi\xEAn c\u01A1 b\u1EA5t kh\u1EA3 l\u1ED9"
+    englishDialogue: ...
+  - vietnameseDialogue: "Th\xF4i l\u1EA5y h\xE0ng \u0111i c\u01B0ng"
+    englishDialogue: ...
   npcVoiceSound: {fileID: 8300000, guid: dec3467b5c808584e80c526ba4e16518, type: 3}
   voiceVolume: 0.85
   boxInteractObject: {fileID: 645942448}
@@ -12872,7 +14000,7 @@ SceneRoots:
   - {fileID: 1879729185}
   - {fileID: 1919524144}
   - {fileID: 155335913}
-  - {fileID: 933747592}
   - {fileID: 1289906637}
   - {fileID: 1370461719}
   - {fileID: 8897093225865201089}
+  - {fileID: 59377608}

@@ -82,17 +82,14 @@ public class CockroachDoorAttackTrigger : MonoBehaviour
 
     void OnEnable()
     {
-        BabyCockroachCrawler.OnAllBabiesDisappeared += HandleBabiesDisappeared;
     }
 
     void OnDisable()
     {
-        BabyCockroachCrawler.OnAllBabiesDisappeared -= HandleBabiesDisappeared;
     }
 
     void HandleBabiesDisappeared()
     {
-        ArmTrigger();
     }
 
     /// <summary>

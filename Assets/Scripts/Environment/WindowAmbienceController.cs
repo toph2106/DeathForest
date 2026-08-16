@@ -109,6 +109,29 @@ public class WindowAmbienceController : MonoBehaviour, IInteractable
         }
     }
 
+    public static void CloseAllWindows(bool snapInstantly = false)
+    {
+        if (instance != null)
+        {
+            instance.isOpen = false;
+        }
+
+        WindowL[] winLs = Object.FindObjectsByType<WindowL>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        foreach (var w in winLs)
+        {
+            if (w != null) w.CloseWindow(snapInstantly);
+        }
+
+        WindowR[] winRs = Object.FindObjectsByType<WindowR>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        foreach (var w in winRs)
+        {
+            if (w != null) w.CloseWindow(snapInstantly);
+        }
+
+        SyncAllWindowAmbience();
+        Debug.Log("[WindowAmbienceController] 🪟 ĐÃ TỰ ĐỘNG ĐÓNG TẤT CẢ CỬA SỔ TRONG PHÒNG!");
+    }
+
     public void Interact()
     {
         isOpen = !isOpen;

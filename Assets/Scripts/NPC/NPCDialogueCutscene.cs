@@ -32,6 +32,14 @@ public class NPCDialogueCutscene : MonoBehaviour, IInteractable
     public bool useTypewriterEffect = true;
     public float typewriterSpeed = 0.02f;
 
+    [Header("2.1. Hiệu Ứng Con Trỏ '_' & Fade Mờ Dần (Đồng Bộ Chuẩn)")]
+    [Tooltip("Bật hiệu ứng con trỏ '_' nhấp nháy cuối câu thoại")]
+    public bool showBlinkingCursor = true;
+    [Tooltip("Bật hiệu ứng mờ dần Fade Out khi chuyển câu thoại")]
+    public bool useFadeEffect = true;
+    [Tooltip("Thời gian mờ dần Fade (Mặc định: 0.2 giây)")]
+    public float fadeDuration = 0.2f;
+
     [Header("3. Danh Sách Lời Thoại (Mảng Anh / Việt Dễ Sửa Số Lượng)")]
     public DialogueLine[] dialogueLines;
 
@@ -62,6 +70,7 @@ public class NPCDialogueCutscene : MonoBehaviour, IInteractable
     private string currentFullText = "";
     private Coroutine textCoroutine;
     private Coroutine transitionCoroutine;
+    private Coroutine cursorBlinkCoroutine;
     private AudioSource audioSource;
 
     // Lưu vị trí & góc xoay gốc của Camera
@@ -277,6 +286,12 @@ public class NPCDialogueCutscene : MonoBehaviour, IInteractable
             return;
         }
 
+        if (cursorBlinkCoroutine != null)
+        {
+            StopCoroutine(cursorBlinkCoroutine);
+            cursorBlinkCoroutine = null;
+        }
+
         currentLineIndex++;
         if (currentLineIndex < dialogueLines.Length)
         {
@@ -292,6 +307,16 @@ public class NPCDialogueCutscene : MonoBehaviour, IInteractable
     {
         if (dialogueTextUI == null) yield break;
 
+        if (cursorBlinkCoroutine != null)
+        {
+            StopCoroutine(cursorBlinkCoroutine);
+            cursorBlinkCoroutine = null;
+        }
+
+        Color sc = dialogueTextUI.color;
+        sc.a = 1f;
+        dialogueTextUI.color = sc;
+
         isTyping = true;
         dialogueTextUI.text = "";
 
@@ -301,7 +326,8 @@ public class NPCDialogueCutscene : MonoBehaviour, IInteractable
             audioSource.clip = npcVoiceSound;
             audioSource.volume = voiceVolume;
             audioSource.loop = true;
-            if (!audioSource.isPlaying) audioSource.Play();
+            audioSource.time = 0f;
+            audioSource.Play();
         }
 
         if (useTypewriterEffect)
@@ -309,7 +335,9 @@ public class NPCDialogueCutscene : MonoBehaviour, IInteractable
             for (int i = 0; i <= targetText.Length; i++)
             {
                 if (!isTyping) break;
-                dialogueTextUI.text = targetText.Substring(0, i);
+                string typed = targetText.Substring(0, i);
+                if (showBlinkingCursor) typed += "_";
+                dialogueTextUI.text = typed;
                 yield return new WaitForSeconds(typewriterSpeed);
             }
         }
@@ -323,6 +351,9 @@ public class NPCDialogueCutscene : MonoBehaviour, IInteractable
         if (dialogueTextUI != null)
         {
             dialogueTextUI.text = currentFullText;
+            Color sc = dialogueTextUI.color;
+            sc.a = 1f;
+            dialogueTextUI.color = sc;
         }
 
         // TẮT GIỌNG NÓI KHI ĐÃ HIỆN XONG CHỮ (HOẶC SKIP)
@@ -330,10 +361,53 @@ public class NPCDialogueCutscene : MonoBehaviour, IInteractable
         {
             audioSource.Stop();
         }
+
+        // BẬT CON TRỎ NHẤP NHÁY '_' TRONG LÚC CHỜ CLICK
+        if (showBlinkingCursor && dialogueTextUI != null)
+        {
+            if (cursorBlinkCoroutine != null) StopCoroutine(cursorBlinkCoroutine);
+            cursorBlinkCoroutine = StartCoroutine(BlinkCursorRoutine(dialogueTextUI, currentFullText));
+        }
+    }
+
+    IEnumerator BlinkCursorRoutine(TextMeshProUGUI txt, string baseText)
+    {
+        bool showUnderscore = true;
+        while (true)
+        {
+            if (txt != null)
+            {
+                txt.text = baseText + (showUnderscore ? " _" : "  ");
+            }
+            showUnderscore = !showUnderscore;
+            yield return new WaitForSeconds(0.4f);
+        }
+    }
+
+    IEnumerator FadeTextOutRoutine(TextMeshProUGUI txt, float duration)
+    {
+        if (txt == null) yield break;
+        float elapsed = 0f;
+        Color c = txt.color;
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            c.a = Mathf.Lerp(1f, 0f, elapsed / duration);
+            txt.color = c;
+            yield return null;
+        }
+        c.a = 0f;
+        txt.color = c;
     }
 
     void EndDialogueCutscene()
     {
+        if (cursorBlinkCoroutine != null)
+        {
+            StopCoroutine(cursorBlinkCoroutine);
+            cursorBlinkCoroutine = null;
+        }
+
         if (textCoroutine != null) StopCoroutine(textCoroutine);
         if (dialogueCanvas != null) dialogueCanvas.SetActive(false);
 
