@@ -4,6 +4,10 @@ public class InteractableItem : MonoBehaviour, IInteractable
 {
     public enum ItemType { Consumable, Quest, Battery, Paper, Key }
 
+    [Header("Item Visuals")]
+    [Tooltip("Kéo Sprite hình cái chìa khóa hoặc item vào đây")]
+    public Sprite itemIcon;
+
     [Header("Item Configuration")]
     public ItemType itemType; // Chọn loại Item trên Inspector
     public string itemNameOrQuestName = "Pin"; // Tên item hoặc Tên Quest / Chìa khóa
@@ -38,6 +42,7 @@ public class InteractableItem : MonoBehaviour, IInteractable
 
     public void Pickup()
     {
+
         if (inventoryManager == null)
         {
             inventoryManager = Object.FindFirstObjectByType<InventoryManager>();
@@ -47,10 +52,11 @@ public class InteractableItem : MonoBehaviour, IInteractable
         if (itemType == ItemType.Consumable || itemType == ItemType.Key)
         {
             // Cả Consumable và Key đều được đưa vào ô Hotbar của InventoryManager
-            bool isPickedUp = inventoryManager.AddConsumableItem(itemNameOrQuestName, gameObject);
+            bool isPickedUp = inventoryManager.AddConsumableItem(itemNameOrQuestName, gameObject, itemIcon);
 
-            if (!isPickedUp)
+            if (isPickedUp)
             {
+                gameObject.SetActive(false);
                 Debug.Log("Túi đồ đầy, không thể nhặt thêm " + itemNameOrQuestName);
             }
         }

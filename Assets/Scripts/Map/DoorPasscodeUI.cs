@@ -83,6 +83,10 @@ public class DoorPasscodeUI : MonoBehaviour
         else
         {
             Debug.Log("Sai mật mã!");
+            if (AdvancedDoorInteraction.Instance != null)
+            {
+                AdvancedDoorInteraction.Instance.ShowTemporaryMessage("Nhập sai mã số!", 2f);
+            }
             ClearInput();
         }
     }

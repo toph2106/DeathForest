@@ -7,7 +7,7 @@ public class InventoryManager : MonoBehaviour
     // MẢNG STATIC LƯU GIỮ CÁC VẬT PHẨM VÀ SỐ LƯỢNG PIN CỘNG DỒN NẠP QUA SCENE
     private static string[] savedHeldItems = null;
     private static int savedBatteryStackCount = 0;
-
+    private static Sprite[] savedHeldItemIcons = null;
     public static InventoryManager Instance;
 
     [Header("UI Hotbar (Các ô Tiêu Hoa)")]
@@ -35,6 +35,8 @@ public class InventoryManager : MonoBehaviour
     private GameObject[] heldItemObjects;
     private Image[] slotIconImages; // Các hình Icon con bên trong ô Slot UI
 
+    private Sprite[] heldItemIcons;
+
     private int selectedIndex = -1;
     private int currentQuestItemCount = 0;
 
@@ -53,6 +55,7 @@ public class InventoryManager : MonoBehaviour
         heldItems = new string[slotCount];
         heldItemObjects = new GameObject[slotCount];
         slotIconImages = new Image[slotCount];
+        heldItemIcons = new Sprite[slotCount];
 
         // Đọc Scale gốc từ ô đầu tiên
         if (slotCount > 0 && slotTransforms[0] != null)
@@ -88,6 +91,10 @@ public class InventoryManager : MonoBehaviour
             for (int i = 0; i < slotCount; i++)
             {
                 heldItems[i] = savedHeldItems[i];
+                if (savedHeldItemIcons != null && i < savedHeldItemIcons.Length)
+                {
+                    heldItemIcons[i] = savedHeldItemIcons[i];
+                }
             }
         }
 
@@ -100,6 +107,10 @@ public class InventoryManager : MonoBehaviour
         if (heldItems != null)
         {
             savedHeldItems = (string[])heldItems.Clone();
+        }
+        if (heldItemIcons != null)
+        {
+            savedHeldItemIcons = (Sprite[])heldItemIcons.Clone();
         }
     }
 
@@ -139,7 +150,7 @@ public class InventoryManager : MonoBehaviour
     /// <summary>
     /// Hàm nhặt item: Riêng PIN sẽ tự động CỘNG DỒN vào 1 ô duy nhất trên Hotbar!
     /// </summary>
-    public bool AddConsumableItem(string itemName, GameObject itemObj)
+    public bool AddConsumableItem(string itemName, GameObject itemObj, Sprite icon = null)
     {
         if (heldItems == null) return false;
         int slotCount = heldItems.Length;
@@ -177,6 +188,7 @@ public class InventoryManager : MonoBehaviour
             {
                 heldItems[i] = itemName;
                 heldItemObjects[i] = itemObj;
+                heldItemIcons[i] = icon;
 
                 if (isBattery)
                 {
@@ -352,13 +364,22 @@ public class InventoryManager : MonoBehaviour
                 bool hasItem = (i < itemCount) && !string.IsNullOrEmpty(heldItems[i]);
                 slotIconImages[i].gameObject.SetActive(hasItem);
 
-                // Gán Sprite Icon Cục Pin nếu có cài trên Inspector
-                if (hasItem && (heldItems[i].ToLower().Contains("pin") || heldItems[i].ToLower().Contains("battery")))
+                if (hasItem)
                 {
-                    if (batteryIconSprite != null)
+                    // Ưu tiên hiển thị ảnh riêng của item (nếu sếp đã kéo vào InteractableItem)
+                    if (i < heldItemIcons.Length && heldItemIcons[i] != null)
                     {
-                        slotIconImages[i].sprite = batteryIconSprite;
+                        slotIconImages[i].sprite = heldItemIcons[i];
                         slotIconImages[i].color = Color.white;
+                    }
+                    // Nếu là Pin thì lấy ảnh Pin mặc định
+                    else if (heldItems[i].ToLower().Contains("pin") || heldItems[i].ToLower().Contains("battery"))
+                    {
+                        if (batteryIconSprite != null)
+                        {
+                            slotIconImages[i].sprite = batteryIconSprite;
+                            slotIconImages[i].color = Color.white;
+                        }
                     }
                 }
             }
@@ -433,6 +454,7 @@ public class InventoryManager : MonoBehaviour
             if (heldItems[i] == itemName)
             {
                 heldItems[i] = ""; // Xóa tên item
+                heldItemIcons[i] = null;
                 if (heldItemObjects[i] != null) Destroy(heldItemObjects[i]); // Hủy object
                 heldItemObjects[i] = null;
                 UpdateUISlots(); // Cập nhật lại UI

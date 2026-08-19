@@ -109,6 +109,11 @@ public class AdvancedDoor : MonoBehaviour
             else
             {
                 PlaySound(lockedSound);
+                // === THÊM ĐOẠN NÀY ĐỂ HIỆN UI CẦN TÌM CHÌA KHÓA TRONG 2S ===
+                if (AdvancedDoorInteraction.Instance != null)
+                {
+                    AdvancedDoorInteraction.Instance.ShowTemporaryMessage($"Cần tìm chìa khóa: {requiredKeyName}", 2f);
+                }
                 Debug.Log($"Cửa khóa! Cần vật phẩm '{requiredKeyName}' trong túi.");
             }
         }
