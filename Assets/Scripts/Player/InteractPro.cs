@@ -1,26 +1,25 @@
 using UnityEngine;
 using System.Collections;
-using TMPro; 
 
 public class InteractPro : MonoBehaviour
 {
+    [Header("1. Cài Đặt Tương Tác (Distance & Layer)")]
     public float interactDistance = 3.5f;
     public LayerMask interactLayer;
 
-    public GameObject interactionUI;      
-    public TextMeshProUGUI interactText; 
-
-    [Header("Tâm Ngắm Tương Tác (Crosshair Icons)")]
+    [Header("2. Tâm Ngắm Tương Tác (Crosshair Icons)")]
     [Tooltip("Kéo GameObject Peroid (chấm tròn) vào đây")]
     public GameObject dotObject;
     [Tooltip("Kéo GameObject Hand (bàn tay) vào đây")]
     public GameObject handObject;
 
-    [Header("Chống Spam Phím F (Cooldown Settings)")]
-    [Tooltip("Thời gian tạm ẩn chữ [F] và vô hiệu hóa bấm phím F sau khi tương tác (Mặc định: 0.4 giây)")]
+    [Header("3. Thời Gian Chống Spam Click Tương Tác (Cooldown)")]
+    [Tooltip("Thời gian vô hiệu hóa click chuột sau khi vừa tương tác (Mặc định: 0.4 giây)")]
     public float interactCooldown = 0.4f;
 
-    private InteractPrompt currentPromptComp = null;
+    [HideInInspector] public GameObject interactionUI;
+    [HideInInspector] public TMPro.TextMeshProUGUI interactText;
+
     private bool isCooldown = false;
     private MovePl cachedMovePl;
     private bool wasDialogueOrCutsceneActive = false;
@@ -29,31 +28,13 @@ public class InteractPro : MonoBehaviour
     {
         // Nếu layer để Nothing (0) thì tự động chuyển sang Everything (~0)
         if (interactLayer.value == 0) interactLayer = ~0;
+        else interactLayer |= (1 << 0); // Luôn đảm bảo nhận diện cả layer Default (Layer 0)
 
         cachedMovePl = Object.FindFirstObjectByType<MovePl>();
-
-        // Tự động tìm UI nếu chưa kéo
-        if (interactionUI == null)
-        {
-            GameObject pressF = GameObject.Find("PressF");
-            if (pressF != null) interactionUI = pressF;
-        }
-
-        if (interactText == null && interactionUI != null)
-        {
-            interactText = interactionUI.GetComponentInChildren<TextMeshProUGUI>();
-        }
-
-        SettingsManager.onLanguageChanged += UpdateCurrentPromptText;
 
         // Trạng thái ban đầu: Hiện chấm tròn, ẩn bàn tay
         if (dotObject != null) dotObject.SetActive(true);
         if (handObject != null) handObject.SetActive(false);
-    }
-
-    void OnDestroy()
-    {
-        SettingsManager.onLanguageChanged -= UpdateCurrentPromptText;
     }
 
     void Update()
@@ -61,42 +42,45 @@ public class InteractPro : MonoBehaviour
         if (cachedMovePl == null) cachedMovePl = Object.FindFirstObjectByType<MovePl>();
 
         NPCDialogueCutscene npcCutscene = Object.FindFirstObjectByType<NPCDialogueCutscene>();
+        bool isPlayerDisabled = (cachedMovePl != null && (!cachedMovePl.enabled || cachedMovePl.isCameraLocked));
         bool isDialogueActive = SmartInteractionDialogue.isAnyDialoguePlaying ||
                                 GameIntroManager.isIntroRunning ||
                                 BedSleepCutscene.isSleeping ||
                                 InWorldComputerCutscene.isUsingComputer ||
                                 (npcCutscene != null && npcCutscene.isInCutscene) ||
-                                (cachedMovePl != null && cachedMovePl.isCameraLocked);
+                                isPlayerDisabled;
 
-        // NẾU VỪA MỚI CHẠY XONG THOẠI / CẮT CẢNH -> BẮT ĐẦU COOLDOWN NGAY ĐỂ TRÁNH CLICK THỪA KÍCH HOẠT LẠI
+        // NẾU VỪA MỚI CHẠY XONG THOẠI / CẮT CẢNH -> BẮT ĐẦU COOLDOWN NGAY
         if (wasDialogueOrCutsceneActive && !isDialogueActive)
         {
             StartCoroutine(CooldownRoutine());
         }
         wasDialogueOrCutsceneActive = isDialogueActive;
 
-        // 1. KHI ĐANG TRONG THOẠI HOẶC CẮT CẢNH -> KHÓA HOÀN TOÀN TƯƠNG TÁC
+        // 1. KHI ĐANG TRONG THOẠI HOẶC CẮT CẢNH -> KHÓA HOÀN TOÀN TƯƠNG TÁC VÀ ẨN TÂM NGẮM
         if (isDialogueActive)
         {
             ClearSelection();
-            if (InWorldComputerCutscene.isUsingComputer || (npcCutscene != null && npcCutscene.isInCutscene) || (cachedMovePl != null && cachedMovePl.isCameraLocked))
-            {
-                if (dotObject != null) dotObject.SetActive(false);
-                if (handObject != null) handObject.SetActive(false);
-            }
+            if (dotObject != null) dotObject.SetActive(false);
+            if (handObject != null) handObject.SetActive(false);
             return;
         }
 
-        // 2. KHI ĐANG HỒI CHIÊU (VỪA TƯƠNG TÁC XONG HOẶC VỪA HẾT THOẠI): CHUYỂN BÀN TAY VỀ LẠI CHẤM TRÒN (KHÔNG MẤT TÂM)
+        // 2. KHI ĐANG HỒI CHIÊU: CHUYỂN BÀN TAY VỀ LẠI CHẤM TRÒN
         if (isCooldown)
         {
             ClearSelection();
             return;
         }
 
-        Ray ray = new Ray(transform.position, transform.forward);
+        // BẮT TIA NHÌN THEO CHÍNH XÁC TẦM MẮT CAMERA (GÓC NHÌN CHUỘT LÊN/XUỐNG)
+        Camera mainCam = Camera.main;
+        if (mainCam == null) mainCam = GetComponentInChildren<Camera>();
+        Transform rayOrigin = (mainCam != null) ? mainCam.transform : transform;
 
-        RaycastHit[] hits = Physics.RaycastAll(ray, interactDistance, interactLayer);
+        Ray ray = new Ray(rayOrigin.position, rayOrigin.forward);
+
+        RaycastHit[] hits = Physics.RaycastAll(ray, interactDistance, interactLayer, QueryTriggerInteraction.Collide);
         if (hits != null && hits.Length > 0)
         {
             System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
@@ -105,7 +89,7 @@ public class InteractPro : MonoBehaviour
             {
                 RaycastHit currentHit = hits[hIdx];
 
-                // Bỏ qua các Box Collider vùng tường (CockroachWL, CockroachWR, CockroachW...)
+                // Bỏ qua các Box Collider vùng tường
                 if (currentHit.collider.gameObject.name.Contains("CockroachW") && currentHit.collider.isTrigger)
                 {
                     continue;
@@ -123,26 +107,9 @@ public class InteractPro : MonoBehaviour
 
                 if (interactables != null && interactables.Length > 0)
                 {
-                    // BẬT ICON BÀN TAY, TẮT CHẤM TRÒN
+                    // BẬT ICON BÀN TAY, TẮT CHẤM TRÒN (KHÔNG HIỆN CHỮ)
                     if (dotObject != null) dotObject.SetActive(false);
                     if (handObject != null) handObject.SetActive(true);
-
-                    // Bật UI hiển thị chữ [F] (nếu có dùng)
-                    if (interactionUI != null) interactionUI.SetActive(true);
-
-                    // Tìm script InteractPrompt trên vật thể
-                    InteractPrompt promptComp = currentHit.collider.GetComponent<InteractPrompt>();
-                    if (promptComp == null) promptComp = currentHit.collider.GetComponentInParent<InteractPrompt>();
-                    if (promptComp == null) promptComp = currentHit.collider.GetComponentInChildren<InteractPrompt>();
-
-                    if (currentPromptComp != promptComp)
-                    {
-                        if (currentPromptComp != null) currentPromptComp.HidePrompt();
-                        currentPromptComp = promptComp;
-                        if (currentPromptComp != null) currentPromptComp.ShowPrompt();
-                    }
-
-                    UpdateCurrentPromptText();
 
                     // Bấm Chuột Trái (Mouse 0) để tương tác
                     if (Input.GetMouseButtonDown(0))
@@ -160,7 +127,7 @@ public class InteractPro : MonoBehaviour
                     return;
                 }
 
-                // Nếu chạm vào vật thể đặc cản tầm nhìn (không phải trigger) mà không tương tác được -> Dừng tia nhìn
+                // Nếu chạm vào vật thể đặc cản tầm nhìn mà không có IInteractable -> Dừng tia nhìn
                 if (!currentHit.collider.isTrigger)
                 {
                     break;
@@ -179,30 +146,8 @@ public class InteractPro : MonoBehaviour
         isCooldown = false;
     }
 
-    void UpdateCurrentPromptText()
-    {
-        if (interactText == null) return;
-
-        if (currentPromptComp != null)
-        {
-            interactText.text = currentPromptComp.GetPrompt();
-        }
-        else
-        {
-            interactText.text = (SettingsManager.currentLanguage == "VI") ? "Tương tác" : "Interact";
-        }
-    }
-
     void ClearSelection()
     {
-        if (currentPromptComp != null)
-        {
-            currentPromptComp.HidePrompt();
-            currentPromptComp = null;
-        }
-
-        if (interactionUI != null) interactionUI.SetActive(false);
-
         // TRẢ VỀ: HIỆN CHẤM TRÒN, TẮT BÀN TAY
         if (dotObject != null) dotObject.SetActive(true);
         if (handObject != null) handObject.SetActive(false);

@@ -206,24 +206,23 @@ public class CameraObjectPickup : MonoBehaviour, IInteractable
         if (subtitleTextUI != null)
         {
             subtitleTextUI.text = "";
-            Color fc = subtitleTextUI.color;
-            fc.a = 1f;
-            subtitleTextUI.color = fc;
+            Color sc = subtitleTextUI.color;
+            sc.a = 1f;
+            subtitleTextUI.color = sc;
+            subtitleTextUI.gameObject.SetActive(false);
         }
 
+        isEquipping = false;
         SmartInteractionDialogue.isAnyDialoguePlaying = false;
-
-        // 7. Xóa object mô hình cũ dưới đất an toàn
-        Destroy(gameObject, 0.5f);
+        Debug.Log("[CameraObjectPickup] ✅ Đã trang bị máy quay Camcorder thành công!");
     }
 
     IEnumerator PlaySingleLine(SmartInteractionDialogue.DialogueLine line, TMPro.TextMeshProUGUI subUI, AudioSource aSource)
     {
-        if (line == null || subUI == null) yield break;
+        if (subUI == null || line == null) yield break;
 
         string fullText = (SettingsManager.currentLanguage == "VI") ? line.vietnameseDialogue : line.englishDialogue;
         if (string.IsNullOrEmpty(fullText)) fullText = line.vietnameseDialogue;
-        if (string.IsNullOrEmpty(fullText)) fullText = line.englishDialogue;
         if (string.IsNullOrEmpty(fullText)) yield break;
 
         Color sc = subUI.color;
@@ -239,14 +238,11 @@ public class CameraObjectPickup : MonoBehaviour, IInteractable
             aSource.Play();
         }
 
-        float lineStartTime = Time.time;
-        bool skip = false;
         subUI.text = "";
         for (int c = 1; c <= fullText.Length; c++)
         {
-            if (Time.time - lineStartTime > 0.2f && (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Space)))
+            if (c > 1 && (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Space)))
             {
-                skip = true;
                 subUI.text = fullText;
                 break;
             }

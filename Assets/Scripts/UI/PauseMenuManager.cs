@@ -438,7 +438,7 @@ public class PauseMenuManager : MonoBehaviour
         if (parentCanvas != null)
         {
             parentCanvas.overrideSorting = true;
-            parentCanvas.sortingOrder = 99999;
+            parentCanvas.sortingOrder = 32767;
         }
     }
 
