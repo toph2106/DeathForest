@@ -79,7 +79,15 @@ public class BedSleepCutscene : MonoBehaviour, IInteractable
     public bool useTypewriterEffect = true;
     public float typewriterSpeed = 0.03f;
 
-    [Tooltip("[0] Trước khi ngủ\n[1] Ư ử bị đánh thức (Đợt 2)\n[2] Sau khi ngồi dậy")]
+    [Header("5.1. Hiệu Ứng Con Trỏ '_' & Fade Mờ Dần (Đồng Bộ Chuẩn)")]
+    [Tooltip("Bật hiệu ứng con trỏ '_' nhấp nháy cuối câu thoại")]
+    public bool showBlinkingCursor = true;
+    [Tooltip("Bật hiệu ứng mờ dần Fade Out khi chuyển câu thoại")]
+    public bool useFadeEffect = true;
+    [Tooltip("Thời gian mờ dần Fade (Mặc định: 0.2 giây)")]
+    public float fadeDuration = 0.2f;
+
+    [Tooltip("[0] Trước khi ngủ\n[1] Ư ử bị gõ cửa đánh thức (Đợt 2)\n[2 trở đi] Toàn bộ chuỗi thoại sau khi ngồi dậy ở mép đệm (thoải mái thêm bao nhiêu câu tùy thích)")]
     public SleepDialogueLine[] sleepDialogues = new SleepDialogueLine[]
     {
         new SleepDialogueLine { vietnameseDialogue = "Mệt mỏi quá... Cuối cùng cũng được chợp mắt.", englishDialogue = "So tired... Finally I can get some sleep." },
@@ -94,8 +102,14 @@ public class BedSleepCutscene : MonoBehaviour, IInteractable
     [Tooltip("Bắt buộc phải lướt máy tính PC trước khi nằm ngủ")]
     public bool requireComputerBeforeSleep = true;
 
+    [Tooltip("Bắt buộc phải TẮT CASE MÁY TÍNH trước khi nằm ngủ")]
+    public bool requireComputerOffBeforeSleep = true;
+
     [Tooltip("Bắt buộc phải TẮT ĐÈN CHÍNH (chuyển sang đèn ngủ đỏ) trước khi nằm ngủ")]
     public bool requireLightOffBeforeSleep = true;
+
+    [Tooltip("Bắt buộc phải làm CON MÈO TRẬT TỰ (dừng phát nhạc & về chỗ) trước khi nằm ngủ")]
+    public bool requireCatCalmedBeforeSleep = true;
 
     [Header("5.2. Thoại Khi CHƯA ĐỦ ĐIỀU KIỆN (Locked Dialogues)")]
     [Tooltip("Thoại khi chưa dùng máy tính. Thêm (+) hoặc để trống")]
@@ -108,6 +122,16 @@ public class BedSleepCutscene : MonoBehaviour, IInteractable
         }
     };
 
+    [Tooltip("Thoại khi chưa tắt case máy tính. Thêm (+) hoặc để trống")]
+    public SmartInteractionDialogue.DialogueLine[] lockedNeedTurnOffComputerDialogues = new SmartInteractionDialogue.DialogueLine[]
+    {
+        new SmartInteractionDialogue.DialogueLine
+        {
+            vietnameseDialogue = "Máy tính vẫn đang chạy... Mình nên tắt máy tính trước khi đi ngủ.",
+            englishDialogue = "The computer is still running... I should turn it off before going to bed."
+        }
+    };
+
     [Tooltip("Thoại khi chưa tắt đèn chính. Thêm (+) hoặc để trống")]
     public SmartInteractionDialogue.DialogueLine[] lockedNeedTurnOffLightDialogues = new SmartInteractionDialogue.DialogueLine[]
     {
@@ -115,6 +139,17 @@ public class BedSleepCutscene : MonoBehaviour, IInteractable
         {
             vietnameseDialogue = "Chói mắt quá, phải tắt đèn trước khi ngủ...",
             englishDialogue = "Too bright, I need to turn off the light before going to sleep..."
+        }
+    };
+
+    [Tooltip("Thoại khi con mèo vẫn còn đang chạy nhảy phát nhạc ồn ào")]
+    public SmartInteractionDialogue.DialogueLine[] lockedNeedCatCalmedDialogues = new SmartInteractionDialogue.DialogueLine[]
+    {
+        new SmartInteractionDialogue.DialogueLine
+        {
+            vietnameseDialogue = "Con mèo ồn ào quá... Phải làm nó trật tự đã.",
+            englishDialogue = "That cat is too noisy... I need to quiet it down first.",
+            holdDuration = 2.5f
         }
     };
 
@@ -235,7 +270,7 @@ public class BedSleepCutscene : MonoBehaviour, IInteractable
     // =================================================================
     private Collider bedCollider;
     private InteractPrompt interactPrompt;
-    private bool isSleeping = false;
+    public static bool isSleeping { get; private set; } = false;
     private AudioSource localAudioSource;
 
     // --- BIẾN ĐIỀU KHIỂN TYPEWRITER & CLICK SKIP THOẠI ---
@@ -244,6 +279,7 @@ public class BedSleepCutscene : MonoBehaviour, IInteractable
     private bool skipRequested = false;
     private bool skipWaitRequested = false;
     private string currentFullText = "";
+    private Coroutine cursorBlinkCoroutine;
 
     // Lưu vị trí ban đầu
     private Vector3 originalCameraLocalPos;
@@ -312,36 +348,58 @@ public class BedSleepCutscene : MonoBehaviour, IInteractable
     {
         if (isSleeping) return;
 
-        SmartInteractionDialogue dialoguePlayer = GetComponent<SmartInteractionDialogue>();
-        if (dialoguePlayer == null) dialoguePlayer = gameObject.AddComponent<SmartInteractionDialogue>();
-        dialoguePlayer.dialogueSound = generalDialogueSound;
-        dialoguePlayer.soundVolume = dialogueVolume;
-
         // 1. Kiểm tra nếu chưa dùng máy tính PC
         if (requireComputerBeforeSleep && !InWorldComputerCutscene.hasCompletedComputer && !CameraObjectPickup.isComputerCutsceneFinished)
         {
             Debug.Log("[BedSleepCutscene] 🔒 Chưa dùng máy tính! Phát thoại nhắc nhở.");
             if (lockedNeedComputerDialogues != null && lockedNeedComputerDialogues.Length > 0)
             {
-                dialoguePlayer.PlayCustomLines(lockedNeedComputerDialogues);
+                PlayLockedLines(lockedNeedComputerDialogues);
             }
             return;
         }
 
-        // 2. Kiểm tra nếu đèn chính chưa tắt (chưa chuyển sang đèn đỏ)
+        // 2. Kiểm tra nếu Case PC vẫn còn đang bật (chưa bấm nút nguồn tắt)
+        bool isComputerOn = PCPowerButton.IsPCPowerOn;
+        InWorldComputerCutscene pcCutscene = Object.FindFirstObjectByType<InWorldComputerCutscene>();
+        if (pcCutscene != null && pcCutscene.isPoweredOn) isComputerOn = true;
+
+        if (requireComputerOffBeforeSleep && isComputerOn)
+        {
+            Debug.Log("[BedSleepCutscene] 🔒 Máy tính vẫn đang bật! Phát thoại nhắc tắt máy tính.");
+            if (lockedNeedTurnOffComputerDialogues != null && lockedNeedTurnOffComputerDialogues.Length > 0)
+            {
+                PlayLockedLines(lockedNeedTurnOffComputerDialogues);
+            }
+            return;
+        }
+
+        // 3. Kiểm tra nếu đèn chính chưa tắt (chưa chuyển sang đèn đỏ)
         RoomLightSwitch lightSwitch = Object.FindFirstObjectByType<RoomLightSwitch>();
         if (requireLightOffBeforeSleep && lightSwitch != null && lightSwitch.isLightOn)
         {
             Debug.Log("[BedSleepCutscene] 🔒 Đèn chính còn đang bật! Phát thoại nhắc tắt đèn.");
             if (lockedNeedTurnOffLightDialogues != null && lockedNeedTurnOffLightDialogues.Length > 0)
             {
-                dialoguePlayer.PlayCustomLines(lockedNeedTurnOffLightDialogues);
+                PlayLockedLines(lockedNeedTurnOffLightDialogues);
             }
             return;
         }
 
-        // 3. Đã đủ điều kiện nằm ngủ
-        Debug.Log("[BedSleepCutscene] 🛌 Đủ điều kiện! Bắt đầu chuỗi nằm ngủ!");
+        // 4. Kiểm tra nếu con mèo vẫn còn đang chạy nhảy ồn ào và phát nhạc
+        if (catScript == null) catScript = Object.FindFirstObjectByType<Cat>(FindObjectsInactive.Include);
+        if (requireCatCalmedBeforeSleep && catScript != null && catScript.IsDancingOrRunning)
+        {
+            Debug.Log("[BedSleepCutscene] 🔒 Con mèo vẫn đang chạy nhảy phát nhạc ồn ào! Phát thoại 'Con mèo ồn ào quá'.");
+            if (lockedNeedCatCalmedDialogues != null && lockedNeedCatCalmedDialogues.Length > 0)
+            {
+                PlayLockedLines(lockedNeedCatCalmedDialogues);
+            }
+            return;
+        }
+
+        // 5. Đã đủ cả 3 điều kiện nằm ngủ (Tắt máy tính, Tắt đèn, Làm mèo trật tự)
+        Debug.Log("[BedSleepCutscene] 🛌 Đủ cả 3 điều kiện! Bắt đầu chuỗi nằm ngủ!");
         StartCoroutine(SleepSequenceRoutine());
     }
 
@@ -680,8 +738,14 @@ public class BedSleepCutscene : MonoBehaviour, IInteractable
         if (sitBreathingDelay > 0f)
             yield return new WaitForSeconds(sitBreathingDelay);
 
-        // ─── THOẠI 2: "Chuyện gì đang xảy ra vậy...?" (HỖ TRỢ CLICK SKIP) ───
-        yield return StartCoroutine(PlayDialogueLineRoutine(2, delayBeforeStandUp));
+        // ─── THOẠI 2: TOÀN BỘ CÁC CÂU THOẠI KHI NGỒI DẬY Ở MÉP ĐỆM (TỪ INDEX 2 TRỞ ĐI) ───
+        if (sleepDialogues != null && sleepDialogues.Length > 2)
+        {
+            for (int i = 2; i < sleepDialogues.Length; i++)
+            {
+                yield return StartCoroutine(PlayDialogueLineRoutine(i, delayBeforeStandUp));
+            }
+        }
         ClearSubtitle();
 
         // ─── ĐỨNG DẬY TẠI ĐỆM: NÂNG CAMERA TỪ NGỒI LÊN ĐỨNG MƯỢT MÀ KHÔNG GIẬT GÓC ───
@@ -870,6 +934,19 @@ public class BedSleepCutscene : MonoBehaviour, IInteractable
         skipRequested = false;
         skipWaitRequested = false;
 
+        if (subtitleTextUI != null)
+        {
+            Color sc = subtitleTextUI.color;
+            sc.a = 1f;
+            subtitleTextUI.color = sc;
+        }
+
+        if (cursorBlinkCoroutine != null)
+        {
+            StopCoroutine(cursorBlinkCoroutine);
+            cursorBlinkCoroutine = null;
+        }
+
         bool playedAudio = false;
 
         // BẬT ÂM THANH TRONG SUỐT LÚC ĐANG GÕ CHỮ (NẾU ĐƯỢC PHÉP)
@@ -901,7 +978,9 @@ public class BedSleepCutscene : MonoBehaviour, IInteractable
                 for (int i = 0; i <= currentFullText.Length; i++)
                 {
                     if (!isTyping || skipRequested) break;
-                    subtitleTextUI.text = currentFullText.Substring(0, i);
+                    string typed = currentFullText.Substring(0, i);
+                    if (showBlinkingCursor) typed += "_";
+                    subtitleTextUI.text = typed;
                     yield return new WaitForSeconds(typewriterSpeed);
                 }
 
@@ -914,10 +993,19 @@ public class BedSleepCutscene : MonoBehaviour, IInteractable
             }
         }
 
+        if (subtitleTextUI != null) subtitleTextUI.text = currentFullText;
+
         // DỪNG ÂM THANH MƯỢT MÀ KHI ĐÃ GÕ XONG (HOẶC SKIP) - CHỈ DỪNG NẾU ĐÃ PHÁT DIALOGUE SOUND
         if (playedAudio && localAudioSource != null && localAudioSource.isPlaying && localAudioSource.clip == generalDialogueSound)
         {
             StartCoroutine(FadeAudioOutRoutine(localAudioSource, 0.08f));
+        }
+
+        // BẬT CON TRỎ NHẤP NHÁY '_' TRONG LÚC CHỜ ĐỌC
+        if (showBlinkingCursor && subtitleTextUI != null)
+        {
+            if (cursorBlinkCoroutine != null) StopCoroutine(cursorBlinkCoroutine);
+            cursorBlinkCoroutine = StartCoroutine(BlinkCursorRoutine(subtitleTextUI, currentFullText));
         }
 
         // CHỜ ĐỌC XONG HOẶC BẤM CHUỘT QUA NHANH
@@ -929,15 +1017,210 @@ public class BedSleepCutscene : MonoBehaviour, IInteractable
             yield return null;
         }
         isWaitingForNextLine = false;
+
+        if (cursorBlinkCoroutine != null)
+        {
+            StopCoroutine(cursorBlinkCoroutine);
+            cursorBlinkCoroutine = null;
+        }
+
+        // Hiệu ứng Fade Out mờ dần khi chuyển câu thoại
+        if (useFadeEffect && subtitleTextUI != null)
+        {
+            yield return StartCoroutine(FadeTextOutRoutine(subtitleTextUI, fadeDuration));
+        }
+    }
+
+    private Coroutine lockedDialogueCoroutine;
+
+    void PlayLockedLines(SmartInteractionDialogue.DialogueLine[] lines)
+    {
+        if (lines == null || lines.Length == 0) return;
+        if (lockedDialogueCoroutine != null) StopCoroutine(lockedDialogueCoroutine);
+        lockedDialogueCoroutine = StartCoroutine(PlayLockedLinesRoutine(lines));
+    }
+
+    IEnumerator PlayLockedLinesRoutine(SmartInteractionDialogue.DialogueLine[] lines)
+    {
+        if (lines == null) yield break;
+
+        SmartInteractionDialogue.isAnyDialoguePlaying = true;
+
+        // Chờ 1 frame để click tương tác ban đầu trôi qua
+        yield return null;
+
+        for (int i = 0; i < lines.Length; i++)
+        {
+            var line = lines[i];
+            if (line == null) continue;
+            string text = (SettingsManager.currentLanguage == "VI") ? line.vietnameseDialogue : line.englishDialogue;
+            if (string.IsNullOrEmpty(text)) text = line.vietnameseDialogue;
+            if (string.IsNullOrEmpty(text)) text = line.englishDialogue;
+            if (string.IsNullOrEmpty(text)) continue;
+
+            float hold = (line.holdDuration > 0f) ? line.holdDuration : 2.5f;
+            yield return StartCoroutine(PlaySingleCustomLineRoutine(text, hold));
+        }
+        ClearSubtitle();
+        lockedDialogueCoroutine = null;
+        SmartInteractionDialogue.isAnyDialoguePlaying = false;
+    }
+
+    IEnumerator PlaySingleCustomLineRoutine(string text, float holdTime)
+    {
+        if (string.IsNullOrEmpty(text)) yield break;
+
+        currentFullText = text;
+        skipRequested = false;
+        skipWaitRequested = false;
+
+        if (subtitleTextUI != null)
+        {
+            Color sc = subtitleTextUI.color;
+            sc.a = 1f;
+            subtitleTextUI.color = sc;
+        }
+
+        if (cursorBlinkCoroutine != null)
+        {
+            StopCoroutine(cursorBlinkCoroutine);
+            cursorBlinkCoroutine = null;
+        }
+
+        bool playedAudio = false;
+        if (generalDialogueSound != null && localAudioSource != null)
+        {
+            localAudioSource.spatialBlend = 0f;
+            localAudioSource.clip = generalDialogueSound;
+            localAudioSource.volume = dialogueVolume;
+            localAudioSource.loop = true;
+            localAudioSource.time = 0f;
+            localAudioSource.Play();
+            playedAudio = true;
+        }
+
+        if (subtitleTextUI != null)
+        {
+            if (!subtitleTextUI.gameObject.activeInHierarchy)
+            {
+                if (subtitleTextUI.transform.parent != null)
+                    subtitleTextUI.transform.parent.gameObject.SetActive(true);
+                subtitleTextUI.gameObject.SetActive(true);
+            }
+
+            if (useTypewriterEffect)
+            {
+                isTyping = true;
+                subtitleTextUI.text = "";
+                float lineStartTime = Time.time;
+
+                for (int i = 0; i <= currentFullText.Length; i++)
+                {
+                    if (Time.time - lineStartTime > 0.2f && (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Space)))
+                    {
+                        skipRequested = true;
+                        break;
+                    }
+                    if (!isTyping || skipRequested) break;
+                    string typed = currentFullText.Substring(0, i);
+                    if (showBlinkingCursor) typed += "_";
+                    subtitleTextUI.text = typed;
+                    yield return new WaitForSeconds(typewriterSpeed);
+                }
+
+                subtitleTextUI.text = currentFullText;
+                isTyping = false;
+            }
+            else
+            {
+                subtitleTextUI.text = currentFullText;
+            }
+        }
+
+        if (subtitleTextUI != null) subtitleTextUI.text = currentFullText;
+
+        if (playedAudio && localAudioSource != null && localAudioSource.isPlaying && localAudioSource.clip == generalDialogueSound)
+        {
+            StartCoroutine(FadeAudioOutRoutine(localAudioSource, 0.08f));
+        }
+
+        if (showBlinkingCursor && subtitleTextUI != null)
+        {
+            if (cursorBlinkCoroutine != null) StopCoroutine(cursorBlinkCoroutine);
+            cursorBlinkCoroutine = StartCoroutine(BlinkCursorRoutine(subtitleTextUI, currentFullText));
+        }
+
+        isWaitingForNextLine = true;
+        float waitTimer = 0f;
+        while (waitTimer < holdTime && !skipWaitRequested)
+        {
+            waitTimer += Time.deltaTime;
+            yield return null;
+        }
+        isWaitingForNextLine = false;
+
+        if (cursorBlinkCoroutine != null)
+        {
+            StopCoroutine(cursorBlinkCoroutine);
+            cursorBlinkCoroutine = null;
+        }
+
+        if (useFadeEffect && subtitleTextUI != null)
+        {
+            yield return StartCoroutine(FadeTextOutRoutine(subtitleTextUI, fadeDuration));
+        }
     }
 
     void ClearSubtitle()
     {
+        if (cursorBlinkCoroutine != null)
+        {
+            StopCoroutine(cursorBlinkCoroutine);
+            cursorBlinkCoroutine = null;
+        }
+
         isTyping = false;
         isWaitingForNextLine = false;
         skipRequested = false;
         skipWaitRequested = false;
-        if (subtitleTextUI != null) subtitleTextUI.text = "";
+
+        if (subtitleTextUI != null)
+        {
+            subtitleTextUI.text = "";
+            Color sc = subtitleTextUI.color;
+            sc.a = 1f;
+            subtitleTextUI.color = sc;
+        }
+    }
+
+    IEnumerator BlinkCursorRoutine(TMPro.TextMeshProUGUI txt, string baseText)
+    {
+        bool showUnderscore = true;
+        while (true)
+        {
+            if (txt != null)
+            {
+                txt.text = baseText + (showUnderscore ? " _" : "  ");
+            }
+            showUnderscore = !showUnderscore;
+            yield return new WaitForSeconds(0.4f);
+        }
+    }
+
+    IEnumerator FadeTextOutRoutine(TMPro.TextMeshProUGUI txt, float duration)
+    {
+        if (txt == null) yield break;
+        float elapsed = 0f;
+        Color c = txt.color;
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            c.a = Mathf.Lerp(1f, 0f, elapsed / duration);
+            txt.color = c;
+            yield return null;
+        }
+        c.a = 0f;
+        txt.color = c;
     }
 
     // =================================================================

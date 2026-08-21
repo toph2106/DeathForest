@@ -49,6 +49,29 @@ public class NPCDeliveryBox : MonoBehaviour, IInteractable
     [Tooltip("Kéo GameObject Cockroach (chứa 3 con gián) vào đây. Mặc định sẽ bị ẩn lúc đầu và tự động bật Active khi NPC biến mất!")]
     public GameObject cockroachesToEnableAfterNPC;
 
+    [Header("10. Thoại Sau Khi Nhận Hàng & Đóng Cửa (Hàng Vẫn Trên Tay)")]
+    [Tooltip("Danh sách câu thoại phát ngay khi màn hình mở sáng lại và cửa đã đóng")]
+    public SmartInteractionDialogue.DialogueLine[] postDeliveryDialogues = new SmartInteractionDialogue.DialogueLine[]
+    {
+        new SmartInteractionDialogue.DialogueLine
+        {
+            vietnameseDialogue = "Thùng hàng gì mà nặng thế này...",
+            englishDialogue = "What's in this package that makes it so heavy...",
+            holdDuration = 2.5f
+        },
+        new SmartInteractionDialogue.DialogueLine
+        {
+            vietnameseDialogue = "Đem vào phòng rồi đặt xuống chiếu xem bên trong có gì nào.",
+            englishDialogue = "Let's take it into the room and place it on the mat to see what's inside.",
+            holdDuration = 3.0f
+        }
+    };
+
+    [Header("10.1. Âm Thanh Thoại Gõ Chữ (Dialogue SFX)")]
+    [Tooltip("Gói âm thanh lồng tiếng / gõ chữ khi hiện phụ đề (5s blip)")]
+    public AudioClip dialogueSound;
+    [Range(0f, 1f)] public float dialogueVolume = 0.8f;
+
     private Collider boxCollider;
     private InteractPrompt interactPrompt;
     private bool isUnlocked = false;
@@ -293,6 +316,126 @@ public class NPCDeliveryBox : MonoBehaviour, IInteractable
 
         isProcessingDelivery = false;
         Debug.Log("[NPCDeliveryBox] ✅ Đã hoàn thành quá trình giao nhận hàng & đóng cửa, NPC đã ẩn!");
+
+        // KÍCH HOẠT THOẠI SAU KHI NHẬN HÀNG & ĐÓNG CỬA (HÀNG VẪN TRÊN TAY)
+        if (postDeliveryDialogues != null && postDeliveryDialogues.Length > 0 && coroutineRunner != null)
+        {
+            coroutineRunner.StartCoroutine(PlayDeliveryDialoguesRoutine());
+        }
+    }
+
+    IEnumerator PlayDeliveryDialoguesRoutine()
+    {
+        if (postDeliveryDialogues == null || postDeliveryDialogues.Length == 0) yield break;
+
+        TMPro.TextMeshProUGUI subtitleTextUI = null;
+        BedSleepCutscene bed = Object.FindFirstObjectByType<BedSleepCutscene>(FindObjectsInactive.Include);
+        if (bed != null && bed.subtitleTextUI != null) subtitleTextUI = bed.subtitleTextUI;
+        if (subtitleTextUI == null)
+        {
+            GameIntroManager intro = Object.FindFirstObjectByType<GameIntroManager>(FindObjectsInactive.Include);
+            if (intro != null && intro.subtitleTextUI != null) subtitleTextUI = intro.subtitleTextUI;
+        }
+        if (subtitleTextUI == null)
+        {
+            GameObject subObj = GameObject.Find("SubtitleText");
+            if (subObj == null) subObj = GameObject.Find("Subtitle");
+            if (subObj == null) subObj = GameObject.Find("DialogueText");
+            if (subObj != null) subtitleTextUI = subObj.GetComponent<TMPro.TextMeshProUGUI>();
+        }
+
+        if (subtitleTextUI == null) yield break;
+
+        SmartInteractionDialogue.isAnyDialoguePlaying = true;
+
+        AudioSource aSource = null;
+        if (coroutineRunner != null)
+        {
+            aSource = coroutineRunner.GetComponent<AudioSource>();
+            if (aSource == null) aSource = coroutineRunner.gameObject.AddComponent<AudioSource>();
+            aSource.spatialBlend = 0f;
+            aSource.playOnAwake = false;
+        }
+
+        if (subtitleTextUI.transform.parent != null) subtitleTextUI.transform.parent.gameObject.SetActive(true);
+        subtitleTextUI.gameObject.SetActive(true);
+
+        // Chờ 1 frame để click tương tác ban đầu trôi qua
+        yield return null;
+
+        for (int i = 0; i < postDeliveryDialogues.Length; i++)
+        {
+            var line = postDeliveryDialogues[i];
+            if (line == null) continue;
+
+            string fullText = (SettingsManager.currentLanguage == "VI") ? line.vietnameseDialogue : line.englishDialogue;
+            if (string.IsNullOrEmpty(fullText)) fullText = line.vietnameseDialogue;
+            if (string.IsNullOrEmpty(fullText)) fullText = line.englishDialogue;
+            if (string.IsNullOrEmpty(fullText)) continue;
+
+            Color sc = subtitleTextUI.color;
+            sc.a = 1f;
+            subtitleTextUI.color = sc;
+
+            if (dialogueSound != null && aSource != null)
+            {
+                aSource.clip = dialogueSound;
+                aSource.volume = dialogueVolume;
+                aSource.loop = true;
+                aSource.time = 0f;
+                aSource.Play();
+            }
+
+            float lineStartTime = Time.time;
+            subtitleTextUI.text = "";
+            for (int c = 1; c <= fullText.Length; c++)
+            {
+                if (Time.time - lineStartTime > 0.2f && (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Space)))
+                {
+                    subtitleTextUI.text = fullText;
+                    break;
+                }
+                subtitleTextUI.text = fullText.Substring(0, c) + "_";
+                yield return new WaitForSeconds(0.03f);
+            }
+
+            if (aSource != null && aSource.isPlaying) aSource.Stop();
+            subtitleTextUI.text = fullText;
+
+            float timer = 0f;
+            float hold = (line.holdDuration > 0f) ? line.holdDuration : 2.5f;
+            bool blink = true;
+            float blinkTimer = 0f;
+            while (timer < hold)
+            {
+                if (timer > 0.2f && (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Space))) break;
+                timer += Time.deltaTime;
+                blinkTimer += Time.deltaTime;
+                if (blinkTimer >= 0.4f)
+                {
+                    blinkTimer = 0f;
+                    blink = !blink;
+                    subtitleTextUI.text = fullText + (blink ? " _" : "  ");
+                }
+                yield return null;
+            }
+
+            float fadeElapsed = 0f;
+            while (fadeElapsed < 0.2f)
+            {
+                fadeElapsed += Time.deltaTime;
+                sc.a = Mathf.Lerp(1f, 0f, fadeElapsed / 0.2f);
+                subtitleTextUI.color = sc;
+                yield return null;
+            }
+        }
+
+        subtitleTextUI.text = "";
+        Color finalColor = subtitleTextUI.color;
+        finalColor.a = 1f;
+        subtitleTextUI.color = finalColor;
+
+        SmartInteractionDialogue.isAnyDialoguePlaying = false;
     }
 
     void EnsureFadeImageExists()

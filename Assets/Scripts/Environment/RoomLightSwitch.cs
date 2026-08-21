@@ -193,6 +193,16 @@ public class RoomLightSwitch : MonoBehaviour, IInteractable
         ToggleLight();
     }
 
+    public void SetLightState(bool on)
+    {
+        if (isLightOn == on) return;
+        isLightOn = on;
+
+        ApplyInitialLightState();
+        UpdatePromptText();
+        Debug.Log($"[RoomLightSwitch] 💡 Đã thiết lập trạng thái đèn: {(isLightOn ? "BẬT" : "TẮT")}");
+    }
+
     public void ToggleLight()
     {
         isLightOn = !isLightOn;

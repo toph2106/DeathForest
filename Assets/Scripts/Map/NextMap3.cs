@@ -15,11 +15,7 @@ public class NextMap3 : MonoBehaviour
     [Tooltip("Thời gian giữ màn hình tối đen ngòm hồi hộp (giây) - Mặc định: 2.0s")]
     public float darkDelay = 2.0f;
 
-    [Header("2. Khóa Cổng Hầm (Bắt Buộc Đọc Giấy Mới Cho Qua Map 03)")]
-    [Tooltip("Bật ô này: Bắt buộc người chơi phải nhặt đọc tờ giấy trước mới cho phép tiến vào Map 03!")]
-    public bool requirePaperRead = true;
-
-    [Header("3. Âm Thanh Chuyển Cảnh (Tùy Chọn - Để Trống Vẫn Chạy Mượt 100%)")]
+    [Header("2. Âm Thanh Chuyển Cảnh (Tùy Chọn - Để Trống Vẫn Chạy Mượt 100%)")]
     [Tooltip("Tùy chọn: Kéo file âm thanh nếu muốn phát lúc vào hầm (Để trống nếu không dùng âm thanh)")]
     public AudioClip tunnelSoundClip;
 
@@ -47,15 +43,9 @@ public class NextMap3 : MonoBehaviour
     {
         if (isTransitioning) return;
 
-        if (other.CompareTag("Player") || other.GetComponentInParent<MovePl>() != null)
+        if (other.CompareTag("Player") || other.GetComponentInParent<MovePl>() != null || other.GetComponent<CharacterController>() != null)
         {
-            // NẾU BẬT YÊU CẦU ĐỌC GIẤY MÀ NGUỜI CHƠI CHƯA ĐỌC GIẤY -> KHÓA CỔNG HẦM, KHÔNG CHO QUA MAP 03!
-            if (requirePaperRead && !ReadablePaper.HasReadPaper)
-            {
-                Debug.Log("[NextMap3] ⚠️ Cổng hầm đã bị khóa! Bạn phải nhặt đọc tờ giấy trước mới được tiến vào Map 03!");
-                return;
-            }
-
+            Debug.Log("[NextMap3] 🚪 Người chơi đã đi vào khu vực chuyển cảnh! Bắt đầu chuyển sang Map 03...");
             StartCoroutine(MapTransitionRoutine());
         }
     }
@@ -66,12 +56,20 @@ public class NextMap3 : MonoBehaviour
 
         float targetVolume = maxSoundVolume > 0f ? maxSoundVolume : 0.8f;
 
-        // 1. KHÓA TẠM THỜI DI CHUYỂN VÀ CON TRỎ CHUỘT PLAYER
+        // 1. KHÓA TẠM THỜI DI CHUYỂN VÀ CAMERA PLAYER
         MovePl playerMove = FindFirstObjectByType<MovePl>();
-        if (playerMove != null) playerMove.enabled = false;
+        if (playerMove != null)
+        {
+            playerMove.isCameraLocked = true;
+            playerMove.SetMovementState(false);
+            playerMove.enabled = false;
+        }
 
         CharacterController playerController = FindFirstObjectByType<CharacterController>();
         if (playerController != null) playerController.enabled = false;
+
+        // ẨN NGAY LẬP TỨC TOÀN BỘ UI INGAME (TÂM NGẮM, CAMCORDER, ITEM, CROSSHAIR...)
+        PauseMenuManager.SetInGameHUDActive(false);
 
         // 2. PHÁT ÂM THANH (NẾU CÓ GÁN - NẾU ĐỂ TRỐNG TỰ BỎ QUA)
         if (tunnelSoundClip != null && audioSource != null)
@@ -87,7 +85,8 @@ public class NextMap3 : MonoBehaviour
         if (fadePanel != null)
         {
             PauseMenuManager.BringFadeToFront(fadePanel);
-            PauseMenuManager.SetInGameHUDActive(false);
+            fadePanel.gameObject.SetActive(true);
+            fadePanel.raycastTarget = true;
 
             float t = 0f;
             Color startC = new Color(0, 0, 0, 0f);

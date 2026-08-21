@@ -58,6 +58,17 @@ public class InWorldComputerCutscene : MonoBehaviour, IInteractable
     [Tooltip("Kéo âm thanh click chuột (taira-komori__click.wav) vào đây")]
     public AudioClip mouseClickSound;
 
+    [Header("4.1. Thoại Khi Chưa Bật Nguồn Case PC (Locked Need Power On)")]
+    [Tooltip("Thoại khi người chơi bấm vào màn hình PC lúc chưa bật nút nguồn ở Case")]
+    public SmartInteractionDialogue.DialogueLine[] lockedNeedPowerOnDialogues = new SmartInteractionDialogue.DialogueLine[]
+    {
+        new SmartInteractionDialogue.DialogueLine
+        {
+            vietnameseDialogue = "Màn hình chưa sáng... Phải bật nút nguồn ở case PC dưới bàn trước đã.",
+            englishDialogue = "The screen is dark... I need to turn on the PC case under the desk first."
+        }
+    };
+
     [Header("5. Danh Sách Các Bức Ảnh & Chuỗi Thoại Đi Kèm")]
     public ComputerImageStep[] imageSteps;
 
@@ -194,9 +205,15 @@ public class InWorldComputerCutscene : MonoBehaviour, IInteractable
 
     public void Interact()
     {
+        if (SmartInteractionDialogue.isAnyDialoguePlaying) return;
+
         if (!isPoweredOn)
         {
-            Debug.Log("[InWorldComputerCutscene] ⚠️ Bạn chưa bấm nút nguồn trên Case PC để bật máy!");
+            Debug.Log("[InWorldComputerCutscene] ⚠️ Bạn chưa bấm nút nguồn trên Case PC để bật máy! Phát thoại nhắc nhở.");
+            if (lockedNeedPowerOnDialogues != null && lockedNeedPowerOnDialogues.Length > 0)
+            {
+                StartCoroutine(PlayLockedNeedPowerOnRoutine());
+            }
             return;
         }
 
@@ -625,5 +642,107 @@ public class InWorldComputerCutscene : MonoBehaviour, IInteractable
         if (playerController != null) playerController.enabled = true;
 
         isReturningCamera = false;
+    }
+
+    IEnumerator PlayLockedNeedPowerOnRoutine()
+    {
+        if (lockedNeedPowerOnDialogues == null || lockedNeedPowerOnDialogues.Length == 0) yield break;
+
+        TMPro.TextMeshProUGUI subUI = subtitleText;
+        if (subUI == null)
+        {
+            BedSleepCutscene bed = Object.FindFirstObjectByType<BedSleepCutscene>(FindObjectsInactive.Include);
+            if (bed != null && bed.subtitleTextUI != null) subUI = bed.subtitleTextUI;
+        }
+        if (subUI == null)
+        {
+            GameObject subObj = GameObject.Find("SubtitleText") ?? GameObject.Find("Subtitle") ?? GameObject.Find("DialogueText");
+            if (subObj != null) subUI = subObj.GetComponent<TMPro.TextMeshProUGUI>();
+        }
+
+        if (subUI == null) yield break;
+
+        SmartInteractionDialogue.isAnyDialoguePlaying = true;
+
+        if (subUI.transform.parent != null) subUI.transform.parent.gameObject.SetActive(true);
+        subUI.gameObject.SetActive(true);
+
+        // Chờ 1 frame để click tương tác ban đầu trôi qua
+        yield return null;
+
+        for (int i = 0; i < lockedNeedPowerOnDialogues.Length; i++)
+        {
+            var line = lockedNeedPowerOnDialogues[i];
+            if (line == null) continue;
+
+            string fullText = (SettingsManager.currentLanguage == "VI") ? line.vietnameseDialogue : line.englishDialogue;
+            if (string.IsNullOrEmpty(fullText)) fullText = line.vietnameseDialogue;
+            if (string.IsNullOrEmpty(fullText)) fullText = line.englishDialogue;
+            if (string.IsNullOrEmpty(fullText)) continue;
+
+            Color sc = subUI.color;
+            sc.a = 1f;
+            subUI.color = sc;
+
+            if (generalDialogueSound != null && audioSource != null)
+            {
+                audioSource.spatialBlend = 0f;
+                audioSource.clip = generalDialogueSound;
+                audioSource.volume = 0.8f;
+                audioSource.loop = true;
+                audioSource.time = 0f;
+                audioSource.Play();
+            }
+
+            float lineStartTime = Time.time;
+            subUI.text = "";
+            for (int c = 1; c <= fullText.Length; c++)
+            {
+                if (Time.time - lineStartTime > 0.2f && (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Space)))
+                {
+                    subUI.text = fullText;
+                    break;
+                }
+                subUI.text = fullText.Substring(0, c) + "_";
+                yield return new WaitForSeconds(0.03f);
+            }
+
+            if (audioSource != null && audioSource.isPlaying && audioSource.clip == generalDialogueSound) audioSource.Stop();
+            subUI.text = fullText;
+
+            float timer = 0f;
+            float hold = (line.holdDuration > 0f) ? line.holdDuration : 2.5f;
+            bool blink = true;
+            float blinkTimer = 0f;
+            while (timer < hold)
+            {
+                if (timer > 0.2f && (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Space))) break;
+                timer += Time.deltaTime;
+                blinkTimer += Time.deltaTime;
+                if (blinkTimer >= 0.4f)
+                {
+                    blinkTimer = 0f;
+                    blink = !blink;
+                    subUI.text = fullText + (blink ? " _" : "  ");
+                }
+                yield return null;
+            }
+
+            float fadeElapsed = 0f;
+            while (fadeElapsed < 0.2f)
+            {
+                fadeElapsed += Time.deltaTime;
+                sc.a = Mathf.Lerp(1f, 0f, fadeElapsed / 0.2f);
+                subUI.color = sc;
+                yield return null;
+            }
+        }
+
+        subUI.text = "";
+        Color finalColor = subUI.color;
+        finalColor.a = 1f;
+        subUI.color = finalColor;
+
+        SmartInteractionDialogue.isAnyDialoguePlaying = false;
     }
 }

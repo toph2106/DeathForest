@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 public class Grass : MonoBehaviour
 {
@@ -17,7 +17,7 @@ public class Grass : MonoBehaviour
 
     private Vector3 lastPosition;
 
-    private bool isOnGrass = false;
+    public bool isOnGrass = false;
 
     void Start()
     {

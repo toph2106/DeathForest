@@ -27,11 +27,11 @@ public class FlashlightToggle : MonoBehaviour
     [Tooltip("Lượng Pin hiện tại")]
     public float currentBattery = 100f;
 
-    [Tooltip("Tốc độ tiêu hao Pin mỗi giây khi bật đèn (VD: 0.25% / giây -> Chạy được khoảng hơn 6.6 phút)")]
-    public float drainRate = 0.25f;
+    [Tooltip("Tốc độ tiêu hao Pin mỗi giây (0.3333% / giây -> Đúng 5 phút = 300s từ 100% về 0%)")]
+    public float drainRate = 0.3333f;
 
-    [Tooltip("Bật ô này để đèn nhấp nháy chập chờn khi Pin yếu")]
-    public float lowBatteryThreshold = 20f;
+    [Tooltip("Bật ô này để đèn nhấp nháy chập chờn khi Pin yếu (Mặc định còn dưới 5% mới nhấp nháy)")]
+    public float lowBatteryThreshold = 5f;
 
     [Header("3. Giao Diện UI Pin (Tùy chọn)")]
     public Slider batterySliderUI;
@@ -72,9 +72,24 @@ public class FlashlightToggle : MonoBehaviour
         audioSource.playOnAwake = false;
         audioSource.spatialBlend = 0f;
 
-        if (spotHotspot != null) origHotspotIntensity = spotHotspot.intensity;
-        if (spotMidRing != null) origMidRingIntensity = spotMidRing.intensity;
-        if (spotAmbient != null) origAmbientIntensity = spotAmbient.intensity;
+        // Lưu cường độ sáng gốc (đảm bảo không bị lưu số 0)
+        if (spotHotspot != null && spotHotspot.intensity > 0.1f) origHotspotIntensity = spotHotspot.intensity;
+        else if (origHotspotIntensity <= 0.1f) origHotspotIntensity = 2.0f;
+
+        if (spotMidRing != null && spotMidRing.intensity > 0.1f) origMidRingIntensity = spotMidRing.intensity;
+        else if (origMidRingIntensity <= 0.1f) origMidRingIntensity = 1.2f;
+
+        if (spotAmbient != null && spotAmbient.intensity > 0.1f) origAmbientIntensity = spotAmbient.intensity;
+        else if (origAmbientIntensity <= 0.1f) origAmbientIntensity = 0.6f;
+
+        // Loại trừ Layer UI để đèn pin không chiếu chói lóa vào các vật phẩm 3D trên Hotbar
+        int uiLayer = LayerMask.NameToLayer("UI");
+        if (uiLayer >= 0)
+        {
+            if (spotHotspot != null) spotHotspot.cullingMask &= ~(1 << uiLayer);
+            if (spotMidRing != null) spotMidRing.cullingMask &= ~(1 << uiLayer);
+            if (spotAmbient != null) spotAmbient.cullingMask &= ~(1 << uiLayer);
+        }
 
         // KHI CHUYỂN MAP: KHÔI PHỤC LẠI SỐ % PIN VÀ TRẠNG THÁI TỪ MAP TRƯỚC
         if (savedBattery >= 0f)
@@ -91,14 +106,8 @@ public class FlashlightToggle : MonoBehaviour
             hasFlashlight = (savedHasFlashlight == 1);
         }
 
-        // Nếu chưa sở hữu Đèn Pin -> Ép tắt đèn
-        if (!hasFlashlight)
-        {
-            isOn = false;
-            if (spotHotspot != null) spotHotspot.enabled = false;
-            if (spotMidRing != null) spotMidRing.enabled = false;
-            if (spotAmbient != null) spotAmbient.enabled = false;
-        }
+        // Đồng bộ trạng thái đèn lúc đầu
+        SetFlashlightState(hasFlashlight && isOn, false);
 
         UpdateUI();
     }
@@ -114,8 +123,8 @@ public class FlashlightToggle : MonoBehaviour
     {
         if (!hasFlashlight) return;
 
-        // 1. PHÍM E BẬT/TẮT ĐÈN
-        if (Input.GetMouseButtonDown(0) == false && Input.GetKeyDown(KeyCode.E))
+        // 1. PHÍM E BẬT/TẮT ĐÈN PIN NHẠY 100%
+        if (Input.GetKeyDown(KeyCode.E))
         {
             if (Time.time - lastToggleTime >= toggleCooldown)
             {
@@ -147,14 +156,11 @@ public class FlashlightToggle : MonoBehaviour
                     ResetLightIntensities();
                 }
 
-                // HẾT PIN TỰ ĐỘNG TẮT ĐÈN VÀ ẨN UI CAMCORDER
+                // HẾT PIN: CHỈ TẮT BỤP ĐÈN PIN (GIỮ NGUYÊN GIAO DIỆN MÁY QUAY CAMCORDER)
                 if (currentBattery <= 0f)
                 {
                     SetFlashlightState(false, true);
-                    if (CamcorderUI.Instance != null)
-                    {
-                        CamcorderUI.Instance.gameObject.SetActive(false);
-                    }
+                    Debug.Log("[FlashlightToggle] 🔋 Đèn pin đã cạn sạch pin! Tắt đèn pin.");
                 }
             }
 
@@ -170,18 +176,30 @@ public class FlashlightToggle : MonoBehaviour
 
     public void SetFlashlightState(bool state, bool playSound = true)
     {
-        if (!hasFlashlight) return;
+        if (!hasFlashlight && state) return;
         if (state && currentBattery <= 0f) state = false;
 
         bool stateChanged = (isOn != state);
         lastToggleTime = Time.time;
         isOn = state;
 
-        if (spotHotspot != null) spotHotspot.enabled = isOn;
-        if (spotMidRing != null) spotMidRing.enabled = isOn;
-        if (spotAmbient != null) spotAmbient.enabled = isOn;
+        if (spotHotspot != null)
+        {
+            spotHotspot.gameObject.SetActive(isOn);
+            spotHotspot.enabled = isOn;
+        }
+        if (spotMidRing != null)
+        {
+            spotMidRing.gameObject.SetActive(isOn);
+            spotMidRing.enabled = isOn;
+        }
+        if (spotAmbient != null)
+        {
+            spotAmbient.gameObject.SetActive(isOn);
+            spotAmbient.enabled = isOn;
+        }
 
-        if (!isOn)
+        if (isOn)
         {
             ResetLightIntensities();
         }
@@ -205,18 +223,34 @@ public class FlashlightToggle : MonoBehaviour
         }
     }
 
-    public void EquipFlashlight()
+    public void EquipFlashlight(bool playSound = true, float initialBattery = -1f)
     {
         hasFlashlight = true;
         savedHasFlashlight = 1;
-        currentBattery = maxBattery; // BẤT KỂ CHƠI LẠI HAY KHÔNG: MẶC ĐỊNH 100% PIN KHI NHẶT MÁY QUAY CAMCORDER MAP 1
+        if (initialBattery >= 0f)
+        {
+            currentBattery = Mathf.Clamp(initialBattery, 0f, maxBattery);
+        }
+        else
+        {
+            currentBattery = maxBattery;
+        }
         savedBattery = currentBattery;
-        SetFlashlightState(true, true);
+        SetFlashlightState(true, playSound);
 
         if (CamcorderUI.Instance != null)
         {
             CamcorderUI.Instance.gameObject.SetActive(true);
         }
+    }
+
+    public void UnequipFlashlight()
+    {
+        hasFlashlight = false;
+        savedHasFlashlight = 0;
+        SetFlashlightState(false, true);
+        if (batterySliderUI != null) batterySliderUI.gameObject.SetActive(false);
+        if (batteryTextUI != null) batteryTextUI.gameObject.SetActive(false);
     }
 
     public void RechargeBattery(float amount)

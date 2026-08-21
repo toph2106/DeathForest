@@ -51,6 +51,18 @@ public class WindowR : MonoBehaviour, IInteractable
         transform.position = Vector3.Lerp(transform.position, targetPos, Time.deltaTime * slideSpeed);
     }
 
+    public void CloseWindow(bool snapInstantly = false)
+    {
+        if (!isOpen) return;
+        isOpen = false;
+        targetPos = closedPos;
+        if (snapInstantly)
+        {
+            transform.position = closedPos;
+        }
+        WindowAmbienceController.SyncAllWindowAmbience();
+    }
+
     public void Interact()
     {
         isOpen = !isOpen;

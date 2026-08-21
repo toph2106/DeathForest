@@ -30,6 +30,14 @@ public class GameIntroManager : MonoBehaviour
     public float typewriterSpeed = 0.03f;
     public float holdTimePerLine = 3.2f;
 
+    [Header("3.1. Hiệu Ứng Con Trỏ '_' & Fade Mờ Dần (Đồng Bộ Chuẩn)")]
+    [Tooltip("Bật hiệu ứng con trỏ '_' nhấp nháy cuối câu thoại")]
+    public bool showBlinkingCursor = true;
+    [Tooltip("Bật hiệu ứng mờ dần Fade Out khi chuyển câu thoại")]
+    public bool useFadeEffect = true;
+    [Tooltip("Thời gian mờ dần Fade (Mặc định: 0.2 giây)")]
+    public float fadeDuration = 0.2f;
+
     [System.Serializable]
     public class IntroLine
     {
@@ -68,13 +76,14 @@ public class GameIntroManager : MonoBehaviour
     public bool playOnStart = true;
 
     private AudioSource audioSource;
-    private bool isIntroRunning = false;
+    public static bool isIntroRunning { get; private set; } = false;
 
     // --- BIẾN ĐIỀU KHIỂN CLICK CHUỘT QUA THOẠI ---
     private bool isTyping = false;
     private bool isWaitingForNextLine = false;
     private bool skipRequested = false;
     private string currentFullText = "";
+    private Coroutine cursorBlinkCoroutine;
 
     void Start()
     {
@@ -177,15 +186,30 @@ public class GameIntroManager : MonoBehaviour
 
             if (string.IsNullOrEmpty(currentFullText)) continue;
 
+            if (subtitleTextUI != null)
+            {
+                Color sc = subtitleTextUI.color;
+                sc.a = 1f;
+                subtitleTextUI.color = sc;
+            }
+
+            if (cursorBlinkCoroutine != null)
+            {
+                StopCoroutine(cursorBlinkCoroutine);
+                cursorBlinkCoroutine = null;
+            }
+
             skipRequested = false;
 
             // BẬT ÂM THANH THOẠI TRONG SUỐT LÚC ĐANG GÕ CHỮ
             if (dialogueSound != null && audioSource != null)
             {
+                audioSource.spatialBlend = 0f;
                 audioSource.clip = dialogueSound;
                 audioSource.volume = soundVolume;
                 audioSource.loop = true;
-                if (!audioSource.isPlaying) audioSource.Play();
+                audioSource.time = 0f;
+                audioSource.Play();
             }
 
             // GÕ CHỮ TỪNG KÝ TỰ (TYPEWRITER)
@@ -197,7 +221,9 @@ public class GameIntroManager : MonoBehaviour
                 for (int i = 0; i <= currentFullText.Length; i++)
                 {
                     if (!isTyping || skipRequested) break;
-                    subtitleTextUI.text = currentFullText.Substring(0, i);
+                    string typed = currentFullText.Substring(0, i);
+                    if (showBlinkingCursor) typed += "_";
+                    subtitleTextUI.text = typed;
                     yield return new WaitForSeconds(typewriterSpeed);
                 }
 
@@ -209,10 +235,19 @@ public class GameIntroManager : MonoBehaviour
                 subtitleTextUI.text = currentFullText;
             }
 
+            if (subtitleTextUI != null) subtitleTextUI.text = currentFullText;
+
             // DỪNG ÂM THANH MƯỢT MÀ KHI ĐÃ GÕ XONG (HOẶC SKIP)
             if (audioSource != null && audioSource.isPlaying)
             {
                 StartCoroutine(FadeAudioOutRoutine(audioSource, 0.08f));
+            }
+
+            // BẬT CON TRỎ NHẤP NHÁY '_' TRONG LÚC CHỜ ĐỌC
+            if (showBlinkingCursor && subtitleTextUI != null)
+            {
+                if (cursorBlinkCoroutine != null) StopCoroutine(cursorBlinkCoroutine);
+                cursorBlinkCoroutine = StartCoroutine(BlinkCursorRoutine(subtitleTextUI, currentFullText));
             }
 
             // CHỜ ĐỌC XONG HOẶC CHỜ BẤM CHUỘT SANG CÂU TIẾP THEO
@@ -224,10 +259,34 @@ public class GameIntroManager : MonoBehaviour
                 yield return null;
             }
             isWaitingForNextLine = false;
+
+            if (cursorBlinkCoroutine != null)
+            {
+                StopCoroutine(cursorBlinkCoroutine);
+                cursorBlinkCoroutine = null;
+            }
+
+            // Hiệu ứng Fade Out mờ dần khi chuyển câu thoại
+            if (useFadeEffect && subtitleTextUI != null)
+            {
+                yield return StartCoroutine(FadeTextOutRoutine(subtitleTextUI, fadeDuration));
+            }
+        }
+
+        if (cursorBlinkCoroutine != null)
+        {
+            StopCoroutine(cursorBlinkCoroutine);
+            cursorBlinkCoroutine = null;
         }
 
         // Tắt chữ phụ đề sau khi đọc xong
-        if (subtitleTextUI != null) subtitleTextUI.text = "";
+        if (subtitleTextUI != null)
+        {
+            subtitleTextUI.text = "";
+            Color sc = subtitleTextUI.color;
+            sc.a = 1f;
+            subtitleTextUI.color = sc;
+        }
         if (audioSource != null && audioSource.isPlaying) audioSource.Stop();
 
         // 5. TRẢ CAMERA TỪ 0.5 NÂNG LÊN LẠI 0.6 VÀ THẲNG LẠI GÓC XOAY BAN ĐẦU
@@ -274,6 +333,36 @@ public class GameIntroManager : MonoBehaviour
 
         isIntroRunning = false;
         Debug.Log("[GameIntroManager] ✅ Đã hoàn tất Intro mở màn! Mở lại di chuyển cho Player.");
+    }
+
+    IEnumerator BlinkCursorRoutine(TextMeshProUGUI txt, string baseText)
+    {
+        bool showUnderscore = true;
+        while (true)
+        {
+            if (txt != null)
+            {
+                txt.text = baseText + (showUnderscore ? " _" : "  ");
+            }
+            showUnderscore = !showUnderscore;
+            yield return new WaitForSeconds(0.4f);
+        }
+    }
+
+    IEnumerator FadeTextOutRoutine(TextMeshProUGUI txt, float duration)
+    {
+        if (txt == null) yield break;
+        float elapsed = 0f;
+        Color c = txt.color;
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            c.a = Mathf.Lerp(1f, 0f, elapsed / duration);
+            txt.color = c;
+            yield return null;
+        }
+        c.a = 0f;
+        txt.color = c;
     }
 
     IEnumerator FadeAudioOutRoutine(AudioSource src, float duration)

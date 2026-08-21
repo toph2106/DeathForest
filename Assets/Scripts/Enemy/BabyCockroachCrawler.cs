@@ -1,418 +1,430 @@
 using UnityEngine;
 using System.Collections;
 
-public class BabyCockroachCrawler : MonoBehaviour
+public class BabyCockroachCrawler : MonoBehaviour, IInteractable
 {
-    [Header("1. Mục Tiêu Nhắm Tới (Player)")]
-    [Tooltip("Kéo Player vào đây. Nếu để trống sẽ TỰ ĐỘNG TÌM Player / MovePl trong Scene!")]
-    public Transform playerTarget;
+    [Header("1. Box Collider Vùng Bò Trên Tường (Movement Area)")]
+    [Tooltip("Kéo GameObject Box Collider (như CockroachWL, CockroachWR) vào đây để giới hạn gián 100% chỉ bò trên tường trong khuôn Box này")]
+    public BoxCollider movementArea;
 
-    [Header("2. Kích Hoạt Bởi Sự Kiện Cửa Mở 10s")]
-    [Tooltip("Tự động kích hoạt khi cửa chính mở ra ở mốc 10s máy quay")]
-    public bool triggerOnDoorOpen10s = true;
-
-    [Tooltip("Thời gian chờ sau khi cửa mở rồi gián con mới bắt đầu bò vào nhà (giây)")]
-    public float delayAfterDoorOpen = 0.8f;
-
-    [Tooltip("Tích chọn để ẩn con gián lúc đầu, khi cửa mở mới hiện lên bò vào")]
-    public bool hideUntilTriggered = true;
-
-    [Header("3. Điểm Dẫn Hướng Qua Cửa (Doorpoint Checkpoint)")]
-    [Tooltip("Kéo Object Doorpoint vào đây. Nếu để trống sẽ TỰ ĐỘNG TÌM GameObject 'Doorpoint' trong Scene!")]
-    public Transform doorWaypoint;
-
-    [Header("4. Thời Gian Chạy Quanh Người Chơi Trước Khi Rời Đi")]
-    [Tooltip("Thời gian tối thiểu chạy quanh người chơi trước khi rút lui về cửa (giây - Mặc định: 10s)")]
-    public float minScrambleDuration = 10.0f;
-
-    [Tooltip("Thời gian tối đa chạy quanh người chơi trước khi rút lui về cửa (giây - Mặc định: 15s)")]
-    public float maxScrambleDuration = 15.0f;
-
-    [Header("5. Cấu Hình Bò Xung Quanh Chân Người Chơi (Scramble)")]
-    [Tooltip("Khoảng cách tối thiểu tới chân người chơi (mét)")]
-    public float minDistanceToPlayer = 0.7f;
-
-    [Tooltip("Khoảng cách tối đa lượn quanh người chơi (mét)")]
-    public float maxDistanceToPlayer = 2.2f;
-
-    [Tooltip("Tốc độ bò cơ bản khi lượn quanh Player (m/s)")]
-    public float baseCrawlSpeed = 2.8f;
-
-    [Tooltip("Tốc độ chạy rút lui về lại cửa (m/s)")]
-    public float returnSpeed = 3.5f;
-
+    [Header("2. Tốc Độ & Thời Gian Di Chuyển Ngắt Quãng (Stop & Go)")]
+    [Tooltip("Tốc độ bò cơ bản trên tường (m/s)")]
+    public float crawlSpeed = 1.8f;
     [Tooltip("Tốc độ xoay đầu chuyển hướng")]
-    public float turnSpeed = 16.0f;
+    public float turnSpeed = 14.0f;
+    [Tooltip("Thời gian bò tối thiểu trước khi dừng (giây)")]
+    public float minMoveDuration = 1.0f;
+    [Tooltip("Thời gian bò tối đa trước khi dừng (giây)")]
+    public float maxMoveDuration = 2.5f;
+    [Tooltip("Thời gian dừng lại đứng im tối thiểu (giây)")]
+    public float minPauseDuration = 0.5f;
+    [Tooltip("Thời gian dừng lại đứng im tối đa (giây)")]
+    public float maxPauseDuration = 1.4f;
 
-    [Tooltip("Bù góc xoay mô hình 3D. Mặc định bù 180 độ trục Y để đầu hướng về phía trước")]
+    [Header("3. Cấu Hình Góc Xoay Mô Hình")]
+    [Tooltip("Bù góc xoay mô hình 3D. Mặc định bù 180 độ trục Y để đầu hướng đúng về phía trước")]
     public Vector3 modelRotationOffset = new Vector3(0f, 180f, 0f);
 
-    [Header("6. Chống Đi Xuyên Tường (Wall Avoidance)")]
-    [Tooltip("Layer của tường / chướng ngại vật để tránh đi xuyên qua. Mặc định chỉ layer Default (0), tránh dính Player/UI/Trigger")]
-    public LayerMask obstacleLayer = 1 << 0; // FIX #3: Chỉ layer Default, tránh raycast trúng Player/Cockroach/UI
+    [Header("4. Cài Đặt Con Gián Cuối Cùng (Jumpscare Bay Vào Mặt)")]
+    [Tooltip("Nếu tích chọn (hoặc tự động chỉ định), khi người chơi bấm đập con này sẽ phóng thẳng vào mặt Camera")]
+    public bool isLastJumpscareCockroach = false;
+    [Tooltip("Thời gian gián phóng vút vào mặt Camera (giây - Mặc định: 0.45s)")]
+    public float jumpscareFlyDuration = 0.45f;
 
-    [Header("7. Tên Animation Trong Animator")]
-    [Tooltip("Tên state animation bò trong Animator")]
+    [Header("5. Tên Animation Trong Animator")]
     public string walkAnimState = "giant_cockroach_armature|walking";
+    public string flyAnimState = "giant_cockroach_armature|flying_kidnapping";
 
-    [Header("8. Âm Thanh Bò Sột Soạt 3D (Tùy Chọn)")]
-    [Tooltip("Tiếng chân gián bò rột rẹt / lạo xạo trên sàn")]
+    [Header("6. Âm Thanh")]
+    [Tooltip("Tiếng chân gián bò lạo xạo")]
     public AudioClip skitterSound;
+    [Tooltip("Tiếng đập gián bẹp dí (Splat)")]
+    public AudioClip squishSound;
+    [Tooltip("Tiếng rít / vỗ cánh khi con gián cuối phóng vào mặt")]
+    public AudioClip jumpscareFlySound;
+    [Range(0f, 1f)] public float soundVolume = 0.8f;
 
-    [Range(0f, 1f)]
-    public float soundVolume = 0.65f;
+    [Header("7. Tự Động Ẩn Lúc Đầu")]
+    public bool hideUntilTriggered = true;
 
-    [Header("9. Phím Tắt Kích Hoạt Test Nhanh")]
-    [Tooltip("Bấm phím này trong lúc Play để kích hoạt ngay gián con bò vào nhà (Mặc định: Phím J)")]
-    public KeyCode debugTriggerKey = KeyCode.J;
-
-    public static event System.Action OnAllBabiesDisappeared;
+    public bool isDead { get; private set; } = false;
+    public bool isCrawling { get; private set; } = false;
 
     private Animator animator;
     private AudioSource audioSource;
-    private bool isCrawling = false;
+    private Collider cockroachCollider;
+    private Coroutine crawlRoutine;
     private Vector3 initialSpawnPos;
     private Quaternion initialSpawnRot;
-    private Coroutine crawlRoutine;
-
-    // Các biến tạo tính cách & quỹ đạo riêng biệt cho từng con gián
-    private float individualSpeedMultiplier = 1f;
-    private float currentOrbitAngle = 0f;
-    private float orbitDirection = 1f;
-    private float preferredRadius = 1.5f;
-    private float randomizedStayDuration = 12f;
+    private Vector3 currentTargetPoint;
+    private Vector3 wallNormalVector = Vector3.forward;
 
     void Awake()
     {
-        animator = GetComponent<Animator>();
-        if (animator == null) animator = GetComponentInChildren<Animator>();
+        animator = GetComponent<Animator>() ?? GetComponentInChildren<Animator>();
 
         audioSource = GetComponent<AudioSource>();
         if (audioSource == null) audioSource = gameObject.AddComponent<AudioSource>();
-        audioSource.spatialBlend = 1f; // Âm thanh 3D
-        audioSource.rolloffMode = AudioRolloffMode.Linear;
-        audioSource.minDistance = 0.5f;
-        audioSource.maxDistance = 10f;
+        audioSource.spatialBlend = 1f;
         audioSource.playOnAwake = false;
 
-        // Lưu lại vị trí xuất phát ban đầu ngoài hành lang
+        cockroachCollider = GetComponent<Collider>() ?? GetComponentInChildren<Collider>();
+
         initialSpawnPos = transform.position;
         initialSpawnRot = transform.rotation;
-
-        // TỰ ĐỘNG RANDOM HÓA THÔNG SỐ ĐỂ MỖI CON GIÁN CÓ ĐƯỜNG ĐI VÀ THỜI GIAN RỜI ĐI LỆCH NHAU
-        individualSpeedMultiplier = Random.Range(0.85f, 1.35f);
-        currentOrbitAngle = Random.Range(0f, 360f);
-        orbitDirection = (Random.value > 0.5f) ? 1f : -1f;
-        preferredRadius = Random.Range(minDistanceToPlayer, maxDistanceToPlayer);
-
-        // Random thời gian chạy quanh người chơi từ 10s đến 15s độc lập cho từng con
-        randomizedStayDuration = Random.Range(minScrambleDuration, maxScrambleDuration);
     }
 
     void Start()
     {
-        EnsurePlayerTarget();
-
-        // Tự động tìm GameObject Doorpoint nếu chưa kéo
-        if (doorWaypoint == null)
-        {
-            GameObject dp = GameObject.Find("Doorpoint");
-            if (dp != null) doorWaypoint = dp.transform;
-        }
-
-        // Ẩn ban đầu nếu được cài đặt
         if (hideUntilTriggered)
         {
             SetVisible(false);
         }
-    }
 
-    void Update()
-    {
-        // PHÍM TẮT TEST NHANH (MẶC ĐỊNH: PHÍM J)
-        if (debugTriggerKey != KeyCode.None && Input.GetKeyDown(debugTriggerKey))
+        // Tự động đảm bảo CockroachMinigameManager tồn tại
+        if (CockroachMinigameManager.Instance == null)
         {
-            Debug.Log($"[BabyCockroachCrawler] ⌨️ Bấm phím [{debugTriggerKey}]! Kích hoạt ngay gián con bò vào quanh Player...");
-            StartCrawling();
-        }
-    }
-
-    void OnEnable()
-    {
-        if (triggerOnDoorOpen10s)
-        {
-            CamcorderUI.OnTimerReached10s += HandleDoorOpen10sEvent;
-        }
-    }
-
-    void OnDisable()
-    {
-        if (triggerOnDoorOpen10s)
-        {
-            CamcorderUI.OnTimerReached10s -= HandleDoorOpen10sEvent;
-        }
-    }
-
-    void HandleDoorOpen10sEvent()
-    {
-        StartCoroutine(DelayedStartRoutine(delayAfterDoorOpen));
-    }
-
-    IEnumerator DelayedStartRoutine(float delay)
-    {
-        if (delay > 0f) yield return new WaitForSeconds(delay);
-        StartCrawling();
-    }
-
-    void EnsurePlayerTarget()
-    {
-        if (playerTarget != null) return;
-
-        GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
-        if (playerObj != null)
-        {
-            playerTarget = playerObj.transform;
-            return;
+            CockroachMinigameManager mgr = Object.FindFirstObjectByType<CockroachMinigameManager>(FindObjectsInactive.Include);
+            if (mgr == null)
+            {
+                GameObject mgrObj = new GameObject("CockroachMinigameManager");
+                mgrObj.AddComponent<CockroachMinigameManager>();
+            }
         }
 
-        MovePl movePl = Object.FindFirstObjectByType<MovePl>();
-        if (movePl != null)
+        // Tự động tìm BoxCollider tường nếu chưa kéo
+        if (movementArea == null)
         {
-            playerTarget = movePl.transform;
-            return;
+            GameObject wObj = GameObject.Find("CockroachWL") ?? GameObject.Find("CockroachWR") ?? GameObject.Find("CockroachW");
+            if (wObj != null) movementArea = wObj.GetComponent<BoxCollider>();
         }
 
-        if (Camera.main != null)
+        if (movementArea != null)
         {
-            playerTarget = Camera.main.transform;
+            int ignoreRaycastLayer = LayerMask.NameToLayer("Ignore Raycast");
+            if (ignoreRaycastLayer != -1) movementArea.gameObject.layer = ignoreRaycastLayer;
         }
     }
 
     /// <summary>
-    /// Kích hoạt gián con xuất hiện tại vị trí ban đầu ngoài hành lang và bắt đầu lộ trình
+    /// Bắt đầu xuất hiện và bò ngắt quãng trong vùng tường quy định
     /// </summary>
     public void StartCrawling()
     {
+        if (isDead) return;
+
+        // Bật tất cả GameObject cha nếu cha đang inactive
+        Transform p = transform.parent;
+        while (p != null)
+        {
+            if (!p.gameObject.activeSelf) p.gameObject.SetActive(true);
+            p = p.parent;
+        }
+
         gameObject.SetActive(true);
         SetVisible(true);
 
-        transform.position = initialSpawnPos;
-        transform.rotation = initialSpawnRot;
-
-        // Tạo lại thời gian ở lại ngẫu nhiên mới cho đợt chạy này
-        randomizedStayDuration = Random.Range(minScrambleDuration, maxScrambleDuration);
-
-        if (crawlRoutine != null) StopCoroutine(crawlRoutine);
-        crawlRoutine = StartCoroutine(CrawlSequenceRoutine());
-    }
-
-    IEnumerator CrawlSequenceRoutine()
-    {
-        isCrawling = true;
-        EnsurePlayerTarget();
-
-        if (animator != null && !string.IsNullOrEmpty(walkAnimState))
+        if (!gameObject.activeInHierarchy)
         {
-            animator.CrossFadeInFixedTime(walkAnimState, 0.1f);
+            Debug.LogWarning($"[BabyCockroachCrawler] ⚠️ GameObject '{gameObject.name}' chưa thể activeInHierarchy vì một đối tượng cha đang tắt!");
+            return;
         }
 
+        isCrawling = true;
+        if (cockroachCollider != null) cockroachCollider.enabled = true;
+
+        // Đặt vị trí xuất phát ngẫu nhiên trên mặt tường trong Box
+        if (movementArea != null)
+        {
+            transform.position = GetRandomPointOnWall();
+            AlignWithWall();
+        }
+
+        if (crawlRoutine != null) StopCoroutine(crawlRoutine);
+        crawlRoutine = StartCoroutine(StopAndGoRoutine());
+    }
+
+    IEnumerator StopAndGoRoutine()
+    {
         if (skitterSound != null && audioSource != null)
         {
             audioSource.clip = skitterSound;
             audioSource.loop = true;
-            audioSource.volume = soundVolume;
+            audioSource.volume = soundVolume * 0.7f;
             audioSource.Play();
         }
 
-        Debug.Log($"[BabyCockroachCrawler] 🪳 Gián con bắt đầu bò từ ngoài hành lang qua Doorpoint vào phòng...");
-
-        // ========================================================
-        // BƯỚC 1: BÒ TỪ NGOÀI HÀNH LANG QUA CHECKPOINT DOORPOINT (ĐỂ KHÔNG ĐÂM VÀO TƯỜNG CỬA)
-        // ========================================================
-        if (doorWaypoint != null)
+        while (!isDead && isCrawling)
         {
-            yield return StartCoroutine(MoveToPositionRoutine(doorWaypoint.position, baseCrawlSpeed * individualSpeedMultiplier));
-        }
+            // BƯỚC 1: CHỌN ĐIỂM ĐẾN MỚI TRÊN BỨC TƯỜNG
+            currentTargetPoint = GetRandomPointOnWall();
 
-        // ========================================================
-        // BƯỚC 2: TIẾN VÀO KHU VỰC GẦN PLAYER TRONG PHÒNG
-        // ========================================================
-        if (playerTarget != null)
-        {
-            Vector3 approachPos = GetWaypointAroundPlayer(preferredRadius, currentOrbitAngle);
-            yield return StartCoroutine(MoveToPositionRoutine(approachPos, baseCrawlSpeed * individualSpeedMultiplier));
-        }
-
-        // ========================================================
-        // BƯỚC 3: BÒ LƯỢN QUANH CHÂN PLAYER TRONG 10S - 15S
-        // ========================================================
-        float scrambleElapsed = 0f;
-
-        while (isCrawling && scrambleElapsed < randomizedStayDuration)
-        {
-            float stepStartTime = Time.time;
-            EnsurePlayerTarget();
-
-            if (playerTarget == null)
+            // BƯỚC 2: BÒ VỀ PHÍA ĐIỂM ĐẾN (BẬT LẠI ANIMATION BƯỚC CHÂN)
+            if (animator != null)
             {
-                yield return new WaitForSeconds(0.5f);
-                scrambleElapsed += (Time.time - stepStartTime);
-                continue;
+                animator.speed = 1f;
+                PlayAnim(walkAnimState);
             }
+            if (audioSource != null && !audioSource.isPlaying && skitterSound != null) audioSource.Play();
 
-            // FIX #5: Góc bước nhỏ hơn (25-75°) để chuyển hướng mượt mà, tránh giật cục
-            float angleStep = Random.Range(25f, 75f) * orbitDirection;
-            currentOrbitAngle += angleStep;
+            float moveTimer = 0f;
+            float moveDuration = Random.Range(minMoveDuration, maxMoveDuration);
 
-            // Thỉnh thoảng đảo chiều quay (Clockwise <-> Counter-clockwise)
-            if (Random.value < 0.25f)
+            while (moveTimer < moveDuration && !isDead)
             {
-                orbitDirection *= -1f;
-            }
+                moveTimer += Time.deltaTime;
 
-            // Thay đổi bán kính linh hoạt (lúc chạy sát chân 0.8m, lúc lượn xa 2.0m)
-            preferredRadius = Random.Range(minDistanceToPlayer, maxDistanceToPlayer);
+                Vector3 toTarget = currentTargetPoint - transform.position;
+                float dist = toTarget.magnitude;
 
-            // Tính điểm đến mới xung quanh vị trí thực tế của Player
-            Vector3 nextWaypoint = GetWaypointAroundPlayer(preferredRadius, currentOrbitAngle);
+                if (dist < 0.12f) break;
 
-            // Di chuyển tới điểm đó
-            yield return StartCoroutine(MoveToPositionRoutine(nextWaypoint, baseCrawlSpeed * individualSpeedMultiplier));
-
-            // Thỉnh thoảng dừng giật nhẹ 0.1s - 0.3s đổi hướng như gián thật
-            if (Random.value < 0.35f)
-            {
-                float microPause = Random.Range(0.1f, 0.35f);
-                yield return new WaitForSeconds(microPause);
-            }
-
-            scrambleElapsed += (Time.time - stepStartTime);
-        }
-
-        // ========================================================
-        // BƯỚC 4: HẾT GIỜ (10S - 15S) ➔ BÒ TỪ TRONG PHÒNG VỀ CHECKPOINT DOORPOINT (ĐỂ QUA CỬA AN TOÀN)
-        // ========================================================
-        Debug.Log("[BabyCockroachCrawler] 🚪 Đã hết giờ (10-15s)! Gián con bò qua Doorpoint ra ngoài hành lang...");
-
-        if (doorWaypoint != null)
-        {
-            yield return StartCoroutine(MoveToPositionRoutine(doorWaypoint.position, returnSpeed));
-        }
-
-        // ========================================================
-        // BƯỚC 5: TỪ DOORPOINT BÒ TIẾP RA NGOÀI HÀNH LANG VỀ LẠI ĐIỂM CŨ RỒI BIẾN MẤT
-        // ========================================================
-        yield return StartCoroutine(MoveToPositionRoutine(initialSpawnPos, returnSpeed));
-
-        // TẮT ÂM THANH VÀ BIẾN MẤT HOÀN TOÀN ĐỂ NHƯỜNG SÂN KHẤU CHO GIÁN MẸ!
-        if (skitterSound != null && audioSource != null && audioSource.isPlaying)
-        {
-            audioSource.Stop();
-        }
-
-        isCrawling = false;
-        Debug.Log("[BabyCockroachCrawler] 💨 Gián con đã về lại ngoài hành lang và BIẾN MẤT HOÀN TOÀN! Nhường sân chơi cho Gián Mẹ!");
-        
-        SetVisible(false);
-        gameObject.SetActive(false);
-
-        // Bật ngay Trigger cửa để đón Player bước ra kích hoạt Gián Mẹ
-        CockroachDoorAttackTrigger doorTrigger = Object.FindFirstObjectByType<CockroachDoorAttackTrigger>(FindObjectsInactive.Include);
-        if (doorTrigger != null)
-        {
-            doorTrigger.ArmTrigger();
-        }
-
-        OnAllBabiesDisappeared?.Invoke();
-    }
-
-    IEnumerator MoveToPositionRoutine(Vector3 targetPos, float speed)
-    {
-        // Cố định độ cao Y theo mặt sàn (dùng Y của chính con gián, không dùng Y của target)
-        targetPos.y = transform.position.y;
-
-        // FIX #1: Tính timeout động theo khoảng cách thực tế, tối thiểu 8 giây
-        // Đảm bảo gián luôn có đủ thời gian bò tới đích dù xa bao nhiêu
-        float distanceToTarget = Vector3.Distance(
-            new Vector3(transform.position.x, 0f, transform.position.z),
-            new Vector3(targetPos.x, 0f, targetPos.z)
-        );
-        // Timeout = (khoảng cách / tốc độ) * 2.0 hệ số an toàn, tối thiểu 8 giây
-        float moveTimeout = Mathf.Max(8.0f, (distanceToTarget / Mathf.Max(speed, 0.1f)) * 2.0f);
-        float elapsed = 0f;
-
-        while (elapsed < moveTimeout)
-        {
-            elapsed += Time.deltaTime;
-
-            Vector3 currentPos2D = new Vector3(transform.position.x, 0, transform.position.z);
-            Vector3 targetPos2D = new Vector3(targetPos.x, 0, targetPos.z);
-
-            if (Vector3.Distance(currentPos2D, targetPos2D) <= 0.2f)
-            {
-                break;
-            }
-
-            Vector3 moveDir = (targetPos - transform.position);
-            moveDir.y = 0;
-
-            if (moveDir != Vector3.zero)
-            {
-                Vector3 normalizedDir = moveDir.normalized;
-
-                // TÍNH NĂNG CHỐNG XUYÊN TƯỜNG: Bắn tia Raycast phía trước kiểm tra vật cản/tường
-                // FIX #3: obstacleLayer giờ chỉ chứa layer tường/sàn, không bắn trúng Player/gián khác
-                Ray ray = new Ray(transform.position + Vector3.up * 0.1f, normalizedDir);
-                RaycastHit hit;
-                if (Physics.Raycast(ray, out hit, 0.35f, obstacleLayer))
-                {
-                    // FIX #4: Khi gặp tường, pha trộn hướng trượt (slide) với hướng tới đích
-                    // để gián vừa trượt dọc tường VỪA tiến dần về phía mục tiêu, không bị xoay vòng tại chỗ
-                    Vector3 slideDir = Vector3.ProjectOnPlane(normalizedDir, hit.normal).normalized;
-                    if (slideDir != Vector3.zero)
-                    {
-                        // Trộn 60% hướng trượt + 40% hướng tới đích → vẫn tiến về mục tiêu
-                        normalizedDir = (slideDir * 0.6f + normalizedDir * 0.4f).normalized;
-                    }
-                }
-
-                // Xoay đầu hướng theo hướng đang bò + bù modelRotationOffset
-                Quaternion targetRot = Quaternion.LookRotation(normalizedDir) * Quaternion.Euler(modelRotationOffset);
+                // Xoay đầu hướng về điểm đến trên mặt tường
+                Vector3 moveDir = toTarget.normalized;
+                Quaternion targetRot = Quaternion.LookRotation(moveDir, wallNormalVector) * Quaternion.Euler(modelRotationOffset);
                 transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, Time.deltaTime * turnSpeed);
 
-                transform.position = Vector3.MoveTowards(transform.position, transform.position + normalizedDir, speed * Time.deltaTime);
+                // Di chuyển tới điểm đến
+                transform.position = Vector3.MoveTowards(transform.position, currentTargetPoint, crawlSpeed * Time.deltaTime);
+
+                yield return null;
             }
 
+            if (isDead) yield break;
+
+            // BƯỚC 3: DỪNG LẠI ĐỨNG IM TRÊN TƯỜNG (DỪNG ANIMATION CHÂN ĐỂ KHÔNG BỊ TRƯỢT CHÂN TẠI CHỖ)
+            if (animator != null)
+            {
+                animator.speed = 0f; // Đóng băng animation bước chân khi đứng yên
+            }
+            if (audioSource != null && audioSource.isPlaying && audioSource.clip == skitterSound) audioSource.Pause();
+
+            float pauseDuration = Random.Range(minPauseDuration, maxPauseDuration);
+            yield return new WaitForSeconds(pauseDuration);
+        }
+    }
+
+    /// <summary>
+    /// Lấy 1 điểm ngẫu nhiên chính xác trên bề mặt bức tường của BoxCollider
+    /// </summary>
+    Vector3 GetRandomPointOnWall()
+    {
+        if (movementArea == null)
+        {
+            return transform.position + new Vector3(Random.Range(-0.8f, 0.8f), Random.Range(-0.5f, 0.5f), 0f);
+        }
+
+        Transform boxT = movementArea.transform;
+        Vector3 c = movementArea.center;
+        Vector3 s = movementArea.size;
+
+        float lx, ly, lz;
+
+        // Xác định mặt phẳng của tường dựa trên trục mỏng nhất
+        if (s.x <= s.y && s.x <= s.z)
+        {
+            // Tường dọc mặt phẳng Y-Z (Bề dày theo trục X)
+            lx = c.x;
+            ly = Random.Range(c.y - s.y * 0.44f, c.y + s.y * 0.44f);
+            lz = Random.Range(c.z - s.z * 0.44f, c.z + s.z * 0.44f);
+            wallNormalVector = boxT.TransformDirection(Vector3.right);
+        }
+        else
+        {
+            // Tường dọc mặt phẳng X-Y (Bề dày theo trục Z)
+            lz = c.z;
+            lx = Random.Range(c.x - s.x * 0.44f, c.x + s.x * 0.44f);
+            ly = Random.Range(c.y - s.y * 0.44f, c.y + s.y * 0.44f);
+            wallNormalVector = boxT.TransformDirection(Vector3.forward);
+        }
+
+        return boxT.TransformPoint(new Vector3(lx, ly, lz));
+    }
+
+    void AlignWithWall()
+    {
+        transform.rotation = Quaternion.LookRotation(Vector3.up, wallNormalVector) * Quaternion.Euler(modelRotationOffset);
+    }
+
+    // ========================================================
+    // TƯƠNG TÁC ĐẬP GIÁN (IINTERACTABLE)
+    // ========================================================
+    public void Interact()
+    {
+        if (isDead) return;
+
+        int aliveCount = (CockroachMinigameManager.Instance != null) 
+            ? CockroachMinigameManager.Instance.GetAliveBabiesCount() 
+            : 1;
+
+        bool isLastOne = (aliveCount <= 1) || isLastJumpscareCockroach;
+
+        Debug.Log($"[BabyCockroachCrawler] ⚡ Người chơi bấm đập con gián: {gameObject.name} (Số gián còn sống: {aliveCount} -> isLastOne: {isLastOne})");
+
+        if (!isLastOne)
+        {
+            // 1. ĐẬP GIÁN THƯỜNG -> CHẾT BẸP + NẰM NGỬA + BẬT RIGIDBODY RƠI XUỐNG SÀN NHÀ
+            KillNormal();
+        }
+        else
+        {
+            // 2. ĐẬP CON GIÁN CUỐI CÙNG -> ĐẬP HỤT -> PHÓNG VÚT VÀO MẶT CAMERA -> RƠI XUỐNG SÀN
+            StartCoroutine(JumpscareFlyAtPlayerRoutine());
+        }
+    }
+
+    void KillNormal()
+    {
+        isDead = true;
+        isCrawling = false;
+
+        if (crawlRoutine != null) StopCoroutine(crawlRoutine);
+        if (audioSource != null && audioSource.isPlaying) audioSource.Stop();
+
+        // 1. Phát âm thanh đập gián bẹp dí
+        if (squishSound != null)
+        {
+            AudioSource.PlayClipAtPoint(squishSound, transform.position, soundVolume);
+        }
+
+        // 2. Dừng animation
+        if (animator != null) animator.speed = 0f;
+
+        // 3. Đặt tư thế nằm ngửa bụng (lật ngửa phẳng theo mặt sàn)
+        float currentYaw = transform.eulerAngles.y;
+        transform.rotation = Quaternion.Euler(0f, currentYaw, 180f);
+
+        // 4. Bật Rigidbody rơi tự do theo trọng lực rớt xuống sàn nhà
+        Rigidbody rb = GetComponent<Rigidbody>();
+        if (rb == null) rb = gameObject.AddComponent<Rigidbody>();
+        rb.isKinematic = false;
+        rb.useGravity = true;
+        rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
+        rb.mass = 0.5f;
+
+        // Đẩy nhẹ ra khỏi tường một xíu để rơi thẳng xuống chiếu/sàn mà không bị dính vào mép tường
+        Vector3 pushOut = (wallNormalVector != Vector3.zero ? wallNormalVector : transform.forward) * 0.35f;
+        rb.linearVelocity = pushOut + Vector3.down * 1.5f;
+
+        // Bỏ qua va chạm với Player
+        MovePl player = Object.FindFirstObjectByType<MovePl>();
+        if (player != null && cockroachCollider != null)
+        {
+            Collider[] pCols = player.GetComponentsInChildren<Collider>();
+            foreach (var pc in pCols) Physics.IgnoreCollision(cockroachCollider, pc, true);
+            CharacterController cc = player.GetComponent<CharacterController>();
+            if (cc != null) Physics.IgnoreCollision(cockroachCollider, cc, true);
+        }
+
+        StartCoroutine(SettleFlatOnFloorRoutine(rb));
+
+        // 5. Báo cho Manager
+        if (CockroachMinigameManager.Instance != null)
+        {
+            CockroachMinigameManager.Instance.NotifyCockroachKilled(this);
+        }
+    }
+
+    IEnumerator SettleFlatOnFloorRoutine(Rigidbody rb)
+    {
+        yield return new WaitForSeconds(0.6f);
+
+        // Khi gián đã rơi chạm sàn: Khóa tư thế nằm ngửa hoàn toàn phẳng phiu
+        float timer = 0f;
+        while (timer < 1.0f)
+        {
+            timer += Time.deltaTime;
+            if (rb != null && rb.linearVelocity.magnitude < 0.1f)
+            {
+                rb.isKinematic = true;
+                transform.rotation = Quaternion.Euler(0f, transform.eulerAngles.y, 180f);
+                break;
+            }
             yield return null;
         }
     }
 
-    // FIX #2: Dùng transform.position.y (Y mặt sàn của gián) thay vì playerTarget.position.y (Y đứng của Player)
-    Vector3 GetWaypointAroundPlayer(float radius, float angleDegrees)
+    IEnumerator JumpscareFlyAtPlayerRoutine()
     {
-        if (playerTarget == null) return transform.position;
+        isDead = true;
+        isCrawling = false;
 
-        float rad = angleDegrees * Mathf.Deg2Rad;
-        float x = Mathf.Cos(rad) * radius;
-        float z = Mathf.Sin(rad) * radius;
+        if (crawlRoutine != null) StopCoroutine(crawlRoutine);
+        if (audioSource != null && audioSource.isPlaying) audioSource.Stop();
 
-        Vector3 playerPos = playerTarget.position;
-        // Luôn dùng Y của chính con gián (mặt sàn), không dùng Y của Player (chiều cao đứng)
-        return new Vector3(playerPos.x + x, transform.position.y, playerPos.z + z);
+        Debug.Log("[BabyCockroachCrawler] 😱 ĐẬP HỤT CON GIÁN CUỐI CÙNG! Gián con xòe cánh đập phành phạch phi thẳng vào mặt!");
+
+        // 1. Chuyển gián con sang animation bay xòe cánh
+        if (animator != null)
+        {
+            animator.speed = 1.4f;
+            PlayAnim(flyAnimState); // giant_cockroach_armature|flying_kidnapping
+        }
+
+        // 2. Phát âm thanh rít bay / đập cánh
+        if (jumpscareFlySound != null && audioSource != null)
+        {
+            audioSource.PlayOneShot(jumpscareFlySound, soundVolume);
+        }
+
+        Camera mainCam = Camera.main;
+        Vector3 startPos = transform.position;
+        Quaternion startRot = transform.rotation;
+        float flyDuration = (jumpscareFlyDuration > 0f) ? jumpscareFlyDuration : 0.42f;
+        float elapsed = 0f;
+
+        // 3. Xoay đầu tự nhiên và phóng vút vào mặt Camera
+        while (elapsed < flyDuration)
+        {
+            elapsed += Time.deltaTime;
+            float t = elapsed / flyDuration;
+            float easeT = t * t * t; // Tăng tốc dữ dội về cuối
+
+            if (mainCam != null)
+            {
+                Vector3 targetCamPos = mainCam.transform.position + mainCam.transform.forward * 0.25f + mainCam.transform.up * -0.04f;
+                transform.position = Vector3.Lerp(startPos, targetCamPos, easeT);
+
+                // Hướng đầu theo quỹ đạo bay mượt mà (không bị giật đứng thẳng góc)
+                Vector3 flyDir = (targetCamPos - transform.position).normalized;
+                if (flyDir != Vector3.zero)
+                {
+                    Quaternion targetRot = Quaternion.LookRotation(flyDir, Vector3.up) * Quaternion.Euler(modelRotationOffset);
+                    transform.rotation = Quaternion.Slerp(startRot, targetRot, Mathf.Clamp01(t * 4f));
+                }
+            }
+
+            yield return null;
+        }
+
+        // 4. NGAY KHI GIÁN CON VỪA CHẠM MẶT CAMERA -> ẨN GIÁN CON VÀ KÍCH HOẠT NGAY JUMPSCARE CỦA GIÁN TO BÁM MÀN HÌNH!
+        gameObject.SetActive(false);
+
+        CockroachFlyAttack flyAttack = Object.FindFirstObjectByType<CockroachFlyAttack>(FindObjectsInactive.Include);
+        if (flyAttack != null)
+        {
+            Debug.Log("[BabyCockroachCrawler] 💥 Chạm mặt Camera! KÍCH HOẠT NGAY JUMPSCARE GIÁN TO BÁM KÍNH + HOẢNG LOẠN!");
+            flyAttack.TriggerInstantCameraJumpscare();
+        }
+
+        // Báo cho Manager hoàn tất
+        if (CockroachMinigameManager.Instance != null)
+        {
+            CockroachMinigameManager.Instance.NotifyCockroachKilled(this);
+        }
     }
 
-    void SetVisible(bool isVisible)
+    void PlayAnim(string stateName)
     {
-        Renderer[] renderers = GetComponentsInChildren<Renderer>(true);
-        foreach (Renderer r in renderers)
+        if (animator != null && !string.IsNullOrEmpty(stateName))
         {
-            if (r != null) r.enabled = isVisible;
+            animator.CrossFadeInFixedTime(stateName, 0.1f);
         }
+    }
 
-        Collider[] colliders = GetComponentsInChildren<Collider>(true);
-        foreach (Collider c in colliders)
-        {
-            if (c != null) c.enabled = isVisible;
-        }
+    void SetVisible(bool visible)
+    {
+        Renderer[] renderers = GetComponentsInChildren<Renderer>();
+        foreach (Renderer r in renderers) r.enabled = visible;
     }
 }

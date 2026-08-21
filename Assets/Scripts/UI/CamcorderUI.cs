@@ -74,10 +74,10 @@ public class CamcorderUI : MonoBehaviour
 
     void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        // CHỈ XÓA VÀ RESET UI MÁY QUAY KHI VỀ MAINMENU
-        if (scene.name == "MainMenu")
+        // RESET UI MÁY QUAY KHI VỀ MAINMENU HOẶC VÀO MAP 02 (VÌ CHƯA NHẶT MÁY QUAY Ở MAP 02)
+        if (scene.name == "MainMenu" || scene.name == "Map02")
         {
-            ResetTimer();
+            ResetPickedUpCameraState();
         }
     }
 
@@ -102,53 +102,85 @@ public class CamcorderUI : MonoBehaviour
 
     void Update()
     {
-        // Thời gian trôi qua mỗi frame (Thời gian thực)
-        activeTimer += Time.deltaTime;
+        bool hasCam = HasPickedUpCamera;
+        bool hasFlash = (FlashlightToggle.Instance != null && FlashlightToggle.Instance.hasFlashlight);
 
-        // KÍCH HOẠT SỰ KIỆN KHI BỘ ĐẾM CÁN MỐC 10 GIÂY (00:00:10)
-        if (!hasTriggered10s && activeTimer >= 10.0f)
+        // NẾU CHƯA NHẶT CẢ 2 -> TẮT TOÀN BỘ GIAO DIỆN
+        if (!hasCam && !hasFlash)
         {
-            hasTriggered10s = true;
-            OnTimerReached10s?.Invoke();
-            Debug.Log("[CamcorderUI] ⏱️ Bộ đếm máy quay đã cán mốc 10 giây (00:00:10)! Kích hoạt sự kiện...");
+            return;
         }
 
         // ============================================
-        // 1. CẬP NHẬT THỜI GIAN QUAY (00:00:00)
+        // 0. QUẢN LÝ ẨN / HIỆN TỪNG THÀNH PHẦN THEO ĐIỀU KIỆN NHẶT ĐỒ
         // ============================================
-        if (recTimeText != null)
+        // A. % PIN: Chỉ hiện khi ĐÃ NHẶT ĐÈN PIN (hasFlash)
+        if (batteryText != null && batteryText.gameObject.activeSelf != hasFlash)
         {
-            int recHours = Mathf.FloorToInt(activeTimer / 3600f);
-            int recMinutes = Mathf.FloorToInt((activeTimer % 3600f) / 60f);
-            int recSeconds = Mathf.FloorToInt(activeTimer % 60f);
+            batteryText.gameObject.SetActive(hasFlash);
+        }
 
-            recTimeText.text = string.Format("{0:00}:{1:00}:{2:00}", recHours, recMinutes, recSeconds);
+        // B. CÁC THÀNH PHẦN MÁY QUAY: Chỉ hiện khi ĐÃ NHẶT MÁY QUAY (hasCam)
+        TMP_Text[] allTexts = GetComponentsInChildren<TMP_Text>(true);
+        foreach (TMP_Text txt in allTexts)
+        {
+            if (txt == batteryText) continue;
+            if (txt.gameObject.activeSelf != hasCam)
+            {
+                txt.gameObject.SetActive(hasCam);
+            }
+        }
+
+        UnityEngine.UI.Image[] allImages = GetComponentsInChildren<UnityEngine.UI.Image>(true);
+        foreach (UnityEngine.UI.Image img in allImages)
+        {
+            if (batteryText != null && img.transform.IsChildOf(batteryText.transform)) continue;
+            if (img.gameObject.activeSelf != hasCam)
+            {
+                img.gameObject.SetActive(hasCam);
+            }
         }
 
         // ============================================
-        // 2. CẬP NHẬT ĐỒNG HỒ TRONG GAME (AM 00:00)
+        // 1. CẬP NHẬT BỘ ĐẾM & ĐỒNG HỒ (NẾU ĐÃ CÓ MÁY QUAY)
         // ============================================
-        if (clockText != null)
+        if (hasCam)
         {
-            // Tính tổng số giây kể từ thời điểm startHour:startMinute
-            float totalSeconds = (startHour * 3600) + (startMinute * 60) + activeTimer;
+            // Thời gian trôi qua mỗi frame (Thời gian thực)
+            activeTimer += Time.deltaTime;
 
-            int clockHours24 = Mathf.FloorToInt(totalSeconds / 3600f) % 24;
-            int clockMinutes = Mathf.FloorToInt((totalSeconds % 3600f) / 60f);
+            // Kích hoạt sự kiện 10s khi quay đủ 10 giây
+            if (!hasTriggered10s && activeTimer >= 10f)
+            {
+                hasTriggered10s = true;
+                OnTimerReached10s?.Invoke();
+            }
 
-            // Xác định AM hay PM
-            string amPm = clockHours24 < 12 ? "AM" : "PM";
+            // Cập nhật thời gian quay (00:00:00)
+            if (recTimeText != null)
+            {
+                int recHours = Mathf.FloorToInt(activeTimer / 3600f);
+                int recMinutes = Mathf.FloorToInt((activeTimer % 3600f) / 60f);
+                int recSeconds = Mathf.FloorToInt(activeTimer % 60f);
+                recTimeText.text = string.Format("{0:00}:{1:00}:{2:00}", recHours, recMinutes, recSeconds);
+            }
 
-            // Ép về hệ 12 giờ để hiển thị giống ảnh của bạn (00 đến 11)
-            int clockHours12 = clockHours24 % 12;
-
-            clockText.text = string.Format("{0} {1:00}:{2:00}", amPm, clockHours12, clockMinutes);
+            // Cập nhật đồng hồ trong game (AM 00:00)
+            if (clockText != null)
+            {
+                float totalSeconds = (startHour * 3600) + (startMinute * 60) + activeTimer;
+                int clockHours24 = Mathf.FloorToInt(totalSeconds / 3600f) % 24;
+                int clockMinutes = Mathf.FloorToInt((totalSeconds % 3600f) / 60f);
+                string amPm = clockHours24 < 12 ? "AM" : "PM";
+                int clockHours12 = clockHours24 % 12;
+                clockText.text = string.Format("{0} {1:00}:{2:00}", amPm, clockHours12, clockMinutes);
+            }
         }
 
         // ============================================
-        // 3. CẬP NHẬT % PIN ĐÈN PIN (ĐỔI MÀU TRẮNG -> VÀNG -> ĐỎ NHÁY CẢNH BÁO)
+        // 2. CẬP NHẬT % PIN ĐÈN PIN (NẾU ĐÃ CÓ ĐÈN PIN)
         // ============================================
-        if (batteryText != null && FlashlightToggle.Instance != null)
+        if (hasFlash && batteryText != null && FlashlightToggle.Instance != null)
         {
             float maxBat = FlashlightToggle.Instance.maxBattery;
             float curBat = FlashlightToggle.Instance.currentBattery;
@@ -157,12 +189,12 @@ public class CamcorderUI : MonoBehaviour
 
             batteryText.text = pct + "%";
 
-            // ĐỔI MÀU CHỮ THEO ĐỨNG PHONG CÁCH MÁY QUAY CAMCORDER RETRO
-            if (pctRatio > 0.5f)
+            // Đổi màu chữ theo lượng pin (Dưới 5% mới đỏ nháy cảnh báo)
+            if (pctRatio > 0.3f)
             {
                 batteryText.color = Color.white;
             }
-            else if (pctRatio > 0.2f)
+            else if (pctRatio > 0.05f)
             {
                 batteryText.color = new Color(1f, 0.82f, 0.2f, 1f);
             }
@@ -184,6 +216,18 @@ public class CamcorderUI : MonoBehaviour
     public static void MarkCameraPickedUp()
     {
         HasPickedUpCamera = true;
+    }
+
+    public static void ResetPickedUpCameraState()
+    {
+        HasPickedUpCamera = false;
+        savedTimer = -1f;
+        if (Instance != null)
+        {
+            Instance.hasTriggered10s = false;
+            Instance.activeTimer = 0f;
+            Instance.gameObject.SetActive(false);
+        }
     }
 
     /// <summary>

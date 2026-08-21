@@ -8,8 +8,17 @@ public class InteractableItem : MonoBehaviour, IInteractable
     public ItemType itemType; // Chọn loại Item trên Inspector
     public string itemNameOrQuestName = "Pin"; // Tên item hoặc Tên Quest / Chìa khóa
 
+    [Header("UI Icon & 3D Model")]
+    [Tooltip("Kéo Sprite hình icon của vật phẩm (nếu dùng 2D)")]
+    public Sprite itemIcon;
+    [Tooltip("Kéo Prefab 3D của vật phẩm (Nếu để trống sẽ tự lấy chính GameObject này)")]
+    public GameObject item3DPrefab;
+
     [Header("Battery Settings (Nếu chọn ItemType = Battery)")]
-    [Tooltip("Lượng % Pin được nạp khi nhặt Cục Pin này (Mặc định: +50%)")]
+    [Tooltip("Nếu tích chọn: Pin sẽ vào Kho đồ / Túi đồ Hotbar để dành bấm phím R nạp khi cần. Bỏ tích: Nạp thẳng vào đèn pin ngay lập tức.")]
+    public bool addToInventory = true;
+
+    [Tooltip("Lượng % Pin được nạp khi dùng trực tiếp (Mặc định: +50%)")]
     public float batteryRechargeAmount = 50f;
 
     private InventoryManager inventoryManager;
@@ -44,10 +53,12 @@ public class InteractableItem : MonoBehaviour, IInteractable
             if (inventoryManager == null) return;
         }
 
-        if (itemType == ItemType.Consumable || itemType == ItemType.Key)
+        GameObject sourceObj = (item3DPrefab != null) ? item3DPrefab : gameObject;
+
+        if (itemType == ItemType.Consumable || itemType == ItemType.Key || itemType == ItemType.Battery)
         {
-            // Cả Consumable và Key đều được đưa vào ô Hotbar của InventoryManager
-            bool isPickedUp = inventoryManager.AddConsumableItem(itemNameOrQuestName, gameObject);
+            // Consumable, Key và Battery đều được đưa trực tiếp vào ô Hotbar của InventoryManager
+            bool isPickedUp = inventoryManager.AddConsumableItem(itemNameOrQuestName, sourceObj, itemIcon);
 
             if (!isPickedUp)
             {
@@ -59,18 +70,8 @@ public class InteractableItem : MonoBehaviour, IInteractable
             inventoryManager.AddQuestItem(itemNameOrQuestName);
             Destroy(gameObject); // Item Quest nhặt xong là mất luôn
         }
-        else if (itemType == ItemType.Battery)
-        {
-            // Nhặt sạc pin trực tiếp cho đèn pin Flashlight
-            if (FlashlightToggle.Instance != null)
-            {
-                FlashlightToggle.Instance.RechargeBattery(batteryRechargeAmount);
-            }
-            Destroy(gameObject); // Cục pin nạp xong tự biến mất
-        }
         else if (itemType == ItemType.Paper)
         {
-            // Xử lý tạm thời cho Giấy/Tài liệu (Sếp có thể mở UI đọc tài liệu ở đây nếu muốn)
             Debug.Log("Đã đọc tài liệu: " + itemNameOrQuestName);
             Destroy(gameObject);
         }

@@ -157,8 +157,8 @@ public class CockroachFlyAttack : MonoBehaviour
     public float delayAfterDoorOpen = 0.5f;
 
     [Header("13. Phím Tắt Kích Hoạt Test (Debug Shortcut Key)")]
-    [Tooltip("Bấm phím này trong lúc Play để kích hoạt ngay chuỗi gián bay (Mặc định: Phím K)")]
-    public KeyCode debugTriggerKey = KeyCode.K;
+    [Tooltip("Bấm phím này trong lúc Play để kích hoạt ngay chuỗi gián bay (Mặc định: None để tránh xung đột với phím K đập gián)")]
+    public KeyCode debugTriggerKey = KeyCode.None;
 
     [Tooltip("Bấm phím này để reset gián về vị trí ban đầu để test lại (Mặc định: Phím R)")]
     public KeyCode debugResetKey = KeyCode.R;
@@ -257,13 +257,6 @@ public class CockroachFlyAttack : MonoBehaviour
 
     void Update()
     {
-        // PHÍM TẮT KÍCH HOẠT NHANH (MẶC ĐỊNH: BẤM PHÍM K)
-        if (debugTriggerKey != KeyCode.None && Input.GetKeyDown(debugTriggerKey))
-        {
-            Debug.Log($"[CockroachFlyAttack] ⌨️ Bấm phím [{debugTriggerKey}]! Kích hoạt ngay chuỗi gián bay...");
-            StartCockroachSequence();
-        }
-
         // PHÍM TẮT RESET VỀ VỊ TRÍ CŨ ĐỂ TEST LẠI (MẶC ĐỊNH: BẤM PHÍM R)
         if (debugResetKey != KeyCode.None && Input.GetKeyDown(debugResetKey))
         {
@@ -345,6 +338,29 @@ public class CockroachFlyAttack : MonoBehaviour
         if (isSequenceRunning) return;
         if (currentSequenceCoroutine != null) StopCoroutine(currentSequenceCoroutine);
         currentSequenceCoroutine = StartCoroutine(CockroachBehaviorRoutine());
+    }
+
+    /// <summary>
+    /// Kích hoạt NGAY LẬP TỨC chuỗi Jumpscare bám kính Camera (Bỏ qua giai đoạn đứng chờ và bay từ xa)
+    /// </summary>
+    public void TriggerInstantCameraJumpscare()
+    {
+        // Bật toàn bộ cha của GameObject nếu đang inactive
+        Transform p = transform.parent;
+        while (p != null)
+        {
+            if (!p.gameObject.activeSelf) p.gameObject.SetActive(true);
+            p = p.parent;
+        }
+
+        gameObject.SetActive(true);
+        isSequenceRunning = true;
+        hasHitPlayer = false;
+        EnsurePlayerTarget();
+
+        if (currentSequenceCoroutine != null) StopCoroutine(currentSequenceCoroutine);
+
+        OnHitPlayer();
     }
 
     IEnumerator CockroachBehaviorRoutine()
@@ -498,6 +514,12 @@ public class CockroachFlyAttack : MonoBehaviour
 
         // 1. CHUYỂN VỀ ANIMATION STRAIGHT (DẠNG CHÂN RA BÁM MẶT)
         PlayAnimState(straightStateName);
+
+        // Hiện thoại hoảng hốt lúc va chạm (Cái quái...)
+        if (CockroachMinigameManager.Instance != null)
+        {
+            CockroachMinigameManager.Instance.TriggerJumpscareHitDialogue();
+        }
 
         // 2. GẮN DÍNH TRỰC TIẾP VÀO TRƯỚC MẶT CAMERA NGƯỜI CHƠI
         if (attachToCameraOnHit && playerTarget != null)
