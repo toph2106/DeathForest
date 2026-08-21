@@ -57,6 +57,7 @@ public class Camera10sDoorEvent : MonoBehaviour
     private bool isSequenceRunning = false;
     private bool hasTriggeredWindowDialogue = false;
     private bool hasTriggeredDoorOpen = false;
+    public bool HasTriggeredDoorOpen => hasTriggeredDoorOpen;
 
     void Awake()
     {
@@ -215,13 +216,11 @@ public class Camera10sDoorEvent : MonoBehaviour
             }
 
             float lineStartTime = Time.time;
-            bool skip = false;
             subtitleTextUI.text = "";
             for (int c = 1; c <= fullText.Length; c++)
             {
                 if (Time.time - lineStartTime > 0.2f && (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Space)))
                 {
-                    skip = true;
                     subtitleTextUI.text = fullText;
                     break;
                 }

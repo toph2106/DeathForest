@@ -290,14 +290,11 @@ public class OpenablePlacedBox : MonoBehaviour, IInteractable
             }
 
             float lineStartTime = Time.time;
-            bool skip = false;
-            subText:
             subtitleTextUI.text = "";
             for (int c = 1; c <= fullText.Length; c++)
             {
                 if (Time.time - lineStartTime > 0.2f && (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Space)))
                 {
-                    skip = true;
                     subtitleTextUI.text = fullText;
                     break;
                 }

@@ -68,8 +68,12 @@ public class MovePl : MonoBehaviour
 
         if (cameraTransform != null)
         {
-            standingCamY = cameraTransform.localPosition.y;
-            if (standingCamY == 0f) standingCamY = 0.6f;
+            if (standingCamY <= 0f || standingCamY == 0.6f)
+            {
+                float currentY = cameraTransform.localPosition.y;
+                if (currentY > 0.1f) standingCamY = currentY;
+            }
+            if (standingCamY <= 0f) standingCamY = 0.6f;
 
             // Tự động chia 3 chiều cao camera khi ngồi
             if (crouchHeightMultiplier == 0.5f || crouchHeightMultiplier <= 0f)
@@ -243,5 +247,34 @@ public class MovePl : MonoBehaviour
     public void SetMovementState(bool state)
     {
         canMove = state;
+    }
+
+    public void SetStandingCamY(float y)
+    {
+        if (y > 0.1f)
+        {
+            standingCamY = y;
+            if (crouchHeightMultiplier <= 0f) crouchHeightMultiplier = 1f / 3f;
+            crouchCamY = standingCamY * crouchHeightMultiplier;
+        }
+    }
+
+    void LateUpdate()
+    {
+        // Khi bị quái vật khóa Camera, tự động hướng thẳng góc nhìn vào xương đầu của quái vật
+        if (isCameraLocked && forcedLookTarget != null && cameraTransform != null)
+        {
+            Vector3 targetDir = forcedLookTarget.position - cameraTransform.position;
+            if (targetDir.sqrMagnitude > 0.001f)
+            {
+                Quaternion lookRot = Quaternion.LookRotation(targetDir);
+                cameraTransform.rotation = Quaternion.Slerp(cameraTransform.rotation, lookRot, 15f * Time.deltaTime);
+
+                Vector3 localEuler = cameraTransform.localEulerAngles;
+                float pitch = localEuler.x;
+                if (pitch > 180f) pitch -= 360f;
+                xRotation = pitch;
+            }
+        }
     }
 }

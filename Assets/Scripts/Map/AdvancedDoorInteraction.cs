@@ -7,7 +7,7 @@ public class AdvancedDoorInteraction : MonoBehaviour
     public float interactDistance = 3f;
     public LayerMask doorLayer;
 
-    [Header("UI Gợi ý [F]")]
+    [Header("UI Gợi ý Tương Tác")]
     public GameObject interactionUI;
     public TextMeshProUGUI interactText;
 
@@ -15,7 +15,7 @@ public class AdvancedDoorInteraction : MonoBehaviour
 
     void Update()
     {
-        // NẾU BẢNG NHẬP MÃ SỐ ĐANG MỞ -> TỰ ĐỘNG ẨN CHỮ [F] VÀ DỪNG QUÉT
+        // NẾU BẢNG NHẬP MÃ SỐ ĐANG MỞ -> TỰ ĐỘNG ẨN CHỮ VÀ DỪNG QUÉT
         if (DoorPasscodeUI.Instance != null && DoorPasscodeUI.Instance.uiPanel != null && DoorPasscodeUI.Instance.uiPanel.activeSelf)
         {
             if (currentDoor != null)
@@ -28,7 +28,8 @@ public class AdvancedDoorInteraction : MonoBehaviour
 
         CheckRaycast();
 
-        if (currentDoor != null && Input.GetKeyDown(KeyCode.F))
+        // TƯƠNG TÁC BẰNG CLICK CHUỘT TRÁI (HOẶC PHÍM F DỰ PHÒNG)
+        if (currentDoor != null && (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.F)))
         {
             // Chỉ cần gọi hàm Interact, không cần truyền GameObject vào nữa
             currentDoor.Interact();
@@ -49,7 +50,7 @@ public class AdvancedDoorInteraction : MonoBehaviour
                 if (currentDoor != door)
                 {
                     currentDoor = door;
-                    ShowUI(currentDoor.isLocked ? "[F] Kiểm tra cửa" : "[F] Mở cửa");
+                    ShowUI(currentDoor.isLocked ? "Kiểm tra cửa" : "Mở cửa");
                 }
                 return;
             }

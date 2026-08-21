@@ -1,10 +1,21 @@
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 using DG.Tweening;
 using System.Collections;
 
 public class Truck : MonoBehaviour
 {
+    [System.Serializable]
+    public class DialogueLine
+    {
+        [TextArea(2, 4)]
+        public string vietnameseDialogue = "";
+        [TextArea(2, 4)]
+        public string englishDialogue = "";
+        public float holdDuration = 3.0f;
+    }
+
     public float speed = 15f;
     public float waitTime = 1f;
     public Transform player;
@@ -33,6 +44,22 @@ public class Truck : MonoBehaviour
 
     [Tooltip("3. THỜI GIAN MỞ MẮT: Màn hình từ từ mờ sáng mở dần ra lại (giây). Mặc định: 3.0s cho mở siêu đằm mượt")]
     public float fadeInDuration = 3.0f;
+
+    [Header("4. Thoại Sau Khi Tỉnh Dậy (Bị Tông Xe)")]
+    public DialogueLine[] wakeUpDialogues = new DialogueLine[]
+    {
+        new DialogueLine
+        {
+            vietnameseDialogue = "Chuyện quái gì vừa xảy ra vậy... Ác mộng à?",
+            englishDialogue = "What the hell just happened... Was it a nightmare?",
+            holdDuration = 3.0f
+        }
+    };
+    public TextMeshProUGUI subtitleTextUI;
+    public AudioClip dialogueSound;
+    [Range(0f, 1f)] public float dialogueVolume = 0.8f;
+    [Tooltip("Thời gian chờ Cooldown sau khi hết thoại mới trả lại quyền tương tác (Mặc định: 3.0s)")]
+    public float postDialogueInteractCooldown = 3.0f;
 
     private Vector3 startPos;
     private Quaternion startRot;
@@ -224,11 +251,130 @@ public class Truck : MonoBehaviour
             playerMove.SetMovementState(true);
         }
 
-        // 6. SAU KHÍ FADE IN MỜ SÁNG MÀN HÌNH HOÀN TOÀN -> MỚI PHÁT NHẠC REZERO!
+        // 6. SAU KHI FADE IN MỜ SÁNG MÀN HÌNH HOÀN TOÀN -> MỚI PHÁT NHẠC REZERO!
         if (rezeroSound != null)
         {
             rezeroSound.Play();
         }
+
+        // 7. KÍCH HOẠT THOẠI TỈNH DẬY KÈM KHÓA TƯƠNG TÁC VÀ COOLDOWN 3S
+        if (wakeUpDialogues != null && wakeUpDialogues.Length > 0)
+        {
+            yield return StartCoroutine(PlayWakeUpDialogueRoutine());
+        }
+    }
+
+    IEnumerator PlayWakeUpDialogueRoutine()
+    {
+        SmartInteractionDialogue.isAnyDialoguePlaying = true;
+
+        if (subtitleTextUI == null) subtitleTextUI = FindSubtitleTextUI();
+        if (subtitleTextUI == null)
+        {
+            yield return new WaitForSeconds(postDialogueInteractCooldown);
+            SmartInteractionDialogue.isAnyDialoguePlaying = false;
+            yield break;
+        }
+
+        AudioSource aSource = GetComponent<AudioSource>();
+        if (aSource == null) aSource = gameObject.AddComponent<AudioSource>();
+
+        foreach (var line in wakeUpDialogues)
+        {
+            if (line == null) continue;
+            string lang = SettingsManager.currentLanguage;
+            string fullText = (lang == "VI") ? line.vietnameseDialogue : line.englishDialogue;
+            if (string.IsNullOrEmpty(fullText)) fullText = line.vietnameseDialogue;
+            if (string.IsNullOrEmpty(fullText)) fullText = line.englishDialogue;
+            if (string.IsNullOrEmpty(fullText)) continue;
+
+            if (subtitleTextUI.transform.parent != null) subtitleTextUI.transform.parent.gameObject.SetActive(true);
+            subtitleTextUI.gameObject.SetActive(true);
+
+            Color sc = subtitleTextUI.color;
+            sc.a = 1f;
+            subtitleTextUI.color = sc;
+
+            if (dialogueSound != null)
+            {
+                aSource.clip = dialogueSound;
+                aSource.volume = dialogueVolume;
+                aSource.loop = true;
+                aSource.time = 0f;
+                aSource.Play();
+            }
+
+            // Gõ chữ typewriter
+            subtitleTextUI.text = "";
+            bool skip = false;
+            for (int i = 1; i <= fullText.Length; i++)
+            {
+                if (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Space))
+                {
+                    skip = true;
+                    subtitleTextUI.text = fullText;
+                    break;
+                }
+                subtitleTextUI.text = fullText.Substring(0, i) + "_";
+                yield return new WaitForSeconds(0.03f);
+            }
+
+            if (aSource.isPlaying) aSource.Stop();
+            subtitleTextUI.text = fullText;
+
+            // Giữ câu thoại
+            float holdTime = (line.holdDuration > 0f) ? line.holdDuration : 3.0f;
+            float timer = 0f;
+            while (timer < holdTime && !skip)
+            {
+                if (timer > 0.2f && (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Space))) break;
+                timer += Time.deltaTime;
+                yield return null;
+            }
+
+            // Fade text out
+            float fadeElapsed = 0f;
+            while (fadeElapsed < 0.25f)
+            {
+                fadeElapsed += Time.deltaTime;
+                sc.a = Mathf.Lerp(1f, 0f, fadeElapsed / 0.25f);
+                subtitleTextUI.color = sc;
+                yield return null;
+            }
+
+            subtitleTextUI.text = "";
+            sc.a = 1f;
+            subtitleTextUI.color = sc;
+            subtitleTextUI.gameObject.SetActive(false);
+        }
+
+        // Chờ Cooldown 3s sau khi hết thoại mới trả lại quyền tương tác
+        if (postDialogueInteractCooldown > 0f)
+        {
+            yield return new WaitForSeconds(postDialogueInteractCooldown);
+        }
+
+        SmartInteractionDialogue.isAnyDialoguePlaying = false;
+        Debug.Log("[Truck] 🔓 Đã qua Cooldown 3s sau thoại, trả lại quyền tương tác cho Player.");
+    }
+
+    TextMeshProUGUI FindSubtitleTextUI()
+    {
+        if (subtitleTextUI != null) return subtitleTextUI;
+
+        SmartInteractionDialogue sid = Object.FindFirstObjectByType<SmartInteractionDialogue>(FindObjectsInactive.Include);
+        if (sid != null && sid.subtitleTextUI != null) return sid.subtitleTextUI;
+
+        GameObject subObj = GameObject.Find("SubtitlesText") ?? GameObject.Find("Subtitle Text") ?? GameObject.Find("SubtitleText") ?? GameObject.Find("Subtitle") ?? GameObject.Find("DialogueText");
+        if (subObj != null) return subObj.GetComponent<TextMeshProUGUI>();
+
+        TextMeshProUGUI[] tmps = Object.FindObjectsByType<TextMeshProUGUI>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        foreach (var tmp in tmps)
+        {
+            if (tmp.gameObject.name.ToLower().Contains("sub")) return tmp;
+        }
+
+        return null;
     }
 
     private void AlignCameraToTarget(Transform mainCam, Transform playerTransform, Transform target)

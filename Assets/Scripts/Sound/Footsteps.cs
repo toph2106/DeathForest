@@ -14,15 +14,17 @@ public class FootstepManager : MonoBehaviour
 
     public CharacterController player;
     private MovePl movePl;
+    private Grass grassComponent;
     private float nextSoundTime;
 
     private Vector3 lastPosition;
-    private bool isOnRoad = false;
+    public bool isOnRoad = false;
 
     void Start()
     {
         if (player == null) player = GetComponent<CharacterController>();
         if (player != null) movePl = player.GetComponent<MovePl>();
+        grassComponent = GetComponent<Grass>();
         lastPosition = transform.position;
     }
 
@@ -38,11 +40,16 @@ public class FootstepManager : MonoBehaviour
 
     void Update()
     {
+        if (player == null) return;
+
         Vector3 currentPos = new Vector3(transform.position.x, 0, transform.position.z);
         Vector3 previousPos = new Vector3(lastPosition.x, 0, lastPosition.z);
         float distanceMoved = Vector3.Distance(currentPos, previousPos);
 
-        if (isOnRoad && player.isGrounded)
+        bool isWalkingOnGrass = (grassComponent != null && grassComponent.isOnGrass);
+
+        // Phát tiếng bước chân nếu người chơi đang di chuyển trên đất (không đi trên cỏ)
+        if (!isWalkingOnGrass && player.isGrounded)
         {
             float h = Input.GetAxisRaw("Horizontal");
             float v = Input.GetAxisRaw("Vertical");

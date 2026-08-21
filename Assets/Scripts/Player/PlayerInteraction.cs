@@ -1,21 +1,10 @@
 using UnityEngine;
-using TMPro;
 
 public class PlayerInteraction : MonoBehaviour
 {
     [Header("Interaction Settings")]
     public float interactRange = 3.5f;
     public LayerMask interactableLayer;
-
-    [Header("References")]
-    public PaperReaderManager readManager; // Kéo Object chứa script PaperReaderManager vào đây
-
-    [Header("UI Gợi Ý [F] Tương Tác (Kéo vào đây để đảm bảo 100% hiển thị)")]
-    [Tooltip("Kéo GameObject UI chứa chữ [F] (VD: PressF hoặc InteractionUI) vào đây")]
-    public GameObject interactionUI;
-
-    [Tooltip("Kéo TextMeshProUGUI hiển thị nội dung chữ (VD: [F] Tương tác) vào đây")]
-    public TextMeshProUGUI interactText;
 
     private SmoothDoubleDoor currentDoor = null;
     private ReadablePaper currentPaper = null;
@@ -43,9 +32,6 @@ public class PlayerInteraction : MonoBehaviour
             ClearAll();
             return;
         }
-
-        // QUAN TRỌNG: Nếu đang đọc giấy thì khóa tia nhìn lại, không cho tương tác linh tinh
-        if (readManager != null && readManager.isReading) return;
 
         Camera mainCam = Camera.main;
         if (mainCam == null) return;
@@ -79,8 +65,6 @@ public class PlayerInteraction : MonoBehaviour
                 {
                     ClearCurrentDoor();
                     currentDoor = door;
-                    currentDoor.ShowPrompt();
-                    ShowPromptUI("Mở cửa");
                 }
                 if (Input.GetMouseButtonDown(0)) currentDoor.ToggleDoor();
             }
@@ -93,14 +77,10 @@ public class PlayerInteraction : MonoBehaviour
                 {
                     ClearCurrentPaper();
                     currentPaper = paper;
-                    currentPaper.ShowPrompt();
-                    ShowPromptUI("Đọc tài liệu");
                 }
 
                 if (Input.GetMouseButtonDown(0))
                 {
-                    currentPaper.HidePrompt();
-                    HidePromptUI();
                     currentPaper.Interact();
                 }
             }
@@ -113,12 +93,10 @@ public class PlayerInteraction : MonoBehaviour
                 {
                     ClearCurrentSingleDoor();
                     currentSingleDoor = singleDoor;
-                    currentSingleDoor.ShowPrompt();
-                    ShowPromptUI("Mở cửa");
                 }
                 if (Input.GetMouseButtonDown(0)) currentSingleDoor.ToggleDoor();
             }
-            // 4. XỬ LÝ NHÌN VÀO CỬA KÉO MAP01 (DOOR EXIT)
+            // 4. XỬ LÝ NHÌN VÀO CỬA THOÁT RA MAP TIẾP THEO (DOOR EXIT)
             else if (doorExit != null)
             {
                 ClearAllExceptDoorExit();
@@ -127,8 +105,6 @@ public class PlayerInteraction : MonoBehaviour
                 {
                     ClearCurrentDoorExit();
                     currentDoorExit = doorExit;
-                    currentDoorExit.ShowPrompt();
-                    ShowPromptUI("Mở cửa");
                 }
 
                 if (Input.GetMouseButtonDown(0))
@@ -147,12 +123,10 @@ public class PlayerInteraction : MonoBehaviour
                 {
                     if (currentSlidingDoor != null) currentSlidingDoor.HidePrompt();
                     currentSlidingDoor = slidingDoor;
-                    currentSlidingDoor.ShowPrompt();
-                    ShowPromptUI("Mở cửa");
                 }
                 if (Input.GetMouseButtonDown(0)) slidingDoor.ToggleDoor();
             }
-            // 6. XỬ LÝ NHÌN VÀO NPC THOẠI (JOHNSON)
+            // 6. XỬ LÝ NHÌN VÀO NPC THOẠI
             else if (npc != null)
             {
                 ClearAllExceptNPC();
@@ -161,13 +135,10 @@ public class PlayerInteraction : MonoBehaviour
                 {
                     ClearCurrentNPC();
                     currentNPC = npc;
-                    currentNPC.ShowPrompt();
-                    ShowPromptUI("Nói chuyện");
                 }
 
                 if (Input.GetMouseButtonDown(0))
                 {
-                    HidePromptUI();
                     currentNPC.Interact();
                     currentNPC = null;
                 }
@@ -184,16 +155,10 @@ public class PlayerInteraction : MonoBehaviour
                 {
                     ClearCurrentItem();
                     currentItem = item;
-                    currentItem.ShowPrompt();
-
-                    string promptMsg = (item != null && item.itemType == InteractableItem.ItemType.Battery) ? "Nhặt Pin" : "Nhặt đồ";
-                    ShowPromptUI(promptMsg);
                 }
 
                 if (Input.GetMouseButtonDown(0))
                 {
-                    currentItem.HidePrompt();
-                    HidePromptUI();
                     currentItem.Pickup();
                     currentItem = null;
                 }
@@ -210,14 +175,10 @@ public class PlayerInteraction : MonoBehaviour
                 {
                     ClearCurrentCorpse();
                     currentCorpse = corpse;
-                    currentCorpse.ShowPrompt();
-                    ShowPromptUI("Kiểm tra xác");
                 }
 
                 if (Input.GetMouseButtonDown(0))
                 {
-                    currentCorpse.HidePrompt();
-                    HidePromptUI();
                     currentCorpse.LootCorpse();
                     currentCorpse = null;
                 }
@@ -233,13 +194,10 @@ public class PlayerInteraction : MonoBehaviour
                 {
                     ClearCurrentComputer();
                     currentComputer = computer;
-                    currentComputer.ShowPrompt();
-                    ShowPromptUI("Sử dụng máy tính");
                 }
 
                 if (Input.GetMouseButtonDown(0))
                 {
-                    HidePromptUI();
                     currentComputer.Interact();
                     currentComputer = null;
                 }
@@ -253,33 +211,6 @@ public class PlayerInteraction : MonoBehaviour
         {
             ClearAll();
         }
-    }
-
-    private void ShowPromptUI(string text = "Tương tác")
-    {
-        if (interactionUI != null) interactionUI.SetActive(true);
-        if (interactText != null)
-        {
-            string lang = PlayerPrefs.GetString("Language", SettingsManager.currentLanguage);
-            if (lang == "EN")
-            {
-                if (text.Contains("Nhặt Pin")) text = "Pick up Battery";
-                else if (text.Contains("Nhặt đồ")) text = "Pick up Item";
-                else if (text.Contains("Đọc tài liệu")) text = "Read Note";
-                else if (text.Contains("Mở cửa")) text = "Open Door";
-                else if (text.Contains("Kiểm tra xác")) text = "Examine Corpse";
-                else if (text.Contains("Sử dụng máy tính")) text = "Use Computer";
-                else if (text.Contains("Nói chuyện")) text = "Talk";
-                else text = "Interact";
-            }
-            interactText.text = text;
-        }
-    }
-
-    private void HidePromptUI()
-    {
-        if (GetComponent<InteractPro>() != null) return;
-        if (interactionUI != null) interactionUI.SetActive(false);
     }
 
     void ClearCurrentComputer() { if (currentComputer != null) { currentComputer.HidePrompt(); currentComputer = null; } }
@@ -303,7 +234,6 @@ public class PlayerInteraction : MonoBehaviour
 
     void ClearAll()
     {
-        HidePromptUI();
         ClearCurrentDoor();
         ClearCurrentPaper();
         ClearCurrentSingleDoor();
