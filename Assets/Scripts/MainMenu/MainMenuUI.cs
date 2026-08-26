@@ -119,6 +119,9 @@ public class MainMenuUI : MonoBehaviour
 
     IEnumerator CinematicGameBootSequence()
     {
+        // RESET SẠCH SẼ MỌI DỮ LIỆU RUNTIME KHI MỞ / QUAY VỀ MAIN MENU
+        GameSaveManager.ResetAllGameplayRuntimeData();
+
         if (fadePanel != null)
         {
             // TỰ ĐỘNG ĐƯA FADEPANEL LÊN TRÊN CÙNG CANVAS
@@ -171,6 +174,8 @@ public class MainMenuUI : MonoBehaviour
     {
         Debug.Log("[MainMenuUI] Nút Play đã được bấm!");
         if (isTransitioning) return;
+        GameSaveManager.ResetAllGameplayRuntimeData();
+        GameSaveManager.SetCurrentLevel(1);
         StartCoroutine(FadeAndLoad(defaultMapName));
     }
 
@@ -178,18 +183,24 @@ public class MainMenuUI : MonoBehaviour
     public void LoadMap1()
     {
         if (isTransitioning) return;
+        GameSaveManager.ResetAllGameplayRuntimeData();
+        GameSaveManager.SetCurrentLevel(1);
         StartCoroutine(FadeAndLoad("Map01"));
     }
 
     public void LoadMap2()
     {
         if (isTransitioning) return;
+        GameSaveManager.ResetAllGameplayRuntimeData();
+        GameSaveManager.SetCurrentLevel(2);
         StartCoroutine(FadeAndLoad("Map02"));
     }
 
     public void LoadMap3()
     {
         if (isTransitioning) return;
+        GameSaveManager.ResetAllGameplayRuntimeData();
+        GameSaveManager.SetCurrentLevel(3);
         StartCoroutine(FadeAndLoad("Map03"));
     }
 

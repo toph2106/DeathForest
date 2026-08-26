@@ -106,6 +106,7 @@ public class NextMap3 : MonoBehaviour
 
         // 5. TỰ ĐỘNG LƯU TIẾN TRÌNH: Mở khóa Map 03 khi qua màn Map 02
         GameSaveManager.UnlockLevel(3);
+        GameSaveManager.SetCurrentLevel(3);
 
         // 6. CHUYỂN SANG MAP 03
         if (SceneLoader.Instance != null)

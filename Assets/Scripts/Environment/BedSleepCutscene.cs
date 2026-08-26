@@ -286,6 +286,7 @@ public class BedSleepCutscene : MonoBehaviour, IInteractable
 
     void Awake()
     {
+        isSleeping = false;
         bedCollider = GetComponent<Collider>();
         interactPrompt = GetComponent<InteractPrompt>();
         localAudioSource = GetComponent<AudioSource>();
@@ -294,6 +295,8 @@ public class BedSleepCutscene : MonoBehaviour, IInteractable
 
     void Start()
     {
+        EnsureUIHierarchyOrder();
+
         if (interactPrompt == null)
             interactPrompt = gameObject.AddComponent<InteractPrompt>();
         interactPrompt.englishPrompt = englishPrompt.Replace("[F] ", "").Replace("[F]", "").Trim();
@@ -316,6 +319,85 @@ public class BedSleepCutscene : MonoBehaviour, IInteractable
             fadeScreenImage.gameObject.SetActive(false);
         }
         if (subtitleTextUI != null) subtitleTextUI.text = "";
+    }
+
+    void EnsureUIHierarchyOrder()
+    {
+        // 1. Tự động tìm fadeScreenImage nếu chưa kéo
+        if (fadeScreenImage == null)
+        {
+            GameObject fadeObj = GameObject.Find("FadePanel") ?? GameObject.Find("FadeImage") ?? GameObject.Find("ScreenFade");
+            if (fadeObj != null) fadeScreenImage = fadeObj.GetComponent<Image>();
+        }
+
+        // 2. Tự động tìm clockTextUI nếu chưa kéo
+        if (clockTextUI == null)
+        {
+            GameObject clockObj = GameObject.Find("ClockText") ?? GameObject.Find("SleepClockText") ?? GameObject.Find("ClockTextUI");
+            if (clockObj != null) clockTextUI = clockObj.GetComponent<TMPro.TextMeshProUGUI>();
+        }
+
+        // 3. Tự động tìm subtitleTextUI nếu chưa kéo
+        if (subtitleTextUI == null)
+        {
+            GameObject subObj = GameObject.Find("SubtitleText") ?? GameObject.Find("Subtitles") ?? GameObject.Find("DialogueText");
+            if (subObj != null) subtitleTextUI = subObj.GetComponent<TMPro.TextMeshProUGUI>();
+        }
+
+        // 4. Cấu hình Fade Panel: Đặt về lớp nền phía dưới và tắt raycast để không cản click chuột
+        if (fadeScreenImage != null)
+        {
+            fadeScreenImage.raycastTarget = false;
+            fadeScreenImage.transform.SetAsFirstSibling();
+
+            // Đảm bảo đối tượng cha trực tiếp dưới Canvas (ví dụ: Pause) nằm phía trên/trước SubtitleWSleep và ClockWSleep
+            Transform curr = fadeScreenImage.transform;
+            while (curr != null && curr.parent != null)
+            {
+                if (curr.parent.GetComponent<Canvas>() != null)
+                {
+                    curr.SetAsFirstSibling();
+                    break;
+                }
+                curr = curr.parent;
+            }
+        }
+
+        // 5. Cấu hình Phụ Đề Ngủ (SubtitleWSleep): Bật GameObject cha và đẩy xuống dưới cùng Canvas
+        if (subtitleTextUI != null)
+        {
+            subtitleTextUI.raycastTarget = false;
+            Transform curr = subtitleTextUI.transform;
+            while (curr != null && curr.parent != null)
+            {
+                curr.gameObject.SetActive(true);
+                if (curr.parent.GetComponent<Canvas>() != null)
+                {
+                    curr.SetAsLastSibling();
+                }
+                curr = curr.parent;
+            }
+            subtitleTextUI.gameObject.SetActive(true);
+            subtitleTextUI.transform.SetAsLastSibling();
+        }
+
+        // 6. Cấu hình Đồng Hồ (ClockWSleep): Bật GameObject cha và đẩy xuống DƯỚI CÙNG NHẤT của Canvas
+        if (clockTextUI != null)
+        {
+            clockTextUI.raycastTarget = false;
+            Transform curr = clockTextUI.transform;
+            while (curr != null && curr.parent != null)
+            {
+                curr.gameObject.SetActive(true);
+                if (curr.parent.GetComponent<Canvas>() != null)
+                {
+                    curr.SetAsLastSibling();
+                }
+                curr = curr.parent;
+            }
+            clockTextUI.gameObject.SetActive(true);
+            clockTextUI.transform.SetAsLastSibling();
+        }
     }
 
     void Update()
@@ -603,6 +685,8 @@ public class BedSleepCutscene : MonoBehaviour, IInteractable
     // =================================================================
     IEnumerator RunClockFadeInAndFastForwardRoutine()
     {
+        EnsureUIHierarchyOrder();
+
         if (clockTextUI == null) yield break;
 
         clockTextUI.gameObject.SetActive(true);
@@ -833,6 +917,8 @@ public class BedSleepCutscene : MonoBehaviour, IInteractable
     // =================================================================
     IEnumerator FadeToBlack(float duration)
     {
+        EnsureUIHierarchyOrder();
+
         if (fadeScreenImage == null) yield break;
         fadeScreenImage.gameObject.SetActive(true);
         Color c = new Color(0f, 0f, 0f, 0f);
@@ -852,6 +938,8 @@ public class BedSleepCutscene : MonoBehaviour, IInteractable
 
     IEnumerator FadeFromBlackWithClock(float duration)
     {
+        EnsureUIHierarchyOrder();
+
         float elapsed = 0f;
         Color fadeColor = (fadeScreenImage != null) ? fadeScreenImage.color : Color.black;
         Color clockColor = (clockTextUI != null) ? clockTextUI.color : Color.white;
@@ -924,6 +1012,8 @@ public class BedSleepCutscene : MonoBehaviour, IInteractable
     // =================================================================
     IEnumerator PlayDialogueLineRoutine(int index, float holdTime = 3.0f, bool playAudio = true)
     {
+        EnsureUIHierarchyOrder();
+
         if (sleepDialogues == null || index < 0 || index >= sleepDialogues.Length) yield break;
 
         SleepDialogueLine line = sleepDialogues[index];

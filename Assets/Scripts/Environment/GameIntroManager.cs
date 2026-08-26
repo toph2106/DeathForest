@@ -85,6 +85,11 @@ public class GameIntroManager : MonoBehaviour
     private string currentFullText = "";
     private Coroutine cursorBlinkCoroutine;
 
+    void Awake()
+    {
+        isIntroRunning = false;
+    }
+
     void Start()
     {
         audioSource = GetComponent<AudioSource>();

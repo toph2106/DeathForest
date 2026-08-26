@@ -443,6 +443,10 @@ public class CockroachNightmareWakeUp : MonoBehaviour
         // GIAI ĐOẠN 4: CHUYỂN SCENE SANG MAP 02
         Debug.Log($"[CockroachNightmareWakeUp] 🎬 ĐÃ NGẤT XỈU HOÀN TOÀN! Đang tải chuyển sang Scene [{nextSceneName}]...");
 
+        // TỰ ĐỘNG LƯU TIẾN TRÌNH: Mở khóa Map 02
+        GameSaveManager.UnlockLevel(2);
+        GameSaveManager.SetCurrentLevel(2);
+
         if (SceneLoader.Instance != null)
         {
             SceneLoader.Instance.LoadSceneAsync(nextSceneName);

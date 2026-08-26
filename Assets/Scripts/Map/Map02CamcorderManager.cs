@@ -93,6 +93,7 @@ public class Map02CamcorderManager : MonoBehaviour, IInteractable
     void Awake()
     {
         Instance = this;
+        hasTriggeredBlackout = false;
         audioSource = GetComponent<AudioSource>();
         if (audioSource == null) audioSource = gameObject.AddComponent<AudioSource>();
         audioSource.spatialBlend = 0f; // 2D âm thanh rõ nét

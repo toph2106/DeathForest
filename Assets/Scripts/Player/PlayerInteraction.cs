@@ -16,6 +16,12 @@ public class PlayerInteraction : MonoBehaviour
     private CorpseLoot currentCorpse = null;
     private DesktopComputer currentComputer = null;
 
+    void Start()
+    {
+        if (interactableLayer.value == 0) interactableLayer = ~0;
+        else interactableLayer |= (1 << 0); // Luôn đảm bảo nhận diện cả Layer Default
+    }
+
     void Update()
     {
         // 1. TẮT TƯƠNG TÁC KHI ĐANG DÙNG MÁY TÍNH HOẶC TRONG BẤT KỲ CUTSCENE/FADE NÀO
@@ -200,6 +206,19 @@ public class PlayerInteraction : MonoBehaviour
                 {
                     currentComputer.Interact();
                     currentComputer = null;
+                }
+            }
+            // 10. XỬ LÝ GENERIC CHO MỌI ĐỐI TƯỢNG IINTERACTABLE (BAO GỒM SHRINE DOUBLE DOOR)
+            else if (hit.collider.GetComponentInParent<IInteractable>() != null || hit.collider.GetComponent<IInteractable>() != null)
+            {
+                IInteractable interactable = hit.collider.GetComponentInParent<IInteractable>();
+                if (interactable == null) interactable = hit.collider.GetComponent<IInteractable>();
+
+                ClearAll();
+
+                if (Input.GetMouseButtonDown(0) && interactable != null)
+                {
+                    interactable.Interact();
                 }
             }
             else

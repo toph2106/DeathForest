@@ -62,6 +62,10 @@ public class Camera10sDoorEvent : MonoBehaviour
     void Awake()
     {
         Instance = this;
+        hasCompletedDoorOpenDialogue = false;
+        hasTriggeredWindowDialogue = false;
+        hasTriggeredDoorOpen = false;
+        isSequenceRunning = false;
         audioSource = GetComponent<AudioSource>();
         if (audioSource == null) audioSource = gameObject.AddComponent<AudioSource>();
         audioSource.spatialBlend = 0f;
@@ -78,7 +82,8 @@ public class Camera10sDoorEvent : MonoBehaviour
 
     void Update()
     {
-        if (!hasTriggeredWindowDialogue && !isSequenceRunning && CamcorderUI.Instance != null && CamcorderUI.Instance.gameObject.activeInHierarchy)
+        // BẮT BUỘC ĐÃ THỰC SỰ NHẶT MÁY QUAY (HasPickedUpCamera) MỚI ĐƯỢC PHÉP KÍCH HOẠT SỰ KIỆN NÀY!
+        if (!hasTriggeredWindowDialogue && !isSequenceRunning && CamcorderUI.HasPickedUpCamera && CamcorderUI.Instance != null && CamcorderUI.Instance.gameObject.activeInHierarchy)
         {
             bool isWindowOpen = WindowAmbienceController.CheckIfAnyWindowOpen();
             if (isWindowOpen)

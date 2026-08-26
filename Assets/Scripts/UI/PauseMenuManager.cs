@@ -362,7 +362,9 @@ public class PauseMenuManager : MonoBehaviour
             yield return new WaitForSecondsRealtime(fadeDuration);
         }
 
+        Time.timeScale = 1f;
         isPaused = false;
+        GameSaveManager.ResetAllGameplayRuntimeData();
         SceneManager.LoadScene(mainMenuSceneName);
     }
 

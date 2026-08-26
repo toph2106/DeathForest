@@ -129,6 +129,12 @@ public class InWorldComputerCutscene : MonoBehaviour, IInteractable
     private string currentFullDialogue = "";
     private float cutsceneStartTime = 0f;
 
+    void Awake()
+    {
+        isUsingComputer = false;
+        hasCompletedComputer = false;
+    }
+
     void Start()
     {
         SetupComponents();
