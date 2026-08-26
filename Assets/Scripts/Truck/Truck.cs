@@ -190,12 +190,28 @@ public class Truck : MonoBehaviour
         {
             if (cc != null) cc.enabled = false;
             player.position = spawnPoint.position;
-            player.rotation = spawnPoint.rotation;
+
+            // THÂN NGƯỜI (MAIN) CHỈ XOAY TRỤC Y (YAW), TRỤC X VÀ Z LUÔN VỀ 0 ĐỘ ĐỂ ĐỨNG THẲNG
+            player.rotation = Quaternion.Euler(0f, spawnPoint.eulerAngles.y, 0f);
+
+            // CAMERA NHẬN ĐỘ NGHIÊNG TRỤC X (PITCH) TỪ SPAWNPOINT (VD: NGHIÊNG 40 ĐỘ ĐỂ NHÌN XUỐNG TỜ GIẤY)
+            if (mainCam != null)
+            {
+                float pitch = spawnPoint.eulerAngles.x;
+                if (pitch > 180f) pitch -= 360f;
+                pitch = Mathf.Clamp(pitch, -89f, 89f);
+                mainCam.localRotation = Quaternion.Euler(pitch, 0f, 0f);
+            }
+
             if (cc != null) cc.enabled = true;
         }
 
-        // ÉP CỤC CAMERA VÀ THÂN NGƯỜI NHÌN THẲNG VÀO MỤC TIÊU CUBE NGAY TRONG BÓNG TỐI
-        AlignCameraToTarget(mainCam, player, respawnLookTarget);
+        // NẾU CÓ RESPAWN LOOK TARGET THÌ HƯỚNG CAMERA VÀO TARGET
+        if (respawnLookTarget != null)
+        {
+            AlignCameraToTarget(mainCam, player, respawnLookTarget);
+        }
+
         if (playerMove != null) playerMove.SyncRotationWithCurrentCamera();
 
         // GIAI ĐOẠN 2: ÉP TỐI ĐEN NGÒM 100% VÀ GIỮ NGHỈ TRONG DARK PAUSE DURATION
@@ -209,7 +225,7 @@ public class Truck : MonoBehaviour
         while (darkTimer < darkPauseDuration)
         {
             darkTimer += Time.unscaledDeltaTime;
-            AlignCameraToTarget(mainCam, player, respawnLookTarget);
+            if (respawnLookTarget != null) AlignCameraToTarget(mainCam, player, respawnLookTarget);
             yield return null;
         }
 
@@ -217,7 +233,7 @@ public class Truck : MonoBehaviour
         hasTriggered = false;
         TriggerEventTruck.ResetAllTriggers();
 
-        // 4. GIAI ĐOẠN 3: FADE IN MỜ SÁNG MỞ DẦN RA LẠI (CAMERA LIÊN TỤC GHIM VÀO CỤC CUBE)
+        // 4. GIAI ĐOẠN 3: FADE IN MỜ SÁNG MỞ DẦN RA LẠI (CAMERA LIÊN TỤC GHIM VÀO CỤC CUBE NẾU CÓ)
         if (fadeImg != null)
         {
             fadeImg.DOKill();
@@ -229,7 +245,7 @@ public class Truck : MonoBehaviour
         while (fadeTimer < fadeInDuration)
         {
             fadeTimer += Time.unscaledDeltaTime;
-            AlignCameraToTarget(mainCam, player, respawnLookTarget);
+            if (respawnLookTarget != null) AlignCameraToTarget(mainCam, player, respawnLookTarget);
             yield return null;
         }
 

@@ -213,6 +213,7 @@ public class GameOverJumpscareManager : MonoBehaviour
 
         // Khôi phục timeScale đề phòng pause
         Time.timeScale = 1f;
+        GameSaveManager.ResetAllGameplayRuntimeData();
 
         // Nếu SceneLoader tồn tại, dùng SceneLoader để load mượt
         if (SceneLoader.Instance != null)

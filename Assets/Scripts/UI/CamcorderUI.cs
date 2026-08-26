@@ -47,12 +47,20 @@ public class CamcorderUI : MonoBehaviour
         }
 
         Instance = this;
+        hasTriggered10s = false;
+        activeTimer = 0f;
+        savedTimer = -1f;
         
         // Tách ra khỏi GameObject cha (nếu có) để trở thành Root GameObject trước khi gọi DontDestroyOnLoad
         transform.SetParent(null);
         DontDestroyOnLoad(gameObject);
 
         SceneManager.sceneLoaded += OnSceneLoaded;
+
+        if (!HasPickedUpCamera)
+        {
+            gameObject.SetActive(false);
+        }
     }
 
     void Start()
@@ -74,8 +82,8 @@ public class CamcorderUI : MonoBehaviour
 
     void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        // RESET UI MÁY QUAY KHI VỀ MAINMENU HOẶC VÀO MAP 02 (VÌ CHƯA NHẶT MÁY QUAY Ở MAP 02)
-        if (scene.name == "MainMenu" || scene.name == "Map02")
+        // RESET UI MÁY QUAY KHI VỀ MAINMENU HOẶC VÀO MAP 01 / MAP 02
+        if (scene.name == "MainMenu" || scene.name == "Map01" || scene.name == "Map02")
         {
             ResetPickedUpCameraState();
         }
@@ -83,6 +91,14 @@ public class CamcorderUI : MonoBehaviour
 
     void OnEnable()
     {
+        if (!HasPickedUpCamera)
+        {
+            activeTimer = 0f;
+            hasTriggered10s = false;
+            savedTimer = -1f;
+            return;
+        }
+
         // Nếu đã có thời gian cũ được lưu -> Khôi phục lại, KHÔNG reset về 0
         if (savedTimer >= 0f)
         {

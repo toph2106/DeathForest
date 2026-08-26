@@ -495,6 +495,7 @@ public class WaterEndingTrigger : MonoBehaviour
         yield return new WaitForSecondsRealtime(0.2f);
 
         CamcorderUI.ResetTimer();
+        GameSaveManager.ResetAllGameplayRuntimeData();
 
         if (SceneLoader.Instance != null)
         {

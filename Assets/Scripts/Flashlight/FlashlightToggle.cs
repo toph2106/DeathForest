@@ -325,5 +325,11 @@ public class FlashlightToggle : MonoBehaviour
     {
         savedBattery = -1f;
         savedHasFlashlight = -1;
+        if (Instance != null)
+        {
+            Instance.hasFlashlight = false;
+            Instance.SetFlashlightState(false, false);
+            Instance.UnequipFlashlight();
+        }
     }
 }

@@ -227,7 +227,19 @@ public class MovePl : MonoBehaviour
         {
             controller.enabled = false;
             transform.position = spawnPoint.position;
-            transform.rotation = spawnPoint.rotation;
+
+            // Thân người (Main) luôn đứng thẳng: X = 0, Z = 0, chỉ xoay trục Y
+            transform.rotation = Quaternion.Euler(0f, spawnPoint.eulerAngles.y, 0f);
+
+            // Camera nhận góc nghiêng X (Pitch) từ spawnPoint
+            if (cameraTransform != null)
+            {
+                float pitch = spawnPoint.eulerAngles.x;
+                if (pitch > 180f) pitch -= 360f;
+                xRotation = Mathf.Clamp(pitch, -89f, 89f);
+                cameraTransform.localRotation = Quaternion.Euler(xRotation, 0f, 0f);
+            }
+
             controller.enabled = true;
         }
     }

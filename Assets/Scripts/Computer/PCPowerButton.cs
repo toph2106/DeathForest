@@ -66,6 +66,11 @@ public class PCPowerButton : MonoBehaviour, IInteractable
 
     public static bool IsPCPowerOn { get; private set; } = false;
 
+    public static void ResetPCPowerState()
+    {
+        IsPCPowerOn = false;
+    }
+
     private Collider caseCollider;
     private InteractPrompt interactPrompt;
     private AudioSource audioSource;
