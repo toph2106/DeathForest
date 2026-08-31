@@ -116,8 +116,12 @@ public class ForbiddenDangerZone : MonoBehaviour
         }
     }
 
+    [HideInInspector] public bool isZoneDeactivated = false;
+
     private void OnTriggerEnter(Collider other)
     {
+        if (isZoneDeactivated) return;
+
         if (IsPlayer(other))
         {
             isPlayerInside = true;
@@ -137,6 +141,8 @@ public class ForbiddenDangerZone : MonoBehaviour
 
     private void OnTriggerExit(Collider other)
     {
+        if (isZoneDeactivated) return;
+
         if (IsPlayer(other))
         {
             isPlayerInside = false;
@@ -150,6 +156,36 @@ public class ForbiddenDangerZone : MonoBehaviour
                 assignedUma.OnPlayerExitedZone();
             }
         }
+    }
+
+    /// <summary>
+    /// Vô hiệu hóa vùng cấm hoàn toàn (sau khi dâng tế đủ các đền thờ)
+    /// </summary>
+    public void DeactivateZone()
+    {
+        isZoneDeactivated = true;
+        isPlayerInside = false;
+        hasScheduledDialogue = false;
+
+        if (dialogueCoroutine != null)
+        {
+            StopCoroutine(dialogueCoroutine);
+            dialogueCoroutine = null;
+        }
+
+        if (subtitleTextUI != null && isAnyDialogueActive)
+        {
+            subtitleTextUI.text = "";
+            subtitleTextUI.gameObject.SetActive(false);
+            isAnyDialogueActive = false;
+        }
+
+        if (assignedUma != null)
+        {
+            assignedUma.PacifyUma();
+        }
+
+        Debug.Log($"[ForbiddenDangerZone] 🕊️ Vùng '{zoneName}' đã được hóa giải! Uma sẽ không còn tấn công người chơi.");
     }
 
     private bool IsPlayer(Collider other)

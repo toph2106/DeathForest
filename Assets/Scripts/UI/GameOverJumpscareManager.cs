@@ -129,13 +129,65 @@ public class GameOverJumpscareManager : MonoBehaviour
         if (isGameOverTriggered) return;
         isGameOverTriggered = true;
 
+        // Tắt toàn bộ âm thanh và UI không liên quan ngay lập tức
+        MuteAllUnrelatedAudioAndHideUI(audioSource);
+
         float duration = (customFadeDuration > 0f) ? customFadeDuration : fadeToBlackDuration;
         StartCoroutine(GameOverSequenceRoutine(duration));
+    }
+
+    /// <summary>
+    /// Tắt toàn bộ âm thanh và ẩn toàn bộ UI không liên quan khi bị quái vật tóm (Jumpscare / Game Over)
+    /// </summary>
+    public static void MuteAllUnrelatedAudioAndHideUI(AudioSource audioToKeep = null)
+    {
+        // 1. TẮT TẤT CẢ ÂM THANH NGOẠI CẢNH / BƯỚC CHÂN / TIẾNG QUÁI KHÁC
+        AudioSource[] allAudio = Object.FindObjectsByType<AudioSource>(FindObjectsSortMode.None);
+        if (allAudio != null)
+        {
+            foreach (var a in allAudio)
+            {
+                if (a == null) continue;
+                if (audioToKeep != null && a == audioToKeep) continue;
+                if (Instance != null && a == Instance.audioSource) continue;
+
+                try
+                {
+                    a.Stop();
+                }
+                catch { }
+            }
+        }
+
+        // 2. TẮT TẤT CẢ UI KHÔNG LIÊN QUAN (HUD, Inventory, Camcorder, Crosshair, Subtitle, Note...)
+        string[] uiNamesToDisable = new string[] 
+        { 
+            "ItemUI", "InventoryPanel", "Inventory", "Camcorder", "CameraOverlayCanvas", 
+            "Interact", "Crosshair", "Subtitle", "SubtitleText", "ReadNote", 
+            "Note", "Pause", "Tutorial", "StaminaUI", "HealthUI"
+        };
+
+        foreach (string name in uiNamesToDisable)
+        {
+            GameObject obj = GameObject.Find(name);
+            if (obj != null)
+            {
+                if (Instance != null && Instance.fadePanel != null)
+                {
+                    if (obj == Instance.fadePanel.gameObject || Instance.fadePanel.transform.IsChildOf(obj.transform))
+                    {
+                        continue;
+                    }
+                }
+                obj.SetActive(false);
+            }
+        }
     }
 
     private IEnumerator GameOverSequenceRoutine(float duration)
     {
         EnsureUIReferences();
+        MuteAllUnrelatedAudioAndHideUI(audioSource);
 
         // 1. Khóa di chuyển Player
         MovePl player = Object.FindFirstObjectByType<MovePl>();

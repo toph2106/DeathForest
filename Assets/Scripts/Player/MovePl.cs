@@ -10,6 +10,27 @@ public class MovePl : MonoBehaviour
     public float jumpHeight = 2f;
     public float gravity = -19.62f;
 
+    [Header("Stamina & Sprint Settings (Giới Hạn Thể Lực Chạy Nhanh)")]
+    [Tooltip("Thời gian chạy nhanh tối đa liên tục (Mặc định: 5 giây)")]
+    public float maxSprintDuration = 5.0f;
+
+    [Tooltip("Thời điểm bắt đầu thở dốc & giảm tốc độ (Mặc định: 4.0 giây)")]
+    public float pantingStartDuration = 4.0f;
+
+    [Tooltip("Thời gian hồi thể lực / Cooldown khi hết sức (Mặc định: 10 giây)")]
+    public float sprintCooldown = 10.0f;
+
+    [Tooltip("Âm thanh thở hộc hộc / thở dốc khi mệt")]
+    public AudioClip heavyBreathingSound;
+
+    [Tooltip("Âm thanh uống nước hồi phục thể lực")]
+    public AudioClip drinkSound;
+
+    [HideInInspector] public float currentSprintTime = 0f;
+    [HideInInspector] public float currentCooldownTime = 0f;
+    [HideInInspector] public bool isExhausted = false;
+    private AudioSource breathingAudioSource;
+
     [Header("Look Settings")]
     public Transform cameraTransform;
     public float mouseSensitivity = 100f;
@@ -90,6 +111,13 @@ public class MovePl : MonoBehaviour
         {
             cam.nearClipPlane = cameraNearClip;
         }
+
+        // Tạo AudioSource chuyên phát âm thanh thở dốc
+        breathingAudioSource = gameObject.AddComponent<AudioSource>();
+        breathingAudioSource.spatialBlend = 0f;
+        breathingAudioSource.loop = true;
+        breathingAudioSource.playOnAwake = false;
+        if (heavyBreathingSound != null) breathingAudioSource.clip = heavyBreathingSound;
 
         SyncRotationWithCurrentCamera();
     }
@@ -192,16 +220,87 @@ public class MovePl : MonoBehaviour
             float currentWalkSpeed = isSlowed ? slowWalkSpeed : walkSpeed;
             float currentSprintSpeed = isSlowed ? slowSprintSpeed : sprintSpeed;
 
-            // Tính toán tốc độ: Chạy nhanh (Shift), Đi bộ chuẩn, hoặc Ngồi (Chia đôi tốc độ)
+            // 4.1. TÍNH TOÁN THỂ LỰC & TỐC ĐỘ: Chạy nhanh tối đa 5s, thở dốc từ giây thứ 4 và Cooldown 10s
             float speed = currentWalkSpeed;
+            bool isMoving = move.sqrMagnitude > 0.001f;
+            bool isTryingToSprint = Input.GetKey(KeyCode.LeftShift) && !isCrouching && isMoving;
 
-            if (Input.GetKey(KeyCode.LeftShift) && !isCrouching)
+            if (isExhausted)
             {
-                speed = currentSprintSpeed;
+                // Đang trong thời gian Cooldown 10s -> Ép đi bộ, không được chạy nhanh
+                currentCooldownTime -= Time.deltaTime;
+                speed = currentWalkSpeed;
+
+                if (currentCooldownTime <= 0f)
+                {
+                    isExhausted = false;
+                    currentSprintTime = 0f;
+                    currentCooldownTime = 0f;
+                    if (breathingAudioSource != null && breathingAudioSource.isPlaying)
+                    {
+                        breathingAudioSource.Stop();
+                    }
+                }
             }
-            else if (isCrouching)
+            else
             {
-                speed = currentWalkSpeed * crouchSpeedMultiplier; // Chia đôi tốc độ khi ngồi
+                if (isTryingToSprint)
+                {
+                    currentSprintTime += Time.deltaTime;
+
+                    if (currentSprintTime >= maxSprintDuration)
+                    {
+                        // Hết 5 giây chạy liên tục -> Kiệt sức, chuyển sang Cooldown 10s
+                        isExhausted = true;
+                        currentCooldownTime = sprintCooldown;
+                        speed = currentWalkSpeed;
+
+                        if (breathingAudioSource != null && heavyBreathingSound != null && !breathingAudioSource.isPlaying)
+                        {
+                            breathingAudioSource.clip = heavyBreathingSound;
+                            breathingAudioSource.Play();
+                        }
+                    }
+                    else if (currentSprintTime >= pantingStartDuration)
+                    {
+                        // Từ giây thứ 4.0 đến 5.0: Bắt đầu thở dốc hộc hộc và giảm dần tốc độ về WalkSpeed
+                        if (breathingAudioSource != null && heavyBreathingSound != null && !breathingAudioSource.isPlaying)
+                        {
+                            breathingAudioSource.clip = heavyBreathingSound;
+                            breathingAudioSource.Play();
+                        }
+
+                        float t = (currentSprintTime - pantingStartDuration) / Mathf.Max(0.01f, maxSprintDuration - pantingStartDuration);
+                        speed = Mathf.Lerp(currentSprintSpeed, currentWalkSpeed, t);
+                    }
+                    else
+                    {
+                        speed = currentSprintSpeed;
+                    }
+                }
+                else
+                {
+                    // Nhả Shift hoặc không di chuyển: Thể lực hồi phục dần
+                    if (currentSprintTime > 0f)
+                    {
+                        currentSprintTime -= Time.deltaTime * (maxSprintDuration / Mathf.Max(1f, sprintCooldown * 0.5f));
+                        if (currentSprintTime < 0f) currentSprintTime = 0f;
+
+                        if (currentSprintTime < pantingStartDuration && breathingAudioSource != null && breathingAudioSource.isPlaying)
+                        {
+                            breathingAudioSource.Stop();
+                        }
+                    }
+
+                    if (isCrouching)
+                    {
+                        speed = currentWalkSpeed * crouchSpeedMultiplier; // Chia đôi tốc độ khi ngồi
+                    }
+                    else
+                    {
+                        speed = currentWalkSpeed;
+                    }
+                }
             }
 
             if (canMove)
@@ -269,6 +368,23 @@ public class MovePl : MonoBehaviour
             if (crouchHeightMultiplier <= 0f) crouchHeightMultiplier = 1f / 3f;
             crouchCamY = standingCamY * crouchHeightMultiplier;
         }
+    }
+
+    /// <summary>
+    /// Uống lon nước hồi phục thể lực ngay lập tức, xóa bỏ Cooldown mệt mỏi!
+    /// </summary>
+    public void RestoreStaminaInstant()
+    {
+        isExhausted = false;
+        currentSprintTime = 0f;
+        currentCooldownTime = 0f;
+
+        if (breathingAudioSource != null && breathingAudioSource.isPlaying)
+        {
+            breathingAudioSource.Stop();
+        }
+
+        Debug.Log("[MovePl] 🥤 Đã uống lon nước! Thể lực hồi phục 100%, có thể chạy nhanh ngay lập tức!");
     }
 
     void LateUpdate()

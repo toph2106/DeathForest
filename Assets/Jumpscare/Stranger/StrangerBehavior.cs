@@ -27,6 +27,9 @@ public class StrangerBehavior : MonoBehaviour
     public Vector3 modelRotationOffset = new Vector3(0f, 0f, 0f);
 
     [Header("2. Context Steering - Tránh Vật Cản Thông Minh 360°")]
+    [Tooltip("Layer các vật thể là vật cản cần né (Vách núi, tường, đá to). Bỏ chọn Fence/Rope để quái lướt xuyên qua không né)")]
+    public LayerMask obstacleLayerMask = ~0;
+
     [Tooltip("Khoảng cách quét phát hiện vật cản (Mặc định: 4.0m)")]
     public float sensorDistance = 4.0f;
 
@@ -316,10 +319,12 @@ public class StrangerBehavior : MonoBehaviour
 
         if (Physics.Raycast(camPos, dir.normalized, out RaycastHit hit, dist))
         {
-            // Nếu tia đụng trúng tường (không phải Stranger và không phải Player)
+            // Nếu tia đụng trúng tường cứng (không phải Stranger, không phải Player, và không phải Hàng rào Fence)
+            int fenceLayer = LayerMask.NameToLayer("Fence");
             if (hit.collider.gameObject != gameObject &&
                 !hit.collider.transform.IsChildOf(transform) &&
                 !hit.collider.CompareTag("Player") &&
+                (fenceLayer == -1 || hit.collider.gameObject.layer != fenceLayer) &&
                 (player == null || (!hit.collider.transform.IsChildOf(player) && hit.collider.gameObject != player.gameObject)))
             {
                 return false;
@@ -483,9 +488,9 @@ public class StrangerBehavior : MonoBehaviour
 
             // --- DANGER: Quét vật cản bằng SphereCast ---
             float danger = 0f;
-            if (Physics.SphereCast(origin, sensorRadius, dir, out RaycastHit hit, sensorDistance, ~0, QueryTriggerInteraction.Ignore))
+            if (Physics.SphereCast(origin, sensorRadius, dir, out RaycastHit hit, sensorDistance, obstacleLayerMask, QueryTriggerInteraction.Ignore))
             {
-                // Bỏ qua Player và chính mình
+                // Bỏ qua Player, chính mình và các đối tượng thuộc Fence/Rope nếu có
                 if (!hit.collider.CompareTag("Player") && hit.collider.gameObject != gameObject && !hit.collider.transform.IsChildOf(transform))
                 {
                     // Vật cản càng gần thì danger càng cao (0 = xa nhất, 1 = ngay sát)
@@ -542,7 +547,7 @@ public class StrangerBehavior : MonoBehaviour
             float angle = i * 10f;
             Vector3 testDir = Quaternion.Euler(0f, angle, 0f) * Vector3.forward;
 
-            if (Physics.SphereCast(origin, sensorRadius, testDir, out RaycastHit hit, sensorDistance * 2f, ~0, QueryTriggerInteraction.Ignore))
+            if (Physics.SphereCast(origin, sensorRadius, testDir, out RaycastHit hit, sensorDistance * 2f, obstacleLayerMask, QueryTriggerInteraction.Ignore))
             {
                 if (hit.collider.CompareTag("Player") || hit.collider.gameObject == gameObject || hit.collider.transform.IsChildOf(transform))
                 {

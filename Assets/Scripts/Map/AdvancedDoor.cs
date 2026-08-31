@@ -7,6 +7,11 @@ public class AdvancedDoor : MonoBehaviour, IInteractable
 {
     public enum DoorOpenType { SingleHinge, DoubleHinge, Sliding }
     public enum DoorLockType { Unlocked, KeyItem, Passcode }
+    public enum KeyUnlockStyle 
+    { 
+        InstantOpen,         // 1. Mở trực tiếp (Không đen màn hình, mở bung cánh cửa ngay lập tức)
+        CinematicFadeChain   // 2. Đen màn hình mở xích (Kiểu cổng sắt Map 02)
+    }
 
     [System.Serializable]
     public class DialogueLine
@@ -21,14 +26,18 @@ public class AdvancedDoor : MonoBehaviour, IInteractable
     [Header("1. LOẠI CỬA & LOẠI KHÓA")]
     public DoorOpenType doorType = DoorOpenType.SingleHinge;
     public DoorLockType lockType = DoorLockType.Unlocked;
+    [Tooltip("Mặc định mở sẵn cánh cửa ngay từ đầu khi load Map (Ví dụ: Map04 đã mở khóa xích từ Map02)")]
+    public bool startOpen = false;
+    [Tooltip("Kiểu mở khi có chìa: InstantOpen (Mở trực tiếp ngay) hoặc CinematicFadeChain (Đen màn hình mở xích kiểu Map02)")]
+    public KeyUnlockStyle keyUnlockStyle = KeyUnlockStyle.InstantOpen;
 
     [Header("2. CẤU HÌNH CHÌA KHÓA (TÊN TRONG INVENTORY)")]
-    [Tooltip("Tên vật phẩm chìa khóa trong túi đồ (VD: Key, Key_PhongKham, Chìa khóa...)")]
+    [Tooltip("Tên vật phẩm chìa khóa trong túi đồ (VD: Key, KhoaDen, Key_PhongKham...)")]
     public string requiredKeyName = "Key";
     [Tooltip("Có trừ/xóa chìa khóa khỏi túi đồ sau khi mở cửa thành công không?")]
     public bool removeKeyOnUse = true;
 
-    [Header("2.1. CẤU HÌNH HIỆU ỨNG MỞ XÍCH (FADE & ĐỔI KHÓA)")]
+    [Header("2.1. CẤU HÌNH HIỆU ỨNG MỞ XÍCH (FADE & ĐỔI KHÓA - NẾU BẬT FADE)")]
     [Tooltip("Đối tượng dây xích đang khóa (sẽ bị Destroy hoặc ẩn khi mở khóa)")]
     public GameObject lockedChainObject;
 
@@ -153,6 +162,12 @@ public class AdvancedDoor : MonoBehaviour, IInteractable
         {
             unlockedChainObject.SetActive(false);
         }
+        else if (!isLocked)
+        {
+            // Cửa không khóa: ẩn xích khóa, hiện xích đã tháo
+            if (lockedChainObject != null) lockedChainObject.SetActive(false);
+            if (unlockedChainObject != null) unlockedChainObject.SetActive(true);
+        }
 
         if (audioSource == null) audioSource = gameObject.AddComponent<AudioSource>();
         audioSource.spatialBlend = 0f;
@@ -167,6 +182,32 @@ public class AdvancedDoor : MonoBehaviour, IInteractable
         {
             closedRotRight = doorRight.localRotation;
             closedPosRight = doorRight.localPosition;
+        }
+
+        // Mở sẵn cánh cửa ngay từ đầu
+        if (startOpen)
+        {
+            isOpen = true;
+            isLocked = false;
+            lockType = DoorLockType.Unlocked;
+
+            if (lockedChainObject != null) lockedChainObject.SetActive(false);
+            if (unlockedChainObject != null) unlockedChainObject.SetActive(true);
+
+            if (doorType == DoorOpenType.SingleHinge && doorLeft != null)
+            {
+                doorLeft.localRotation = closedRotLeft * Quaternion.Euler(openRotationLeft);
+            }
+            else if (doorType == DoorOpenType.DoubleHinge)
+            {
+                if (doorLeft != null) doorLeft.localRotation = closedRotLeft * Quaternion.Euler(openRotationLeft);
+                if (doorRight != null) doorRight.localRotation = closedRotRight * Quaternion.Euler(openRotationRight);
+            }
+            else if (doorType == DoorOpenType.Sliding)
+            {
+                if (doorLeft != null) doorLeft.localPosition = closedPosLeft + slideOffsetLeft;
+                if (doorRight != null) doorRight.localPosition = closedPosRight + slideOffsetRight;
+            }
         }
 
         if (subtitleTextUI == null)
@@ -224,11 +265,19 @@ public class AdvancedDoor : MonoBehaviour, IInteractable
         {
             InventoryManager inventory = InventoryManager.Instance ?? Object.FindFirstObjectByType<InventoryManager>();
 
-            // NẾU ĐÃ CÓ CHÌA KHÓA TRONG TÚI ĐỒ -> BẮT ĐẦU CHUỖI FADE & MỞ KHÓA XÍCH
+            // NẾU ĐÃ CÓ CHÌA KHÓA TRONG TÚI ĐỒ
             if (inventory != null && inventory.HasItem(requiredKeyName))
             {
-                Debug.Log($"[AdvancedDoor] 🔑 Đã tìm thấy chìa khóa '{requiredKeyName}' trong túi! Bắt đầu mở khóa xích...");
-                StartCoroutine(UnlockDoorWithFadeRoutine());
+                if (keyUnlockStyle == KeyUnlockStyle.CinematicFadeChain)
+                {
+                    Debug.Log($"[AdvancedDoor] 🔑 Đã tìm thấy chìa khóa '{requiredKeyName}' -> Bắt đầu mở xích Fade đen (Map02 style)...");
+                    StartCoroutine(UnlockDoorWithFadeRoutine());
+                }
+                else
+                {
+                    Debug.Log($"[AdvancedDoor] 🔑 Đã tìm thấy chìa khóa '{requiredKeyName}' -> Mở khóa trực tiếp & mở bung cửa ngay!");
+                    UnlockAndOpenDirectly();
+                }
             }
             // NẾU CHƯA CÓ CHÌA KHÓA -> PHÁT TIẾNG KHÓA VÀ HIỆN THOẠI BÁO CỬA BỊ KHÓA
             else
@@ -243,6 +292,40 @@ public class AdvancedDoor : MonoBehaviour, IInteractable
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// Mở khóa trực tiếp: Tiêu hao chìa khóa (nếu bật), phát tiếng mở khóa và mở bung cánh cửa ra luôn không cần Fade đen màn hình!
+    /// </summary>
+    private void UnlockAndOpenDirectly()
+    {
+        // 1. Phát âm thanh mở khóa
+        AudioClip clip = unlockedSound != null ? unlockedSound : (unlockKeySound != null ? unlockKeySound : unlockPadlockSound);
+        if (clip != null)
+        {
+            PlaySound(clip, lockSoundVolume);
+        }
+
+        // 2. Trừ chìa khóa khỏi túi đồ
+        if (removeKeyOnUse)
+        {
+            InventoryManager inventory = InventoryManager.Instance ?? Object.FindFirstObjectByType<InventoryManager>();
+            if (inventory != null)
+            {
+                inventory.RemoveItem(requiredKeyName);
+            }
+        }
+
+        // 3. Xử lý xích (nếu có)
+        if (lockedChainObject != null) Destroy(lockedChainObject);
+        if (unlockedChainObject != null) unlockedChainObject.SetActive(true);
+
+        // 4. Mở khóa và tự động mở toang cửa luôn
+        isLocked = false;
+        isOpen = true;
+        PlaySound(openSound, doorSoundVolume);
+
+        Debug.Log("[AdvancedDoor] 🔓 Đã mở khóa trực tiếp thành công! Cánh cửa tự động mở toang.");
     }
 
     private IEnumerator UnlockDoorWithFadeRoutine()

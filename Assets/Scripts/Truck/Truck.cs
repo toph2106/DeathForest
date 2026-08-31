@@ -3,6 +3,7 @@ using UnityEngine.UI;
 using TMPro;
 using DG.Tweening;
 using System.Collections;
+using UnityEngine.SceneManagement;
 
 public class Truck : MonoBehaviour
 {
@@ -60,6 +61,13 @@ public class Truck : MonoBehaviour
     [Range(0f, 1f)] public float dialogueVolume = 0.8f;
     [Tooltip("Thời gian chờ Cooldown sau khi hết thoại mới trả lại quyền tương tác (Mặc định: 3.0s)")]
     public float postDialogueInteractCooldown = 3.0f;
+
+    [Header("5. Cấu Hình Chuyển Sang Map 05 (Sau Khi Xong Nghi Lễ)")]
+    [Tooltip("Tên Scene tiếp theo khi bị tông sau khi đã xong nghi thức bùa (Mặc định: 'Map05')")]
+    public string nextSceneAfterRitual = "Map05";
+
+    [Tooltip("Kéo RitualAltarInteraction vào đây (Nếu để trống code sẽ tự tìm trong Scene)")]
+    public RitualAltarInteraction ritualAltar;
 
     private Vector3 startPos;
     private Quaternion startRot;
@@ -149,7 +157,87 @@ public class Truck : MonoBehaviour
         if (rightHeadlight != null) rightHeadlight.enabled = false;
         if (bounceLight != null) bounceLight.enabled = false;
 
-        StartCoroutine(RespawnSequenceRoutine());
+        // KIỂM TRA ĐIỀU KIỆN: ĐÃ HOÀN THÀNH NGHI THỨC HAY CHƯA?
+        if (IsRitualCompleted())
+        {
+            Debug.Log($"[Truck] 🌟 ĐÃ HOÀN THÀNH NGHI THỨC! Bị tông xe sẽ CHUYỂN SANG SCENE: '{nextSceneAfterRitual}'");
+            StartCoroutine(LoadNextSceneSequenceRoutine());
+        }
+        else
+        {
+            Debug.Log("[Truck] 🔄 CHƯA hoàn thành nghi thức, bị tông xe sẽ respawn về vị trí Spawn!");
+            StartCoroutine(RespawnSequenceRoutine());
+        }
+    }
+
+    private bool IsRitualCompleted()
+    {
+        if (ritualAltar != null)
+        {
+            return ritualAltar.currentStage == RitualAltarInteraction.RitualStage.Completed;
+        }
+
+        if (RitualAltarInteraction.Instance != null)
+        {
+            return RitualAltarInteraction.Instance.currentStage == RitualAltarInteraction.RitualStage.Completed;
+        }
+
+        RitualAltarInteraction foundAltar = Object.FindFirstObjectByType<RitualAltarInteraction>(FindObjectsInactive.Include);
+        if (foundAltar != null)
+        {
+            ritualAltar = foundAltar;
+            return foundAltar.currentStage == RitualAltarInteraction.RitualStage.Completed;
+        }
+
+        return false;
+    }
+
+    IEnumerator LoadNextSceneSequenceRoutine()
+    {
+        MovePl playerMove = FindFirstObjectByType<MovePl>();
+        CharacterController cc = (player != null) ? player.GetComponent<CharacterController>() : FindFirstObjectByType<CharacterController>();
+
+        // 1. KHÓA TẠM THỜI GÓC NHÌN CHUỘT VÀ BÀN PHÍM PLAYER
+        if (playerMove != null)
+        {
+            playerMove.isCameraLocked = true;
+            playerMove.SetMovementState(false);
+            playerMove.enabled = true;
+        }
+        if (cc != null) cc.enabled = false;
+
+        Image fadeImg = GetFadeImage();
+
+        // 2. FADE OUT MỜ ĐEN MẮT VỚI DOTWEEN (FADE OUT: 1.5S)
+        if (fadeImg != null)
+        {
+            PauseMenuManager.BringFadeToFront(fadeImg);
+            PauseMenuManager.SetInGameHUDActive(false);
+
+            fadeImg.DOKill();
+            fadeImg.color = new Color(0, 0, 0, 0f);
+            fadeImg.DOFade(1f, fadeOutDuration).SetEase(Ease.OutQuad).SetUpdate(true);
+            yield return new WaitForSecondsRealtime(fadeOutDuration);
+        }
+        else
+        {
+            yield return new WaitForSecondsRealtime(fadeOutDuration);
+        }
+
+        // 3. GIỮ NGHỈ 1.0s TRONG BÓNG TỐI
+        yield return new WaitForSecondsRealtime(1.0f);
+
+        // 4. CHUYỂN SANG SCENE TIẾP THEO (MAP05)
+        Debug.Log($"[Truck] 🚀 BẮT ĐẦU CHUYỂN SANG SCENE '{nextSceneAfterRitual}'...");
+
+        if (SceneLoader.Instance != null)
+        {
+            SceneLoader.Instance.LoadSceneAsync(nextSceneAfterRitual);
+        }
+        else
+        {
+            SceneManager.LoadScene(nextSceneAfterRitual);
+        }
     }
 
     IEnumerator RespawnSequenceRoutine()
