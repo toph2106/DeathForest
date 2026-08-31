@@ -54,11 +54,17 @@ public class UmaPatrolAI : MonoBehaviour
     public AudioClip dashRoarSound;
     public AudioClip jumpscareSound;
 
-    [Header("4. Bám Đất")]
+    [Header("4. Bám Đất Chống Bay Lên Trời (Ground Snapping)")]
     public bool snapToGround = true;
     public float groundOffsetY = 0.0f;
-    public float raycastHeightAbove = 10f;
-    public float raycastDistance = 25f;
+    [Tooltip("Độ cao bắt đầu bắn tia xuống đất (Mặc định: 1.5m - Tránh bắn trúng tán cây hoặc trần nhà)")]
+    public float raycastHeightAbove = 1.5f;
+    [Tooltip("Độ dài tia bắn xuống (Mặc định: 10m)")]
+    public float raycastDistance = 10f;
+    [Tooltip("Độ chênh lệch tối đa cho phép bước lên mỗi lần (mặc định: 0.8m - Tránh nhảy vọt lên nóc đền/tượng)")]
+    public float maxStepUpHeight = 0.8f;
+    [Tooltip("Tốc độ bám đất mượt mà")]
+    public float groundSnapLerpSpeed = 15f;
     public LayerMask groundLayerMask = ~0;
 
     [Header("5. Setup Xương & Camera (Kéo Thủ Công)")]
@@ -354,8 +360,11 @@ public class UmaPatrolAI : MonoBehaviour
     // API
     // ====================================================================
 
+    [HideInInspector] public bool isPacified = false;
+
     public void OnPlayerEnteredZone(Transform player)
     {
+        if (isPacified) return;
         playerTransform = player;
         isPlayerInZone = true;
         if (aiCoroutine != null) StopCoroutine(aiCoroutine);
@@ -370,6 +379,26 @@ public class UmaPatrolAI : MonoBehaviour
             if (aiCoroutine != null) StopCoroutine(aiCoroutine);
             aiCoroutine = StartCoroutine(ReturnHomeRoutine());
         }
+    }
+
+    /// <summary>
+    /// Hóa giải Uma hoàn toàn: Dừng săn đuổi và cho Uma trở về trạng thái an toàn
+    /// </summary>
+    public void PacifyUma()
+    {
+        isPacified = true;
+        isPlayerInZone = false;
+        if (aiCoroutine != null)
+        {
+            StopCoroutine(aiCoroutine);
+            aiCoroutine = null;
+        }
+
+        if (currentState != UmaAIState.JumpscareAttack)
+        {
+            aiCoroutine = StartCoroutine(ReturnHomeRoutine());
+        }
+        Debug.Log("[UmaPatrolAI] 🕊️ Uma đã được hóa giải, không còn tấn công người chơi!");
     }
 
     // ====================================================================
@@ -459,7 +488,10 @@ public class UmaPatrolAI : MonoBehaviour
         currentState = UmaAIState.JumpscareAttack;
         StopAnimation();
 
-        // 1. Khóa Player
+        // 1. Tắt sạch UI và âm thanh ngoại cảnh không liên quan ngay lập tức
+        GameOverJumpscareManager.MuteAllUnrelatedAudioAndHideUI(audioSource);
+
+        // 2. Khóa Player
         if (playerScript != null)
         {
             playerScript.isCameraLocked = true;
@@ -469,7 +501,7 @@ public class UmaPatrolAI : MonoBehaviour
         CharacterController pcc = playerScript?.GetComponent<CharacterController>();
         if (pcc != null) pcc.enabled = false;
 
-        // 2. Bật âm thanh Jumpscare đinh tai
+        // 3. Bật âm thanh Jumpscare đinh tai
         if (jumpscareSound != null && audioSource != null)
         {
             audioSource.spatialBlend = 0f;
@@ -636,28 +668,50 @@ public class UmaPatrolAI : MonoBehaviour
     {
         if (!snapToGround) return;
         Vector3 pos = transform.position;
-        Vector3 rayOrigin = new Vector3(pos.x, pos.y + raycastHeightAbove, pos.z);
+        float currentFeetY = pos.y;
 
-        if (Physics.Raycast(rayOrigin, Vector3.down, out RaycastHit hit, raycastDistance, groundLayerMask, QueryTriggerInteraction.Ignore))
+        // Bắn tia từ ngay trên lưng Uma (pos.y + raycastHeightAbove, tối đa 1.8m để không bắn trúng ngọn cây/mái đền)
+        float checkHeight = (raycastHeightAbove > 0f) ? Mathf.Min(raycastHeightAbove, 1.8f) : 1.5f;
+        Vector3 rayOrigin = new Vector3(pos.x, pos.y + checkHeight, pos.z);
+        float maxCheckDist = (raycastDistance > 0f) ? raycastDistance : 15f;
+
+        RaycastHit[] hits = Physics.RaycastAll(rayOrigin, Vector3.down, maxCheckDist, groundLayerMask, QueryTriggerInteraction.Ignore);
+        
+        float bestGroundY = -9999f;
+        bool foundValidGround = false;
+
+        foreach (var h in hits)
         {
-            if (hit.collider.isTrigger || hit.collider.transform.IsChildOf(transform) || hit.collider.CompareTag("Player"))
+            if (h.collider == null) continue;
+            if (h.collider.isTrigger) continue;
+            if (h.collider.transform.IsChildOf(transform)) continue;
+            if (h.collider.CompareTag("Player")) continue;
+
+            // Bỏ qua tường dựng đứng hoặc trần dốc ngược (chỉ chấp nhận mặt đất đi được)
+            if (h.normal.y < 0.35f) continue;
+
+            // QUAN TRỌNG: BỎ QUA NẾU ĐIỂM CHẠM CAO HƠN VỊ TRÍ CHÂN QUÁ maxStepUpHeight (Tránh cành cây, tượng, mái đền trên đầu)
+            if (h.point.y > currentFeetY + maxStepUpHeight) continue;
+
+            // Lấy mặt đất cao nhất và hợp lệ ở dưới chân
+            if (h.point.y > bestGroundY)
             {
-                RaycastHit[] hits = Physics.RaycastAll(rayOrigin, Vector3.down, raycastDistance, groundLayerMask, QueryTriggerInteraction.Ignore);
-                foreach (var h in hits)
-                {
-                    if (h.collider.isTrigger) continue;
-                    if (h.collider.transform.IsChildOf(transform)) continue;
-                    if (h.collider.CompareTag("Player")) continue;
-                    if (h.normal.y > 0.25f)
-                    {
-                        pos.y = h.point.y + groundOffsetY;
-                        transform.position = pos;
-                        return;
-                    }
-                }
-                return;
+                bestGroundY = h.point.y;
+                foundValidGround = true;
             }
-            pos.y = hit.point.y + groundOffsetY;
+        }
+
+        if (foundValidGround)
+        {
+            float targetY = bestGroundY + groundOffsetY;
+            // Bám đất mượt mà, không bao giờ bị nhảy vọt lên trời
+            pos.y = Mathf.MoveTowards(pos.y, targetY, groundSnapLerpSpeed * Time.deltaTime);
+            transform.position = pos;
+        }
+        else
+        {
+            // Nếu hụt chân (rơi nhẹ), kéo xuống theo trọng lực thay vì bay lên
+            pos.y -= 9.81f * Time.deltaTime;
             transform.position = pos;
         }
     }

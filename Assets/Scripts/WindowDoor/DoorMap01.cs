@@ -81,9 +81,16 @@ public class DoorExit : MonoBehaviour, IInteractable
     private Coroutine fadeCoroutine;
     private SmartInteractionDialogue dialoguePlayer;
 
-    void Start()
+    private bool hasInitializedPositions = false;
+
+    void Awake()
     {
-        isLocked = lockOnStart;
+        EnsurePositionsInitialized();
+    }
+
+    public void EnsurePositionsInitialized()
+    {
+        if (hasInitializedPositions) return;
 
         if (doorBody == null) doorBody = transform;
 
@@ -106,6 +113,14 @@ public class DoorExit : MonoBehaviour, IInteractable
         {
             openPosition = closedPosition + slideDirection;
         }
+
+        hasInitializedPositions = true;
+    }
+
+    void Start()
+    {
+        EnsurePositionsInitialized();
+        isLocked = lockOnStart;
 
         audioSource = GetComponent<AudioSource>();
         if (audioSource == null) audioSource = gameObject.AddComponent<AudioSource>();
@@ -275,6 +290,7 @@ public class DoorExit : MonoBehaviour, IInteractable
 
     public void CloseDoor(bool snapInstantly = false)
     {
+        EnsurePositionsInitialized();
         isDoorOpen = false;
         isInteractionBlocked = true;
         HidePrompt();

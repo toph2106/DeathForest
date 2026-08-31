@@ -75,6 +75,7 @@ GameObject:
   - component: {fileID: 5683485297984753299}
   - component: {fileID: 5761433204690837563}
   - component: {fileID: 6488991360758753095}
+  - component: {fileID: 2737248913849774928}
   m_Layer: 0
   m_Name: CTI Monk Statue 01.Shape_Buddha_statue_0
   m_TagString: Untagged
@@ -153,3 +154,25 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!64 &2737248913849774928
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8814309850789522576}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: -2251627955732226211, guid: 38620c9938199b34bbd147fe3f958dac, type: 3}

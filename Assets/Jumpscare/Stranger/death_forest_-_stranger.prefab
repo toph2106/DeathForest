@@ -9,7 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7705396128193991873}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: IK_foot_r_023
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -40,7 +40,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4047635235773219514}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: IK_foot_l_022
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -71,7 +71,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5270160641725184273}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: arm1_r_06
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -103,7 +103,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1817498770860390536}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: Object_2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -135,7 +135,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7679526471753488191}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: foot1_r_017
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -167,7 +167,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7991593094192519334}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: foot3_l_016
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -198,7 +198,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1789362617165615451}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: foot2_r_018
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -230,7 +230,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 960500378846897715}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: berry_00
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -269,7 +269,7 @@ GameObject:
   - component: {fileID: 1839163729016451995}
   - component: {fileID: 6462543623231159551}
   - component: {fileID: 6461060203554029184}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: death_forest_-_stranger
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -328,8 +328,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StrangerBehavior
   fastSpeed: 100
   killDistance: 2.5
+  fallSpeed: 35
   groundOffset: 20
   modelRotationOffset: {x: 0, y: 0, z: 0}
+  obstacleLayerMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
   sensorDistance: 4
   sensorRadius: 0.3
   sensorHeight: 0.8
@@ -339,6 +343,9 @@ MonoBehaviour:
   creepSound: {fileID: 0}
   catchJumpscareSound: {fileID: 0}
   stareDurationBeforeReset: 1.5
+  permanentFreezeOnLook: 0
+  isPermanentlyFrozen: 0
+  minigameManager: {fileID: 0}
 --- !u!143 &6461060203554029184
 CharacterController:
   m_ObjectHideFlags: 0
@@ -373,7 +380,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3091608997168263754}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: Armature_enemy_tonnel
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -405,7 +412,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 336033003848741901}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: arm2_l_03
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -437,7 +444,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 791687210768816638}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: arm3_r_08
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -469,7 +476,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 43397953724995637}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: head_010
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -501,7 +508,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8721468466672773359}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: foot3_r_019
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -532,7 +539,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5619685147875198409}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: Object_6
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -566,7 +573,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5780579034475186769}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: arm4_r_09
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -597,7 +604,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5159482245963176390}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: 443bd94d584645708179b1c9ead0cadc.fbx
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -629,7 +636,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6450950040555982339}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: enemy_tonnel
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -660,7 +667,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8861058816086395882}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: Sketchfab_model
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -692,7 +699,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3824570663953144028}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: arm1_l_02
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -724,7 +731,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5512921877962727200}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: body_01
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -760,7 +767,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1153419109037450247}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: arm4_l_05
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -791,7 +798,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1548853375124646211}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: IK_arm_r_021
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -822,7 +829,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2352991944373477636}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: IK_arm_r2_013
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -853,7 +860,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2625868463555639767}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: enemy_tonnel__1_
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -886,7 +893,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6533381531911445446}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: RootNode
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -918,7 +925,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3810156937704265365}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: foot1_l_014
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -950,7 +957,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 702600932416874580}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: IK_arm_l_020
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -981,7 +988,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8956684299663542055}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: _rootJoint
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1015,7 +1022,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1318947772803365390}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: chin_011
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1046,7 +1053,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4198527619717719993}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: arm3_l_04
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1079,7 +1086,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4052404052849805721}
   - component: {fileID: 3728849995991145749}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: Object_33
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1194,7 +1201,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8803106740234595541}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: Object_32
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1225,7 +1232,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5787923958683978829}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: foot2_l_015
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1257,7 +1264,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4530637517287863981}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: arm2_r_07
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1289,7 +1296,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 9123270127313642688}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: IK_arm_l2_012
   m_TagString: Untagged
   m_Icon: {fileID: 0}
