@@ -177,8 +177,14 @@ public class MainMenuUI : MonoBehaviour
         GameSaveManager.NewGame();
         GameSaveManager.SetCurrentLevel(1);
 
+        InventoryManager.ResetInventoryData();
+        FlashlightToggle.ResetFlashlightData();
+        CamcorderUI.ResetPickedUpCameraState();
+        CamcorderUI.ResetTimer();
+
         PlayerPrefs.DeleteKey("Global_Has_Flashlight");
         PlayerPrefs.DeleteKey("Global_Flashlight_Battery");
+        PlayerPrefs.SetInt("Global_Has_Camera", 0);
         PlayerPrefs.DeleteKey("Global_Has_Camera");
         PlayerPrefs.DeleteKey("Global_Inventory_Items");
         PlayerPrefs.DeleteKey("Global_Inventory_Types");
@@ -194,6 +200,21 @@ public class MainMenuUI : MonoBehaviour
         if (isTransitioning) return;
         GameSaveManager.NewGame();
         GameSaveManager.SetCurrentLevel(1);
+
+        InventoryManager.ResetInventoryData();
+        FlashlightToggle.ResetFlashlightData();
+        CamcorderUI.ResetPickedUpCameraState();
+        CamcorderUI.ResetTimer();
+
+        PlayerPrefs.DeleteKey("Global_Has_Flashlight");
+        PlayerPrefs.DeleteKey("Global_Flashlight_Battery");
+        PlayerPrefs.SetInt("Global_Has_Camera", 0);
+        PlayerPrefs.DeleteKey("Global_Has_Camera");
+        PlayerPrefs.DeleteKey("Global_Inventory_Items");
+        PlayerPrefs.DeleteKey("Global_Inventory_Types");
+        PlayerPrefs.DeleteKey("Global_Has_Backpack");
+        PlayerPrefs.Save();
+
         StartCoroutine(FadeAndLoad("Map01"));
     }
 
@@ -208,8 +229,10 @@ public class MainMenuUI : MonoBehaviour
         FlashlightToggle.ResetFlashlightData();
         CamcorderUI.ResetPickedUpCameraState();
         CamcorderUI.ResetTimer();
+
         PlayerPrefs.DeleteKey("Global_Has_Flashlight");
         PlayerPrefs.DeleteKey("Global_Flashlight_Battery");
+        PlayerPrefs.SetInt("Global_Has_Camera", 0);
         PlayerPrefs.DeleteKey("Global_Has_Camera");
         PlayerPrefs.DeleteKey("Global_Inventory_Items");
         PlayerPrefs.DeleteKey("Global_Inventory_Types");

@@ -52,18 +52,18 @@ public class InventoryManager : MonoBehaviour
     }
 
     [Header("3D Model Preview Trong Ô Slot")]
-    [Tooltip("Bật chế độ hiển thị Model 3D thật xoay xoay trong từng ô slot")]
+    [Tooltip("Bật chế độ hiển thị Model 3D thật trong từng ô slot")]
     public bool enable3DItemPreview = true;
     [Tooltip("Danh sách Prefab 3D gán sẵn theo tên (VD: Tên 'Pin' -> Kéo Prefab Battery vào đây)")]
     public Item3DPrefabEntry[] default3DPrefabs;
-    [Tooltip("Khoảng cách đặt Model 3D trước Camera")]
+    [Tooltip("Khoảng cách đặt Model 3D trước Camera theo trục Z (Mặc định: 0.35 đồng bộ chuẩn Map 04)")]
     public float previewDistance = 0.35f;
-    [Tooltip("Kích thước hiển thị của Model 3D trong ô")]
+    [Tooltip("Kích thước hiển thị của Model 3D trong ô (Mặc định: 0.035 đồng bộ chuẩn Map 04)")]
     public float previewItemScale = 0.035f;
-    [Tooltip("Tốc độ xoay của Model 3D (Đặt 0 để đứng yên không xoay)")]
-    public float previewRotateSpeed = 0f;
-    [Tooltip("Góc nghiêng của Model 3D khi hiển thị")]
-    public Vector3 previewTiltEuler = new Vector3(20f, 35f, -15f);
+    [Tooltip("Tốc độ xoay của Model 3D (Mặc định: 45 xoay đều mượt mà như Map 04)")]
+    public float previewRotateSpeed = 45f;
+    [Tooltip("Góc nghiêng của Model 3D khi hiển thị (Mặc định: (20, 0, 0) như Map 04)")]
+    public Vector3 previewTiltEuler = new Vector3(20f, 0f, 0f);
 
     [HideInInspector] public GameObject questProgressTextObject;
     [HideInInspector] public TextMeshProUGUI questProgressText;
@@ -76,6 +76,8 @@ public class InventoryManager : MonoBehaviour
     private GameObject[] slot3DModels; // Mảng lưu các GameObject 3D preview
     private Vector3[] slotBaseScales; // Lưu Scale chuẩn để Zoom khi chọn ô
     private Image[] slotIconImages; // Các hình Icon con bên trong ô Slot UI
+    private Color[] slotOriginalColors; // Lưu màu nền gốc của từng ô slot
+    private Color lockedSlotColor = new Color(0.12f, 0.12f, 0.12f, 0.22f); // Màu tối cho các ô bị khóa
 
     private int selectedIndex = -1;
     private int currentQuestItemCount = 0;
@@ -175,10 +177,30 @@ public class InventoryManager : MonoBehaviour
             }
         }
 
-        if (slotTransforms != null && slotTransforms.Length > 0 && slotTransforms[0] != null)
+        if (slotTransforms != null && slotTransforms.Length > 0)
         {
-            normalScale = slotTransforms[0].localScale;
-            selectedScale = normalScale * 1.15f;
+            slotOriginalColors = new Color[slotTransforms.Length];
+            for (int i = 0; i < slotTransforms.Length; i++)
+            {
+                if (slotTransforms[i] != null)
+                {
+                    Image img = slotTransforms[i].GetComponent<Image>();
+                    if (img != null)
+                    {
+                        slotOriginalColors[i] = img.color;
+                    }
+                    else
+                    {
+                        slotOriginalColors[i] = new Color(0f, 0f, 0f, 0.47f);
+                    }
+                }
+            }
+
+            if (slotTransforms[0] != null)
+            {
+                normalScale = slotTransforms[0].localScale;
+                selectedScale = normalScale * 1.15f;
+            }
         }
         else
         {
@@ -186,7 +208,6 @@ public class InventoryManager : MonoBehaviour
             selectedScale = new Vector3(1.15f, 1.15f, 1.15f);
         }
     }
-
     public void RestoreInventoryState()
     {
         string sceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
@@ -201,52 +222,145 @@ public class InventoryManager : MonoBehaviour
             if (GameSaveManager.HasSaveFile()) GameSaveManager.DeleteSaveFile();
         }
 
-        // 2. Map 02 mặc định không có Balo -> Luôn khóa 4 ô còn lại (Chỉ 5 ô đầu)
-        if (sceneName == "Map02")
+        // 2. Cấu hình mở khóa Balo và Nạp dữ liệu theo Scene:
+        if (sceneName == "Map01" || sceneName == "Map02")
         {
             hasUnlockedBackpack = false;
             PlayerPrefs.SetInt("Global_Has_Backpack", 0);
-        }
 
-        // 3. Khôi phục từ Checkpoint Map 02 nếu sang Map 03, hoặc từ Save
-        if (sceneName == "Map03" && GameSaveManager.HasMap02Checkpoint())
-        {
-            GameSaveManager.ApplyMap02CheckpointToCurrentSave();
-            hasUnlockedBackpack = false; // Balo nằm trong nhà ở Map03, chưa nhặt thì luôn bị khóa 4 ô
-            PlayerPrefs.SetInt("Global_Has_Backpack", 0);
-            PlayerPrefs.Save();
-        }
-        else if (GameSaveManager.HasSaveFile())
-        {
-            LoadFromJson();
-        }
-        else if (savedHeldItems == null || savedHeldItems.Length == 0)
-        {
-            LoadFromPlayerPrefs();
-        }
-
-        // Khi vào Map 03: Lọc sạch các món quest cũ, chỉ giữ lại pin
-        if (sceneName == "Map03" && savedHeldItems != null)
-        {
-            for (int i = 0; i < savedHeldItems.Length; i++)
+            // Trong Map 01 và Map 02: TUYỆT ĐỐI KHÔNG nạp JSON save của Map 03 / Map 04!
+            // Chỉ nạp dữ liệu của chính Map 02 nếu có trong PlayerPrefs
+            if (savedHeldItems == null || savedHeldItems.Length == 0)
             {
-                string it = savedHeldItems[i];
-                if (!string.IsNullOrEmpty(it))
+                LoadFromPlayerPrefs();
+            }
+
+            // Lọc sạch 100% các món đồ nhiệm vụ của Map 03/Map 04 (tay, chân, đầu, gore, bùa...)
+            if (savedHeldItems != null)
+            {
+                for (int i = 0; i < savedHeldItems.Length; i++)
                 {
-                    string lower = it.ToLower();
-                    if (lower.Contains("gore") || lower.Contains("arm") || lower.Contains("feet") || lower.Contains("head") || lower.Contains("bua"))
+                    string it = savedHeldItems[i];
+                    if (!string.IsNullOrEmpty(it))
                     {
-                        savedHeldItems[i] = "";
-                        if (savedHeldItemTypes != null && i < savedHeldItemTypes.Length)
+                        string lower = it.ToLower();
+                        if (lower.Contains("gore") || lower.Contains("arm") || lower.Contains("feet") || lower.Contains("head") || lower.Contains("bua"))
                         {
-                            savedHeldItemTypes[i] = InteractableItem.ItemType.Consumable;
+                            savedHeldItems[i] = "";
+                            if (savedHeldItemTypes != null && i < savedHeldItemTypes.Length)
+                            {
+                                savedHeldItemTypes[i] = InteractableItem.ItemType.Consumable;
+                            }
                         }
                     }
                 }
             }
         }
+        else if (sceneName == "Map03")
+        {
+            if (GameSaveManager.HasMap02Checkpoint())
+            {
+                GameSaveManager.ApplyMap02CheckpointToCurrentSave();
+                hasUnlockedBackpack = false; // Balo nằm trong nhà ở Map03, chưa nhặt thì luôn bị khóa 4 ô
+                PlayerPrefs.SetInt("Global_Has_Backpack", 0);
+                PlayerPrefs.Save();
+            }
 
-        // 4. Khởi tạo mảng dữ liệu túi đồ (sức chứa theo số slot trong prefab / UI)
+            if (GameSaveManager.HasSaveFile())
+            {
+                LoadFromJson();
+            }
+            else if (savedHeldItems == null || savedHeldItems.Length == 0)
+            {
+                LoadFromPlayerPrefs();
+            }
+
+            // Khi vào Map 03: Nếu là từ Map 02 sang thì lọc sạch các món quest cũ, chỉ giữ lại pin / nước
+            if (GameSaveManager.HasMap02Checkpoint() && savedHeldItems != null)
+            {
+                for (int i = 0; i < savedHeldItems.Length; i++)
+                {
+                    string it = savedHeldItems[i];
+                    if (!string.IsNullOrEmpty(it))
+                    {
+                        string lower = it.ToLower();
+                        if (lower.Contains("gore") || lower.Contains("arm") || lower.Contains("feet") || lower.Contains("head") || lower.Contains("bua"))
+                        {
+                            savedHeldItems[i] = "";
+                            if (savedHeldItemTypes != null && i < savedHeldItemTypes.Length)
+                            {
+                                savedHeldItemTypes[i] = InteractableItem.ItemType.Consumable;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        else if (sceneName == "Map04" || sceneName == "Map05")
+        {
+            hasUnlockedBackpack = true;
+            PlayerPrefs.SetInt("Global_Has_Backpack", 1);
+
+            if (GameSaveManager.HasSaveFile())
+            {
+                LoadFromJson();
+                hasUnlockedBackpack = true;
+            }
+            else if (savedHeldItems == null || savedHeldItems.Length == 0)
+            {
+                LoadFromPlayerPrefs();
+                hasUnlockedBackpack = true;
+            }
+        }
+
+        // Khi vào Map 04 hoặc Map 05: Bắt buộc đảm bảo có đủ 8 món theo yêu cầu qua cảnh (Bùa, 2 Tay, 2 Chân, Đầu, 2 Gore)
+        if (sceneName == "Map04" || sceneName == "Map05")
+        {
+            hasUnlockedBackpack = true;
+            string[] required8 = new string[] { "Bua", "ArmsL", "ArmsR", "FeetL", "FeetR", "Head", "Gore", "Gore" };
+
+            List<string> currentList = new List<string>();
+            if (savedHeldItems != null)
+            {
+                foreach (var it in savedHeldItems)
+                {
+                    if (!string.IsNullOrEmpty(it)) currentList.Add(it);
+                }
+            }
+
+            bool hasAll8 = true;
+            List<string> tempCheck = new List<string>(currentList);
+            foreach (var req in required8)
+            {
+                int idx = tempCheck.FindIndex(x => x.ToLower().Contains(req.ToLower()));
+                if (idx >= 0) tempCheck.RemoveAt(idx);
+                else { hasAll8 = false; break; }
+            }
+
+            if (!hasAll8)
+            {
+                List<string> new8List = new List<string>(required8);
+                foreach (var extra in currentList)
+                {
+                    if (extra.ToLower().Contains("pin") || extra.ToLower().Contains("battery") || extra.ToLower().Contains("water"))
+                    {
+                        if (new8List.Count < 9) new8List.Add(extra);
+                    }
+                }
+
+                savedHeldItems = new8List.ToArray();
+                savedHeldItemTypes = new InteractableItem.ItemType[savedHeldItems.Length];
+                for (int i = 0; i < savedHeldItems.Length; i++)
+                {
+                    string it = savedHeldItems[i].ToLower();
+                    if (it.Contains("pin") || it.Contains("battery")) savedHeldItemTypes[i] = InteractableItem.ItemType.Battery;
+                    else if (it.Contains("key")) savedHeldItemTypes[i] = InteractableItem.ItemType.Key;
+                    else savedHeldItemTypes[i] = InteractableItem.ItemType.Consumable;
+                }
+            }
+        }
+
+        // 4. Khởi tạo mảng dữ liệu túi đồ (sức chứa đủ theo số slot trong prefab / UI, thường là 9)
         int totalCap = (slotTransforms != null && slotTransforms.Length > 0) ? slotTransforms.Length : expandedSlotCount;
         heldItems = new string[totalCap];
         heldItemObjects = new GameObject[totalCap];
@@ -439,7 +553,14 @@ public class InventoryManager : MonoBehaviour
 
         string cleanName = itemName.Trim();
         GameObject p = Resources.Load<GameObject>("ItemPrefabs/" + cleanName);
-        if (p != null) return p;
+        if (p != null)
+        {
+            MeshFilter mf = p.GetComponentInChildren<MeshFilter>(true);
+            if (mf == null || mf.sharedMesh == null || !mf.sharedMesh.name.ToLower().Contains("cube"))
+            {
+                return p;
+            }
+        }
 
         string lower = cleanName.ToLower().Replace(" ", "").Replace("_", "");
         string targetPrefab = null;
@@ -452,12 +573,50 @@ public class InventoryManager : MonoBehaviour
         else if (lower.Contains("head") || lower.Contains("dau")) targetPrefab = "Head";
         else if (lower.Contains("gore") || lower.Contains("xac") || lower.Contains("ruot")) targetPrefab = "Gore";
         else if (lower.Contains("pin") || lower.Contains("battery")) targetPrefab = "Battery";
+        else if (lower.Contains("can") || lower.Contains("nuoc") || lower.Contains("water") || lower.Contains("drink") || lower.Contains("soda") || lower.Contains("lon")) targetPrefab = "Can";
         else if (lower.Contains("key") || lower.Contains("khoa")) targetPrefab = "Key";
 
         if (!string.IsNullOrEmpty(targetPrefab))
         {
             p = Resources.Load<GameObject>("ItemPrefabs/" + targetPrefab);
-            if (p != null) return p;
+            if (p != null)
+            {
+                MeshFilter mf = p.GetComponentInChildren<MeshFilter>(true);
+                if (mf == null || mf.sharedMesh == null || !mf.sharedMesh.name.ToLower().Contains("cube"))
+                {
+                    return p;
+                }
+            }
+        }
+
+        // Tự động tìm model 3D thật trong Scene nếu Resources thiếu hoặc bị thành Cube
+        InteractableItem[] allItems = Object.FindObjectsByType<InteractableItem>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        foreach (var it in allItems)
+        {
+            if (it == null) continue;
+            string iname = (it.itemNameOrQuestName ?? it.gameObject.name).ToLower().Replace(" ", "").Replace("_", "");
+            if (lower.Contains("pin") || lower.Contains("battery"))
+            {
+                if ((iname.Contains("pin") || iname.Contains("battery")) && it.GetComponentInChildren<MeshFilter>(true) != null)
+                {
+                    MeshFilter mf = it.GetComponentInChildren<MeshFilter>(true);
+                    if (mf != null && mf.sharedMesh != null && !mf.sharedMesh.name.ToLower().Contains("cube"))
+                    {
+                        return it.gameObject;
+                    }
+                }
+            }
+            else if (lower.Contains("can") || lower.Contains("nuoc") || lower.Contains("drink") || lower.Contains("water") || lower.Contains("soda") || lower.Contains("lon"))
+            {
+                if (iname.Contains("can") || iname.Contains("nuoc") || iname.Contains("drink") || iname.Contains("water") || iname.Contains("lon"))
+                {
+                    return it.gameObject;
+                }
+            }
+            else if (!string.IsNullOrEmpty(targetPrefab) && iname.Contains(targetPrefab.ToLower()))
+            {
+                return it.gameObject;
+            }
         }
 
         return null;
@@ -489,20 +648,24 @@ public class InventoryManager : MonoBehaviour
         Canvas canvas = slotRt.GetComponentInParent<Canvas>();
         if (canvas != null)
         {
+            Vector3 centerWorld = slotRt.TransformPoint(slotRt.rect.center);
+
             if (canvas.renderMode != RenderMode.ScreenSpaceOverlay && canvas.worldCamera != null)
             {
-                return RectTransformUtility.WorldToScreenPoint(canvas.worldCamera, slotRt.position);
+                return RectTransformUtility.WorldToScreenPoint(canvas.worldCamera, centerWorld);
             }
 
             RectTransform canvasRt = canvas.transform as RectTransform;
             if (canvasRt != null)
             {
-                Vector3 localInCanvas = canvasRt.InverseTransformPoint(slotRt.position);
-                float scale = canvas.scaleFactor;
-                return new Vector2(
-                    canvasRt.rect.width * canvasRt.pivot.x + localInCanvas.x,
-                    canvasRt.rect.height * canvasRt.pivot.y + localInCanvas.y
-                ) * scale;
+                Vector3 centerInCanvas = canvasRt.InverseTransformPoint(centerWorld);
+                float scaleX = (canvasRt.rect.width > 0.0001f) ? ((float)Screen.width / canvasRt.rect.width) : 1f;
+                float scaleY = (canvasRt.rect.height > 0.0001f) ? ((float)Screen.height / canvasRt.rect.height) : 1f;
+
+                float screenX = (centerInCanvas.x - canvasRt.rect.xMin) * scaleX;
+                float screenY = (centerInCanvas.y - canvasRt.rect.yMin) * scaleY;
+
+                return new Vector2(screenX, screenY);
             }
         }
 
@@ -570,7 +733,7 @@ public class InventoryManager : MonoBehaviour
             bool success = AddConsumableItem("Pin", null);
             if (success)
             {
-                Debug.Log("⚡ [DEMO CHEAT] Đã thêm 1 Cục Pin!");
+                Debug.Log("[DEMO CHEAT] Đã thêm 1 Cục Pin!");
             }
         }
 
@@ -580,7 +743,7 @@ public class InventoryManager : MonoBehaviour
             {
                 FlashlightToggle.Instance.hasFlashlight = true;
                 FlashlightToggle.Instance.RechargeBattery(100f);
-                Debug.Log("⚡ [DEMO CHEAT] Đã nạp đầy 100% Pin Đèn Pin!");
+                Debug.Log("[DEMO CHEAT] Đã nạp đầy 100% Pin Đèn Pin!");
             }
         }
     }
@@ -741,10 +904,11 @@ public class InventoryManager : MonoBehaviour
 
     private int GetHoveredOrSelectedSlotIndex()
     {
+        int activeCap = CurrentCapacity;
         if (slotTransforms != null)
         {
             Vector2 mousePos = Input.mousePosition;
-            for (int i = 0; i < slotTransforms.Length; i++)
+            for (int i = 0; i < slotTransforms.Length && i < activeCap; i++)
             {
                 if (slotTransforms[i] != null && slotTransforms[i].gameObject.activeInHierarchy)
                 {
@@ -760,7 +924,7 @@ public class InventoryManager : MonoBehaviour
             }
         }
 
-        if (selectedIndex >= 0 && heldItems != null && selectedIndex < heldItems.Length && !string.IsNullOrEmpty(heldItems[selectedIndex]))
+        if (selectedIndex >= 0 && selectedIndex < activeCap && heldItems != null && selectedIndex < heldItems.Length && !string.IsNullOrEmpty(heldItems[selectedIndex]))
         {
             return selectedIndex;
         }
@@ -891,6 +1055,50 @@ public class InventoryManager : MonoBehaviour
         SaveInventoryData();
     }
 
+    private Material CreateUnlitPreviewMaterial(Material origMat)
+    {
+        if (origMat == null) return null;
+
+        Shader unlitShader = Shader.Find("Universal Render Pipeline/Unlit")
+                           ?? Shader.Find("Universal Render Pipeline/Simple Lit")
+                           ?? Shader.Find("Unlit/Texture")
+                           ?? Shader.Find("Unlit/Color");
+
+        Material pMat = (unlitShader != null) ? new Material(unlitShader) : new Material(origMat);
+
+        Texture mainTex = origMat.mainTexture;
+        if (mainTex == null && origMat.HasProperty("_BaseMap")) mainTex = origMat.GetTexture("_BaseMap");
+        if (mainTex == null && origMat.HasProperty("_MainTex")) mainTex = origMat.GetTexture("_MainTex");
+        if (mainTex == null && origMat.HasProperty("_BaseColorTexture")) mainTex = origMat.GetTexture("_BaseColorTexture");
+        if (mainTex == null && origMat.HasProperty("diffuseTexture")) mainTex = origMat.GetTexture("diffuseTexture");
+
+        Color col = Color.white;
+        if (origMat.HasProperty("_BaseColor")) col = origMat.GetColor("_BaseColor");
+        else if (origMat.HasProperty("_Color")) col = origMat.GetColor("_Color");
+
+        // Giữ nguyên độ sáng chuẩn tự nhiên của vật phẩm (như Map 04)
+        col.r = Mathf.Clamp01(col.r);
+        col.g = Mathf.Clamp01(col.g);
+        col.b = Mathf.Clamp01(col.b);
+        col.a = 1.0f;
+
+        if (mainTex != null)
+        {
+            pMat.mainTexture = mainTex;
+            if (pMat.HasProperty("_BaseMap")) pMat.SetTexture("_BaseMap", mainTex);
+            if (pMat.HasProperty("_MainTex")) pMat.SetTexture("_MainTex", mainTex);
+        }
+        if (pMat.HasProperty("_BaseColor")) pMat.SetColor("_BaseColor", col);
+        if (pMat.HasProperty("_Color")) pMat.SetColor("_Color", col);
+        if (pMat.HasProperty("_EmissionColor")) pMat.SetColor("_EmissionColor", Color.black);
+        if (pMat.HasProperty("emissiveFactor")) pMat.SetColor("emissiveFactor", Color.black);
+
+        pMat.DisableKeyword("_EMISSION");
+        pMat.DisableKeyword("_SPECULAR_SETUP");
+
+        return pMat;
+    }
+
     private void Create3DPreviewForSlot(int slotIndex, string itemName, GameObject itemSource)
     {
         if (!enable3DItemPreview || slotIndex < 0 || slotIndex >= CurrentCapacity) return;
@@ -973,22 +1181,22 @@ public class InventoryManager : MonoBehaviour
             r.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
             r.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
 
-            // Tắt emission trên vật liệu preview để KHÔNG BỊ CHÓI TRẮNG bởi Bloom
+            // Chuyển toàn bộ sang Unlit Material hiển thị rõ ràng vân khối như Map 04
             if (r.materials != null)
             {
                 Material[] previewMats = new Material[r.materials.Length];
                 for (int m = 0; m < r.materials.Length; m++)
                 {
-                    if (r.materials[m] == null) continue;
-                    Material pMat = new Material(r.materials[m]);
-                    if (pMat.HasProperty("_EmissionColor")) pMat.SetColor("_EmissionColor", Color.black);
-                    if (pMat.HasProperty("emissiveFactor")) pMat.SetColor("emissiveFactor", Color.black);
-                    pMat.DisableKeyword("_EMISSION");
-                    previewMats[m] = pMat;
+                    previewMats[m] = CreateUnlitPreviewMaterial(r.materials[m]);
                 }
                 r.materials = previewMats;
             }
         }
+
+        // ĐẶT ROOT VỀ (0,0,0) TRƯỚC KHI TÍNH TOÁN BOUNDS ĐỂ KHÔNG BỊ LỆCH TÂM LÊN TRỜI
+        previewRoot.transform.position = Vector3.zero;
+        previewRoot.transform.rotation = Quaternion.identity;
+        previewRoot.transform.localScale = Vector3.one;
 
         Bounds totalBounds = new Bounds();
         bool hasBounds = false;
@@ -1011,6 +1219,7 @@ public class InventoryManager : MonoBehaviour
 
         if (hasBounds)
         {
+            // Căn tâm hình học chính xác về gốc tọa độ của previewRoot
             previewChild.transform.localPosition = -totalBounds.center;
             float maxDim = Mathf.Max(totalBounds.size.x, totalBounds.size.y, totalBounds.size.z);
             if (maxDim > 0.0001f)
@@ -1111,6 +1320,7 @@ public class InventoryManager : MonoBehaviour
         if (heldItems == null) return;
         int activeCap = CurrentCapacity;
 
+        // Chỉ cho phép chọn trong số ô đang mở khóa (1..5 khi chưa có balo, 1..9 khi đã có balo)
         if (Input.GetKeyDown(KeyCode.Alpha1) && activeCap > 0) ToggleSelect(0);
         if (Input.GetKeyDown(KeyCode.Alpha2) && activeCap > 1) ToggleSelect(1);
         if (Input.GetKeyDown(KeyCode.Alpha3) && activeCap > 2) ToggleSelect(2);
@@ -1171,15 +1381,26 @@ public class InventoryManager : MonoBehaviour
         {
             if (slotTransforms[i] == null) continue;
 
-            bool isSlotActive = (i < activeCap);
-
-            // BẬT ĐÚNG SỐ Ô ĐANG MỞ KHÓA (5 Ô KHI CHƯA CÓ BALO, 9 Ô KHI ĐÃ CÓ BALO)
-            if (slotTransforms[i].gameObject.activeSelf != isSlotActive)
+            // LUÔN LUÔN BẬT ĐỦ 9 Ô TRÊN UI ĐỂ HORIZONTAL LAYOUT GROUP (MIDDLE CENTER) KHÔNG BỊ CO GIẬT HOẶC NHẢY RA GIỮA
+            if (!slotTransforms[i].gameObject.activeSelf)
             {
-                slotTransforms[i].gameObject.SetActive(isSlotActive);
+                slotTransforms[i].gameObject.SetActive(true);
             }
 
-            if (!isSlotActive)
+            bool isSlotUnlocked = (i < activeCap);
+
+            // Cập nhật màu nền: 5 ô đầu sáng bình thường, 4 ô sau tối mờ hơn để biểu thị đang bị khóa
+            Image slotBgImg = slotTransforms[i].GetComponent<Image>();
+            if (slotBgImg != null)
+            {
+                if (slotOriginalColors != null && i < slotOriginalColors.Length && slotOriginalColors[i].a > 0.01f)
+                {
+                    slotBgImg.color = isSlotUnlocked ? slotOriginalColors[i] : lockedSlotColor;
+                }
+            }
+
+            // Nếu ô đang bị khóa (chưa nhặt Balo)
+            if (!isSlotUnlocked)
             {
                 slotTransforms[i].localScale = normalScale;
                 EnsureSlotIcon(i);
@@ -1229,7 +1450,7 @@ public class InventoryManager : MonoBehaviour
             if (slot3DModels != null && i < slot3DModels.Length && slot3DModels[i] != null)
             {
                 bool hasItem = (i < itemCount) && !string.IsNullOrEmpty(heldItems[i]);
-                slot3DModels[i].SetActive(hasItem && isSlotActive);
+                slot3DModels[i].SetActive(hasItem);
             }
         }
     }

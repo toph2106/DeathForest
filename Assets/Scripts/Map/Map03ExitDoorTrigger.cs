@@ -428,7 +428,12 @@ public class Map03ExitDoorTrigger : MonoBehaviour
         // 3. Fade màn hình ra màu đen
         yield return StartCoroutine(FadeScreenToBlack(sceneFadeOutDuration));
 
-        // 4. LƯU DỮ LIỆU INVENTORY, ĐÈN PIN VÀ MÁY QUAY TRƯỚC KHI TẢI MAP MỚI
+        // 4. LƯU DỮ LIỆU INVENTORY, ĐÈN PIN VÀ MÁY QUAY VÀO JSON TRƯỚC KHI TẢI MAP MỚI
+        GameSaveManager.UnlockLevel(4);
+        GameSaveManager.SetCurrentLevel(4);
+        InventoryManager.hasUnlockedBackpack = true;
+        PlayerPrefs.SetInt("Global_Has_Backpack", 1);
+
         if (InventoryManager.Instance != null)
         {
             InventoryManager.Instance.SaveInventoryData();
@@ -441,6 +446,7 @@ public class Map03ExitDoorTrigger : MonoBehaviour
         }
         CamcorderUI.MarkCameraPickedUp();
         PlayerPrefs.Save();
+        GameSaveManager.SaveGame();
 
         // 5. Gọi SceneLoader (nếu có) hoặc SceneManager
         if (SceneLoader.Instance != null)

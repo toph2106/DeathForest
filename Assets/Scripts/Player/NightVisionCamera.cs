@@ -16,7 +16,8 @@ public class NightVisionCamera : MonoBehaviour
 
     [Header("══ PHÍM TẮT ══")]
     public KeyCode toggleKey = KeyCode.F;
-    public bool requireCameraEquipped = false;
+    [Tooltip("Bắt buộc phải nhặt Máy Quay (Camera) mới được bấm F bật Night Vision")]
+    public bool requireCameraEquipped = true;
 
     [Header("══ ĐỘ SÁNG NIGHT VISION ══")]
     [Tooltip("Post Exposure — cần cao (3.5-5.0) để cảnh tối đen thành sáng rõ")]
@@ -124,16 +125,64 @@ public class NightVisionCamera : MonoBehaviour
         CreateNVVolume();
         SaveOriginalSettings();
         SetActive(false);
+
+        // Mặc định luôn yêu cầu phải có máy quay
+        requireCameraEquipped = true;
+    }
+
+    /// <summary>
+    /// Kiểm tra người chơi đã sở hữu hoặc UI máy quay đang hoạt động hay chưa.
+    /// Nếu UI Camera đang hoạt động hoặc đã nhặt máy quay -> Cho phép bấm F bật Night Vision!
+    /// </summary>
+    public bool HasCamera()
+    {
+        // 1. Kiểm tra cờ trạng thái nhặt máy quay
+        if (CamcorderUI.HasPickedUpCamera) return true;
+        if (PlayerPrefs.GetInt("Global_Has_Camera", 0) == 1) return true;
+
+        // 2. Kiểm tra SimpleCameraOverlay (kính ngắm màn hình)
+        SimpleCameraOverlay overlay = GetComponent<SimpleCameraOverlay>();
+        if (overlay == null) overlay = Object.FindFirstObjectByType<SimpleCameraOverlay>();
+        if (overlay != null)
+        {
+            if (overlay.HasCamera) return true;
+            if (overlay.cameraOverlayCanvas != null && overlay.cameraOverlayCanvas.activeInHierarchy) return true;
+        }
+
+        // 3. Kiểm tra GameObject CamcorderUI trong Scene đang Active
+        if (CamcorderUI.Instance != null && CamcorderUI.Instance.gameObject.activeInHierarchy)
+        {
+            return true;
+        }
+
+        CamcorderUI[] camUIs = Object.FindObjectsByType<CamcorderUI>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+        if (camUIs != null && camUIs.Length > 0)
+        {
+            return true;
+        }
+
+        // 4. Các scene mặc định đã có máy quay (Map03, Map04, Map05)
+        string sceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+        if (sceneName == "Map03" || sceneName == "Map04" || sceneName == "Map05")
+        {
+            return true;
+        }
+
+        return false;
     }
 
     void Update()
     {
         if (requireCameraEquipped)
         {
-            bool hasCam = CamcorderUI.HasPickedUpCamera;
-            SimpleCameraOverlay overlay = GetComponent<SimpleCameraOverlay>();
-            if (overlay != null) hasCam |= overlay.HasCamera;
-            if (!hasCam) return;
+            if (!HasCamera())
+            {
+                if (IsNightVisionOn)
+                {
+                    SetNightVision(false);
+                }
+                return;
+            }
         }
 
         if (Input.GetKeyDown(toggleKey))

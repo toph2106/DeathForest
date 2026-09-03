@@ -22,10 +22,10 @@ public class CamcorderUI : MonoBehaviour
     [Tooltip("Phút bắt đầu đếm")]
     public int startMinute = 0;
 
-    // Singleton để giữ bộ đếm sống sót qua các Scene
+    // Singleton
     public static CamcorderUI Instance { get; private set; }
 
-    // Lưu thời gian đã trôi qua (STATIC để không bị mất khi chuyển scene)
+    // Lưu thời gian đã trôi qua
     private static float savedTimer = -1f;
     public static bool HasPickedUpCamera { get; private set; } = false;
 
@@ -39,29 +39,15 @@ public class CamcorderUI : MonoBehaviour
 
     void Awake()
     {
-        // Nếu đã có 1 bản CamcorderUI tồn tại rồi -> Xóa bản mới đi
-        if (Instance != null && Instance != this)
-        {
-            Destroy(gameObject);
-            return;
-        }
-
         Instance = this;
-        hasTriggered10s = false;
-        activeTimer = 0f;
-        savedTimer = -1f;
-        
-        // Tách ra khỏi GameObject cha (nếu có) để trở thành Root GameObject trước khi gọi DontDestroyOnLoad
-        transform.SetParent(null);
-        DontDestroyOnLoad(gameObject);
-
-        SceneManager.sceneLoaded += OnSceneLoaded;
+        AutoFindUIReferences();
 
         string sceneName = SceneManager.GetActiveScene().name;
-        if (sceneName == "Map01" || sceneName == "Map02" || sceneName == "MainMenu")
+        if (sceneName == "MainMenu" || sceneName == "Map01" || sceneName == "Map02")
         {
-            ResetPickedUpCameraState();
-            ResetTimer();
+            HasPickedUpCamera = false;
+            PlayerPrefs.SetInt("Global_Has_Camera", 0);
+            savedTimer = -1f;
             gameObject.SetActive(false);
             return;
         }
@@ -71,92 +57,60 @@ public class CamcorderUI : MonoBehaviour
             HasPickedUpCamera = true;
             PlayerPrefs.SetInt("Global_Has_Camera", 1);
             PlayerPrefs.Save();
-        }
-        else if (!HasPickedUpCamera && PlayerPrefs.GetInt("Global_Has_Camera", 0) == 1)
-        {
-            HasPickedUpCamera = true;
-        }
-
-        if (!HasPickedUpCamera)
-        {
-            gameObject.SetActive(false);
+            gameObject.SetActive(true);
         }
         else
         {
-            gameObject.SetActive(true);
+            HasPickedUpCamera = (PlayerPrefs.GetInt("Global_Has_Camera", 0) == 1);
+            gameObject.SetActive(HasPickedUpCamera);
         }
     }
 
     void Start()
     {
+        AutoFindUIReferences();
+
         string sceneName = SceneManager.GetActiveScene().name;
-        if (sceneName == "Map01" || sceneName == "Map02" || sceneName == "MainMenu")
+        if (sceneName == "MainMenu" || sceneName == "Map01" || sceneName == "Map02")
         {
-            ResetPickedUpCameraState();
-            ResetTimer();
-            gameObject.SetActive(false);
-            return;
+            if (!HasPickedUpCamera)
+            {
+                gameObject.SetActive(false);
+            }
         }
-
-        if (sceneName == "Map03" || sceneName == "Map04" || sceneName == "Map05")
+        else if (sceneName == "Map03" || sceneName == "Map04" || sceneName == "Map05")
         {
             HasPickedUpCamera = true;
-            PlayerPrefs.SetInt("Global_Has_Camera", 1);
-            PlayerPrefs.Save();
-        }
-        else if (!HasPickedUpCamera && PlayerPrefs.GetInt("Global_Has_Camera", 0) == 1)
-        {
-            HasPickedUpCamera = true;
-        }
-
-        if (!HasPickedUpCamera)
-        {
-            gameObject.SetActive(false);
-        }
-        else
-        {
             gameObject.SetActive(true);
         }
     }
 
-    void OnDestroy()
+    public void AutoFindUIReferences()
     {
-        SceneManager.sceneLoaded -= OnSceneLoaded;
-        if (Instance == this)
+        TMP_Text[] tmps = GetComponentsInChildren<TMP_Text>(true);
+        foreach (var t in tmps)
         {
-            Instance = null;
-        }
-    }
-
-    void OnSceneLoaded(Scene scene, LoadSceneMode mode)
-    {
-        if (this == null) return;
-
-        // RESET UI MÁY QUAY KHI VỀ MAINMENU HOẶC VÀO MAP 01 / MAP 02
-        if (scene.name == "MainMenu" || scene.name == "Map01" || scene.name == "Map02")
-        {
-            ResetPickedUpCameraState();
-            ResetTimer();
-            if (gameObject != null) gameObject.SetActive(false);
-        }
-        else if (scene.name == "Map03" || scene.name == "Map04" || scene.name == "Map05")
-        {
-            MarkCameraPickedUp();
-            if (gameObject != null) gameObject.SetActive(true);
+            string n = t.gameObject.name.ToLower();
+            if (recTimeText == null && (n.Contains("time") || n.Contains("rec") || n.Contains("00:00:00") || n.Contains("timer")))
+            {
+                recTimeText = t;
+            }
+            else if (clockText == null && (n.Contains("clock") || n.Contains("am") || n.Contains("pm") || n.Contains("date") || n.Contains("day")))
+            {
+                clockText = t;
+            }
+            else if (batteryText == null && (n.Contains("battery") || n.Contains("pin") || n.Contains("%")))
+            {
+                batteryText = t;
+            }
         }
     }
 
     void OnEnable()
     {
-        if (!HasPickedUpCamera)
-        {
-            activeTimer = 0f;
-            hasTriggered10s = false;
-            savedTimer = -1f;
-            return;
-        }
+        Instance = this;
+        AutoFindUIReferences();
 
-        // Nếu đã có thời gian cũ được lưu -> Khôi phục lại, KHÔNG reset về 0
         if (savedTimer >= 0f)
         {
             activeTimer = savedTimer;
@@ -169,7 +123,6 @@ public class CamcorderUI : MonoBehaviour
 
     void OnDisable()
     {
-        // Trước khi bị tắt hoặc chuyển scene -> Lưu lại thời gian hiện tại
         savedTimer = activeTimer;
     }
 
@@ -178,22 +131,13 @@ public class CamcorderUI : MonoBehaviour
         bool hasCam = HasPickedUpCamera;
         bool hasFlash = (FlashlightToggle.Instance != null && FlashlightToggle.Instance.hasFlashlight);
 
-        // NẾU CHƯA NHẶT CẢ 2 -> TẮT TOÀN BỘ GIAO DIỆN
-        if (!hasCam && !hasFlash)
-        {
-            return;
-        }
-
-        // ============================================
-        // 0. QUẢN LÝ ẨN / HIỆN TỪNG THÀNH PHẦN THEO ĐIỀU KIỆN NHẶT ĐỒ
-        // ============================================
-        // A. % PIN: Chỉ hiện khi ĐÃ NHẶT ĐÈN PIN (hasFlash)
+        // A. Quản lý hiển thị % Pin (Chỉ hiện khi có đèn pin)
         if (batteryText != null && batteryText.gameObject.activeSelf != hasFlash)
         {
             batteryText.gameObject.SetActive(hasFlash);
         }
 
-        // B. CÁC THÀNH PHẦN MÁY QUAY: Chỉ hiện khi ĐÃ NHẶT MÁY QUAY (hasCam)
+        // B. Quản lý hiển thị các thành phần máy quay
         TMP_Text[] allTexts = GetComponentsInChildren<TMP_Text>(true);
         foreach (TMP_Text txt in allTexts)
         {
@@ -214,22 +158,17 @@ public class CamcorderUI : MonoBehaviour
             }
         }
 
-        // ============================================
-        // 1. CẬP NHẬT BỘ ĐẾM & ĐỒNG HỒ (NẾU ĐÃ CÓ MÁY QUAY)
-        // ============================================
+        // C. Cập nhật bộ đếm và đồng hồ nếu có máy quay
         if (hasCam)
         {
-            // Thời gian trôi qua mỗi frame (Thời gian thực)
             activeTimer += Time.deltaTime;
 
-            // Kích hoạt sự kiện 10s khi quay đủ 10 giây
             if (!hasTriggered10s && activeTimer >= 10f)
             {
                 hasTriggered10s = true;
                 OnTimerReached10s?.Invoke();
             }
 
-            // Cập nhật thời gian quay (00:00:00)
             if (recTimeText != null)
             {
                 int recHours = Mathf.FloorToInt(activeTimer / 3600f);
@@ -238,7 +177,6 @@ public class CamcorderUI : MonoBehaviour
                 recTimeText.text = string.Format("{0:00}:{1:00}:{2:00}", recHours, recMinutes, recSeconds);
             }
 
-            // Cập nhật đồng hồ trong game (AM 00:00)
             if (clockText != null)
             {
                 float totalSeconds = (startHour * 3600) + (startMinute * 60) + activeTimer;
@@ -250,9 +188,7 @@ public class CamcorderUI : MonoBehaviour
             }
         }
 
-        // ============================================
-        // 2. CẬP NHẬT % PIN ĐÈN PIN (NẾU ĐÃ CÓ ĐÈN PIN)
-        // ============================================
+        // D. Cập nhật % pin
         if (hasFlash && batteryText != null && FlashlightToggle.Instance != null)
         {
             float maxBat = FlashlightToggle.Instance.maxBattery;
@@ -262,7 +198,6 @@ public class CamcorderUI : MonoBehaviour
 
             batteryText.text = pct + "%";
 
-            // Đổi màu chữ theo lượng pin (Dưới 5% mới đỏ nháy cảnh báo)
             if (pctRatio > 0.3f)
             {
                 batteryText.color = Color.white;
@@ -292,27 +227,55 @@ public class CamcorderUI : MonoBehaviour
         PlayerPrefs.SetInt("Global_Has_Camera", 1);
         PlayerPrefs.Save();
 
-        if (Instance != null)
+        // 1. Kích hoạt toàn bộ CamcorderUI component
+        CamcorderUI[] camUIs = Object.FindObjectsByType<CamcorderUI>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        foreach (var c in camUIs)
         {
-            Instance.gameObject.SetActive(true);
-            Transform p = Instance.transform.parent;
+            if (c == null) continue;
+            c.gameObject.SetActive(true);
+            Transform p = c.transform.parent;
             while (p != null)
             {
                 p.gameObject.SetActive(true);
                 p = p.parent;
             }
-        }
-        else
-        {
-            CamcorderUI[] camUIs = Object.FindObjectsByType<CamcorderUI>(FindObjectsInactive.Include, FindObjectsSortMode.None);
-            foreach (var c in camUIs)
+
+            Transform[] allChildren = c.GetComponentsInChildren<Transform>(true);
+            foreach (var child in allChildren)
             {
-                c.gameObject.SetActive(true);
-                Transform p = c.transform.parent;
-                while (p != null)
+                if (child != null) child.gameObject.SetActive(true);
+            }
+
+            c.AutoFindUIReferences();
+        }
+
+        // 2. Kích hoạt toàn bộ GameObject có tên Camcorder hoặc CameraOverlay dưới Canvas
+        Canvas[] allCanvases = Object.FindObjectsByType<Canvas>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        foreach (var canvas in allCanvases)
+        {
+            if (canvas == null) continue;
+            canvas.gameObject.SetActive(true);
+
+            Transform[] allTransforms = canvas.GetComponentsInChildren<Transform>(true);
+            foreach (var t in allTransforms)
+            {
+                if (t == null) continue;
+                string n = t.gameObject.name.ToLower();
+                if (n.Contains("camcorder") || n.Contains("cameraoverlay") || n.Contains("camcanvas") || n.Contains("rec"))
                 {
-                    p.gameObject.SetActive(true);
-                    p = p.parent;
+                    t.gameObject.SetActive(true);
+                    Transform p = t.parent;
+                    while (p != null)
+                    {
+                        p.gameObject.SetActive(true);
+                        p = p.parent;
+                    }
+
+                    Transform[] children = t.GetComponentsInChildren<Transform>(true);
+                    foreach (var child in children)
+                    {
+                        if (child != null) child.gameObject.SetActive(true);
+                    }
                 }
             }
         }
@@ -322,8 +285,9 @@ public class CamcorderUI : MonoBehaviour
     {
         HasPickedUpCamera = false;
         savedTimer = -1f;
-        PlayerPrefs.DeleteKey("Global_Has_Camera");
+        PlayerPrefs.SetInt("Global_Has_Camera", 0);
         PlayerPrefs.Save();
+
         if (Instance != null)
         {
             Instance.hasTriggered10s = false;
@@ -332,19 +296,18 @@ public class CamcorderUI : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Gọi hàm này khi về MainMenu để tiêu hủy bản cũ hoàn toàn, cho phép chơi lượt mới tạo bản UI máy quay mới
-    /// </summary>
     public static void ResetTimer()
     {
         savedTimer = -1f;
         HasPickedUpCamera = false;
-        PlayerPrefs.DeleteKey("Global_Has_Camera");
+        PlayerPrefs.SetInt("Global_Has_Camera", 0);
         PlayerPrefs.Save();
+
         if (Instance != null)
         {
-            Destroy(Instance.gameObject);
-            Instance = null;
+            Instance.hasTriggered10s = false;
+            Instance.activeTimer = 0f;
+            Instance.gameObject.SetActive(false);
         }
     }
 }

@@ -131,16 +131,20 @@ public class Map02IntroSequence : MonoBehaviour
 
     void Awake()
     {
-        if (Instance != null && Instance != this)
-        {
-            Debug.LogWarning($"[Map02IntroSequence] ⚠️ Phát hiện script trùng trên GameObject '{gameObject.name}'. Tự động xóa bản thừa!");
-            Destroy(this);
-            return;
-        }
         Instance = this;
+        isWakeUpCutsceneRunning = false;
         audioSource = GetComponent<AudioSource>();
         if (audioSource == null) audioSource = gameObject.AddComponent<AudioSource>();
         audioSource.playOnAwake = false;
+    }
+
+    void OnDestroy()
+    {
+        if (Instance == this)
+        {
+            Instance = null;
+        }
+        isWakeUpCutsceneRunning = false;
     }
 
     void Start()
