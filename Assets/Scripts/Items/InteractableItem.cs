@@ -46,6 +46,10 @@ public class InteractableItem : MonoBehaviour, IInteractable
     public TextMeshProUGUI subtitleTextUI;
     public AudioClip dialogueSound;
 
+    [Header("Sự Kiện Khi Nhặt (Pickup Event)")]
+    [Tooltip("Sự kiện kích hoạt khi người chơi nhặt thành công vật phẩm này (Ví dụ: kích hoạt Jumpscare trước cửa)")]
+    public UnityEngine.Events.UnityEvent onPickup;
+
     private InventoryManager inventoryManager;
     private bool hasBeenPickedUp = false;
     private static Coroutine activeFullDialogueRoutine;
@@ -136,6 +140,7 @@ public class InteractableItem : MonoBehaviour, IInteractable
 
             if (isPickedUp)
             {
+                NotifyPickup();
                 if (item3DPrefab != null)
                 {
                     gameObject.SetActive(false);
@@ -162,6 +167,7 @@ public class InteractableItem : MonoBehaviour, IInteractable
         else if (itemType == ItemType.Quest)
         {
             hasBeenPickedUp = true;
+            NotifyPickup();
             inventoryManager.AddQuestItem(itemNameOrQuestName);
             gameObject.SetActive(false);
             Destroy(gameObject);
@@ -169,6 +175,7 @@ public class InteractableItem : MonoBehaviour, IInteractable
         else if (itemType == ItemType.Backpack)
         {
             hasBeenPickedUp = true;
+            NotifyPickup();
             if (inventoryManager != null)
             {
                 inventoryManager.UnlockBackpack();
@@ -187,9 +194,25 @@ public class InteractableItem : MonoBehaviour, IInteractable
         else if (itemType == ItemType.Paper)
         {
             hasBeenPickedUp = true;
+            NotifyPickup();
             Debug.Log("Đã đọc tài liệu: " + itemNameOrQuestName);
             gameObject.SetActive(false);
             Destroy(gameObject);
+        }
+    }
+
+    private void NotifyPickup()
+    {
+        onPickup?.Invoke();
+
+        // Tự động kích hoạt chuỗi Door Jumpscare nếu đây là nhặt đầu trắng (Head)
+        if (itemNameOrQuestName.ToLower().Contains("head") || name.ToLower().Contains("head"))
+        {
+            WomenHeadDoorJumpscare door = Object.FindFirstObjectByType<WomenHeadDoorJumpscare>(FindObjectsInactive.Include);
+            if (door != null)
+            {
+                door.StartSequence();
+            }
         }
     }
 

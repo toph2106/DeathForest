@@ -131,6 +131,10 @@ public class CorpseGoreHarvest : MonoBehaviour, IInteractable
     [Tooltip("Tự động kích hoạt Stranger Zone ngay sau khi lấy được nội tạng")]
     public bool activateStrangerZoneOnHarvest = true;
 
+    // --- Static & Public State ---
+    public static bool IsGoreHarvested { get; set; } = false;
+    public bool HasHarvested => hasHarvested;
+
     // --- Private State ---
     private bool isInteracting = false;
     private bool hasHarvested = false;
@@ -414,6 +418,7 @@ public class CorpseGoreHarvest : MonoBehaviour, IInteractable
         }
 
         hasHarvested = true;
+        IsGoreHarvested = true;
 
         // 5. FADE SÁNG TRỞ LẠI
         if (fadeImage != null)

@@ -341,8 +341,6 @@ public class PauseMenuManager : MonoBehaviour
         InWorldComputerCutscene.isUsingComputer = false;
 
         CamcorderUI.ResetTimer();
-        FlashlightToggle.ResetFlashlightData();
-        InventoryManager.ResetInventoryData();
 
         SimpleCameraOverlay overlay = FindFirstObjectByType<SimpleCameraOverlay>();
         if (overlay != null)
@@ -364,7 +362,7 @@ public class PauseMenuManager : MonoBehaviour
 
         Time.timeScale = 1f;
         isPaused = false;
-        GameSaveManager.ResetAllGameplayRuntimeData();
+        GameSaveManager.ResetTransientCutscenes();
         SceneManager.LoadScene(mainMenuSceneName);
     }
 
@@ -390,10 +388,17 @@ public class PauseMenuManager : MonoBehaviour
         {
             if (active)
             {
-                // BẮT BUỘC ĐÃ NHẶT MÁY QUAY MỚI ĐƯỢC BẬT!
-                if (CamcorderUI.HasPickedUpCamera && FlashlightToggle.Instance != null && FlashlightToggle.Instance.currentBattery > 0f && FlashlightToggle.Instance.hasFlashlight)
+                string scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+                bool isMapWithCamera = (scene == "Map03" || scene == "Map04" || scene == "Map05");
+                if (CamcorderUI.HasPickedUpCamera || isMapWithCamera)
                 {
                     CamcorderUI.Instance.gameObject.SetActive(true);
+                    Transform p = CamcorderUI.Instance.transform.parent;
+                    while (p != null)
+                    {
+                        p.gameObject.SetActive(true);
+                        p = p.parent;
+                    }
                 }
                 else
                 {

@@ -119,8 +119,8 @@ public class MainMenuUI : MonoBehaviour
 
     IEnumerator CinematicGameBootSequence()
     {
-        // RESET SẠCH SẼ MỌI DỮ LIỆU RUNTIME KHI MỞ / QUAY VỀ MAIN MENU
-        GameSaveManager.ResetAllGameplayRuntimeData();
+        // CHỈ DỌN DẸP CẮT CẢNH VÀ THỜI GIAN, KHÔNG XÓA SAVE ĐỂ NGƯỜI CHƠI BẤM CONTINUE
+        GameSaveManager.ResetTransientCutscenes();
 
         if (fadePanel != null)
         {
@@ -172,10 +172,19 @@ public class MainMenuUI : MonoBehaviour
 
     public void PlayGame()
     {
-        Debug.Log("[MainMenuUI] Nút Play đã được bấm!");
+        Debug.Log("[MainMenuUI] Nút Play đã được bấm! Khởi tạo New Game.");
         if (isTransitioning) return;
-        GameSaveManager.ResetAllGameplayRuntimeData();
+        GameSaveManager.NewGame();
         GameSaveManager.SetCurrentLevel(1);
+
+        PlayerPrefs.DeleteKey("Global_Has_Flashlight");
+        PlayerPrefs.DeleteKey("Global_Flashlight_Battery");
+        PlayerPrefs.DeleteKey("Global_Has_Camera");
+        PlayerPrefs.DeleteKey("Global_Inventory_Items");
+        PlayerPrefs.DeleteKey("Global_Inventory_Types");
+        PlayerPrefs.DeleteKey("Global_Has_Backpack");
+        PlayerPrefs.Save();
+
         StartCoroutine(FadeAndLoad(defaultMapName));
     }
 
@@ -183,7 +192,7 @@ public class MainMenuUI : MonoBehaviour
     public void LoadMap1()
     {
         if (isTransitioning) return;
-        GameSaveManager.ResetAllGameplayRuntimeData();
+        GameSaveManager.NewGame();
         GameSaveManager.SetCurrentLevel(1);
         StartCoroutine(FadeAndLoad("Map01"));
     }
@@ -191,16 +200,80 @@ public class MainMenuUI : MonoBehaviour
     public void LoadMap2()
     {
         if (isTransitioning) return;
-        GameSaveManager.ResetAllGameplayRuntimeData();
+        GameSaveManager.ResetTransientCutscenes();
         GameSaveManager.SetCurrentLevel(2);
+
+        // Làm sạch toàn bộ dữ liệu runtime cho phiên chơi Map 02 (không xóa file checkpoint map02_checkpoint.json của Map 03)
+        InventoryManager.ResetInventoryData();
+        FlashlightToggle.ResetFlashlightData();
+        CamcorderUI.ResetPickedUpCameraState();
+        CamcorderUI.ResetTimer();
+        PlayerPrefs.DeleteKey("Global_Has_Flashlight");
+        PlayerPrefs.DeleteKey("Global_Flashlight_Battery");
+        PlayerPrefs.DeleteKey("Global_Has_Camera");
+        PlayerPrefs.DeleteKey("Global_Inventory_Items");
+        PlayerPrefs.DeleteKey("Global_Inventory_Types");
+        PlayerPrefs.DeleteKey("Global_Has_Backpack");
+        PlayerPrefs.Save();
+
         StartCoroutine(FadeAndLoad("Map02"));
     }
 
     public void LoadMap3()
     {
         if (isTransitioning) return;
-        GameSaveManager.ResetAllGameplayRuntimeData();
+        GameSaveManager.ResetTransientCutscenes();
         GameSaveManager.SetCurrentLevel(3);
+
+        // 1. Nạp checkpoint từ Map 02 nếu có để qua Cảnh 03 bắt đầu đúng đồ đạc & % pin của Map 02
+        if (GameSaveManager.HasMap02Checkpoint())
+        {
+            GameSaveManager.ApplyMap02CheckpointToCurrentSave();
+        }
+        else if (GameSaveManager.HasSaveFile())
+        {
+            // 2. Nếu có file save chính (lưu ở Map 03)
+            GameSaveData save = GameSaveManager.LoadGame();
+            if (save != null)
+            {
+                if (save.inventoryItems != null) InventoryManager.SavedHeldItems = save.inventoryItems.ToArray();
+                if (save.inventoryTypes != null)
+                {
+                    System.Collections.Generic.List<InteractableItem.ItemType> typeList = new System.Collections.Generic.List<InteractableItem.ItemType>();
+                    foreach (int t in save.inventoryTypes) typeList.Add((InteractableItem.ItemType)t);
+                    InventoryManager.SavedHeldItemTypes = typeList.ToArray();
+                }
+                InventoryManager.hasUnlockedBackpack = save.hasBackpack;
+
+                FlashlightToggle.SavedBattery = save.flashlightBattery;
+                FlashlightToggle.SavedHasFlashlight = 1;
+
+                PlayerPrefs.SetFloat("Global_Flashlight_Battery", save.flashlightBattery);
+                PlayerPrefs.SetInt("Global_Has_Flashlight", 1);
+                PlayerPrefs.SetInt("Global_Has_Backpack", save.hasBackpack ? 1 : 0);
+                if (save.inventoryItems != null && save.inventoryItems.Count > 0)
+                {
+                    PlayerPrefs.SetString("Global_Inventory_Items", string.Join("|;;|", save.inventoryItems));
+                }
+                if (save.inventoryTypes != null && save.inventoryTypes.Count > 0)
+                {
+                    PlayerPrefs.SetString("Global_Inventory_Types", string.Join(",", save.inventoryTypes));
+                }
+                PlayerPrefs.Save();
+            }
+        }
+        else
+        {
+            // 3. Nếu chưa có checkpoint hay save nào (test nhảy cóc Cảnh 03): Cấp mặc định 100% pin, có đèn và máy quay
+            InventoryManager.ResetInventoryData();
+            FlashlightToggle.ResetFlashlightData();
+            FlashlightToggle.SavedBattery = 100f;
+            FlashlightToggle.SavedHasFlashlight = 1;
+        }
+
+        PlayerPrefs.SetInt("Global_Has_Camera", 1);
+        PlayerPrefs.SetInt("Global_Has_Flashlight", 1);
+        PlayerPrefs.Save();
         StartCoroutine(FadeAndLoad("Map03"));
     }
 

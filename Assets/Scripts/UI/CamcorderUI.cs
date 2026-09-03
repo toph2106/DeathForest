@@ -57,35 +57,92 @@ public class CamcorderUI : MonoBehaviour
 
         SceneManager.sceneLoaded += OnSceneLoaded;
 
+        string sceneName = SceneManager.GetActiveScene().name;
+        if (sceneName == "Map01" || sceneName == "Map02" || sceneName == "MainMenu")
+        {
+            ResetPickedUpCameraState();
+            ResetTimer();
+            gameObject.SetActive(false);
+            return;
+        }
+
+        if (sceneName == "Map03" || sceneName == "Map04" || sceneName == "Map05")
+        {
+            HasPickedUpCamera = true;
+            PlayerPrefs.SetInt("Global_Has_Camera", 1);
+            PlayerPrefs.Save();
+        }
+        else if (!HasPickedUpCamera && PlayerPrefs.GetInt("Global_Has_Camera", 0) == 1)
+        {
+            HasPickedUpCamera = true;
+        }
+
         if (!HasPickedUpCamera)
         {
             gameObject.SetActive(false);
+        }
+        else
+        {
+            gameObject.SetActive(true);
         }
     }
 
     void Start()
     {
-        // CHƯA NHẶT MÁY QUAY -> ÉP ẨN GIAO DIỆN MÁY QUAY MẶC ĐỊNH KHI VỪA MỚI VÀO MAP 01
+        string sceneName = SceneManager.GetActiveScene().name;
+        if (sceneName == "Map01" || sceneName == "Map02" || sceneName == "MainMenu")
+        {
+            ResetPickedUpCameraState();
+            ResetTimer();
+            gameObject.SetActive(false);
+            return;
+        }
+
+        if (sceneName == "Map03" || sceneName == "Map04" || sceneName == "Map05")
+        {
+            HasPickedUpCamera = true;
+            PlayerPrefs.SetInt("Global_Has_Camera", 1);
+            PlayerPrefs.Save();
+        }
+        else if (!HasPickedUpCamera && PlayerPrefs.GetInt("Global_Has_Camera", 0) == 1)
+        {
+            HasPickedUpCamera = true;
+        }
+
         if (!HasPickedUpCamera)
         {
             gameObject.SetActive(false);
+        }
+        else
+        {
+            gameObject.SetActive(true);
         }
     }
 
     void OnDestroy()
     {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
         if (Instance == this)
         {
-            SceneManager.sceneLoaded -= OnSceneLoaded;
+            Instance = null;
         }
     }
 
     void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
+        if (this == null) return;
+
         // RESET UI MÁY QUAY KHI VỀ MAINMENU HOẶC VÀO MAP 01 / MAP 02
         if (scene.name == "MainMenu" || scene.name == "Map01" || scene.name == "Map02")
         {
             ResetPickedUpCameraState();
+            ResetTimer();
+            if (gameObject != null) gameObject.SetActive(false);
+        }
+        else if (scene.name == "Map03" || scene.name == "Map04" || scene.name == "Map05")
+        {
+            MarkCameraPickedUp();
+            if (gameObject != null) gameObject.SetActive(true);
         }
     }
 
@@ -232,12 +289,41 @@ public class CamcorderUI : MonoBehaviour
     public static void MarkCameraPickedUp()
     {
         HasPickedUpCamera = true;
+        PlayerPrefs.SetInt("Global_Has_Camera", 1);
+        PlayerPrefs.Save();
+
+        if (Instance != null)
+        {
+            Instance.gameObject.SetActive(true);
+            Transform p = Instance.transform.parent;
+            while (p != null)
+            {
+                p.gameObject.SetActive(true);
+                p = p.parent;
+            }
+        }
+        else
+        {
+            CamcorderUI[] camUIs = Object.FindObjectsByType<CamcorderUI>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            foreach (var c in camUIs)
+            {
+                c.gameObject.SetActive(true);
+                Transform p = c.transform.parent;
+                while (p != null)
+                {
+                    p.gameObject.SetActive(true);
+                    p = p.parent;
+                }
+            }
+        }
     }
 
     public static void ResetPickedUpCameraState()
     {
         HasPickedUpCamera = false;
         savedTimer = -1f;
+        PlayerPrefs.DeleteKey("Global_Has_Camera");
+        PlayerPrefs.Save();
         if (Instance != null)
         {
             Instance.hasTriggered10s = false;
@@ -253,6 +339,8 @@ public class CamcorderUI : MonoBehaviour
     {
         savedTimer = -1f;
         HasPickedUpCamera = false;
+        PlayerPrefs.DeleteKey("Global_Has_Camera");
+        PlayerPrefs.Save();
         if (Instance != null)
         {
             Destroy(Instance.gameObject);

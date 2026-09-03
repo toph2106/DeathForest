@@ -20,8 +20,8 @@ public class SimpleCameraOverlay : MonoBehaviour
 
     void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        // Nếu quay về MainMenu hoặc nạp lại Scene -> Tự động ẩn UI Camcorder
-        if (scene.name == "MainMenu")
+        // Nếu quay về MainMenu hoặc vào Map01/Map02 -> Tự động ẩn UI Camcorder
+        if (scene.name == "MainMenu" || scene.name == "Map01" || scene.name == "Map02")
         {
             ResetCameraView();
         }
@@ -29,14 +29,32 @@ public class SimpleCameraOverlay : MonoBehaviour
 
     void Start()
     {
-        // Mặc định lúc mới vào game chưa nhặt máy quay thì ẩn đi
-        if (cameraOverlayCanvas != null) cameraOverlayCanvas.SetActive(false);
+        string sceneName = SceneManager.GetActiveScene().name;
+        if (sceneName == "MainMenu" || sceneName == "Map01" || sceneName == "Map02")
+        {
+            ResetCameraView();
+            return;
+        }
+
+        bool hasCam = HasCamera || CamcorderUI.HasPickedUpCamera || (PlayerPrefs.GetInt("Global_Has_Camera", 0) == 1);
+        if (hasCam)
+        {
+            HasCamera = true;
+            if (cameraOverlayCanvas != null) cameraOverlayCanvas.SetActive(true);
+        }
+        else
+        {
+            // Mặc định lúc mới vào game chưa nhặt máy quay thì ẩn đi
+            if (cameraOverlayCanvas != null) cameraOverlayCanvas.SetActive(false);
+        }
     }
 
     // Hàm này sẽ được gọi khi người chơi bấm F nhặt máy quay
     public void TurnOnCameraView()
     {
         HasCamera = true;
+        PlayerPrefs.SetInt("Global_Has_Camera", 1);
+        PlayerPrefs.Save();
         if (cameraOverlayCanvas != null)
         {
             cameraOverlayCanvas.SetActive(true); // Bật hiệu ứng kính ngắm lên
@@ -46,6 +64,8 @@ public class SimpleCameraOverlay : MonoBehaviour
     public void ResetCameraView()
     {
         HasCamera = false;
+        PlayerPrefs.DeleteKey("Global_Has_Camera");
+        PlayerPrefs.Save();
         if (cameraOverlayCanvas != null)
         {
             cameraOverlayCanvas.SetActive(false);

@@ -68,7 +68,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 8a0bb67c4b264d84faa7afe9e9854ede, type: 2}
+  - {fileID: 2100000, guid: c1a43b5086d5d0e48bd7a1c806a78086, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -130,3 +130,17 @@ MonoBehaviour:
   item3DPrefab: {fileID: 0}
   addToInventory: 1
   batteryRechargeAmount: 50
+  showDialogueWhenFull: 1
+  fullInventoryDialogue: "T\xFAi \u0111\u1ED3 c\u1EE7a m\xECnh \u0111\xE3 \u0111\u1EA7y
+    r\u1ED3i... Kh\xF4ng th\u1EC3 mang th\xEAm \u0111\u01B0\u1EE3c n\u1EEFa."
+  fullDialogueDuration: 3.2
+  showBackpackDialogue: 1
+  backpackPickupDialogue: "M\u1ED9t chi\u1EBFc balo c\u0169... c\xF3 v\u1EBB v\u1EABn
+    c\xF2n d\xF9ng t\u1ED1t, m\xECnh c\xF3 th\u1EC3 mang theo nhi\u1EC1u \u0111\u1ED3
+    h\u01A1n r\u1ED3i."
+  backpackDialogueDuration: 3.5
+  subtitleTextUI: {fileID: 0}
+  dialogueSound: {fileID: 0}
+  onPickup:
+    m_PersistentCalls:
+      m_Calls: []

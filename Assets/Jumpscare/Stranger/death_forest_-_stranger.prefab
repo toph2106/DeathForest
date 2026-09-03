@@ -343,9 +343,16 @@ MonoBehaviour:
   creepSound: {fileID: 0}
   catchJumpscareSound: {fileID: 0}
   stareDurationBeforeReset: 1.5
-  permanentFreezeOnLook: 0
+  freezeOnFlashlightStun: 1
   isPermanentlyFrozen: 0
   minigameManager: {fileID: 0}
+  strangerInCameraObject: {fileID: 0}
+  jumpscareClip: {fileID: 0}
+  animMouthOpenStopTime: 5
+  holdMouthOpenDuration: 1
+  fadeToBlackDuration: 1
+  cameraShakeIntensity: 0.25
+  hideUIOnAttack: 1
 --- !u!143 &6461060203554029184
 CharacterController:
   m_ObjectHideFlags: 0
