@@ -105,6 +105,12 @@ public class InteractPro : MonoBehaviour
                     interactables = currentHit.collider.GetComponentsInChildren<IInteractable>();
                 }
 
+                // Lọc bỏ các component bị tắt (disabled) hoặc không còn hoạt động
+                if (interactables != null && interactables.Length > 0)
+                {
+                    interactables = System.Array.FindAll(interactables, i => !(i is MonoBehaviour mb) || (mb != null && mb.enabled && mb.gameObject.activeInHierarchy));
+                }
+
                 if (interactables != null && interactables.Length > 0)
                 {
                     // BẬT ICON BÀN TAY, TẮT CHẤM TRÒN (KHÔNG HIỆN CHỮ)

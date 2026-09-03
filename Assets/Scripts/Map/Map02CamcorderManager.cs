@@ -100,15 +100,32 @@ public class Map02CamcorderManager : MonoBehaviour, IInteractable
         audioSource.playOnAwake = false;
     }
 
+    void OnDestroy()
+    {
+        if (Instance == this)
+        {
+            Instance = null;
+        }
+        hasTriggeredBlackout = false;
+    }
+
     void Start()
     {
         // 1. Tắt UI máy quay ban đầu (chưa nhặt)
         if (camcorderUICanvasObject == null)
         {
-            GameObject camUI = GameObject.Find("Camcorder");
-            if (camUI != null) camcorderUICanvasObject = camUI;
+            CamcorderUI cui = Object.FindFirstObjectByType<CamcorderUI>(FindObjectsInactive.Include);
+            if (cui != null) camcorderUICanvasObject = cui.gameObject;
+            else
+            {
+                GameObject camUI = GameObject.Find("Camcorder");
+                if (camUI != null) camcorderUICanvasObject = camUI;
+            }
         }
-        if (camcorderUICanvasObject != null) camcorderUICanvasObject.SetActive(false);
+        if (camcorderUICanvasObject != null && !CamcorderUI.HasPickedUpCamera)
+        {
+            camcorderUICanvasObject.SetActive(false);
+        }
 
         if (Camera.main != null)
         {
@@ -217,20 +234,14 @@ public class Map02CamcorderManager : MonoBehaviour, IInteractable
         // 5. BƯỚC 4: KÍCH HOẠT GIAO DIỆN KÍNH NGẮM VÀ UI CAMCORDER + ĐÈN PIN PLAYER
         CamcorderUI.MarkCameraPickedUp();
 
-        if (CamcorderUI.Instance != null)
+        if (overlayManager == null && Camera.main != null)
         {
-            CamcorderUI.Instance.gameObject.SetActive(true);
-            Transform[] children = CamcorderUI.Instance.GetComponentsInChildren<Transform>(true);
-            foreach (var c in children) if (c != null) c.gameObject.SetActive(true);
+            overlayManager = Camera.main.GetComponent<SimpleCameraOverlay>();
         }
-
-        if (camcorderUICanvasObject != null)
+        if (overlayManager == null)
         {
-            camcorderUICanvasObject.SetActive(true);
-            Transform[] children = camcorderUICanvasObject.GetComponentsInChildren<Transform>(true);
-            foreach (var c in children) if (c != null) c.gameObject.SetActive(true);
+            overlayManager = Object.FindFirstObjectByType<SimpleCameraOverlay>(FindObjectsInactive.Include);
         }
-
         if (overlayManager != null)
         {
             overlayManager.TurnOnCameraView();

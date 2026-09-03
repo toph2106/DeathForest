@@ -635,6 +635,30 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 2099319324}
     m_Modifications:
+    - target: {fileID: 203948327935214706, guid: 3fc956b64fdcf10419348906b163d39a, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 203948327935214706, guid: 3fc956b64fdcf10419348906b163d39a, type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 203948327935214706, guid: 3fc956b64fdcf10419348906b163d39a, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 203948327935214706, guid: 3fc956b64fdcf10419348906b163d39a, type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 203948327935214706, guid: 3fc956b64fdcf10419348906b163d39a, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 203948327935214706, guid: 3fc956b64fdcf10419348906b163d39a, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 296015715461986388, guid: 3fc956b64fdcf10419348906b163d39a, type: 3}
       propertyPath: m_Color.a
       value: 0
@@ -676,6 +700,30 @@ PrefabInstance:
       value: -200
       objectReference: {fileID: 0}
     - target: {fileID: 313581237770996245, guid: 3fc956b64fdcf10419348906b163d39a, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 793991522412974619, guid: 3fc956b64fdcf10419348906b163d39a, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 793991522412974619, guid: 3fc956b64fdcf10419348906b163d39a, type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 793991522412974619, guid: 3fc956b64fdcf10419348906b163d39a, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 793991522412974619, guid: 3fc956b64fdcf10419348906b163d39a, type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 793991522412974619, guid: 3fc956b64fdcf10419348906b163d39a, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 793991522412974619, guid: 3fc956b64fdcf10419348906b163d39a, type: 3}
       propertyPath: m_AnchoredPosition.y
       value: 0
       objectReference: {fileID: 0}
@@ -800,6 +848,30 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3203842537175487658, guid: 3fc956b64fdcf10419348906b163d39a, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4363339611886838609, guid: 3fc956b64fdcf10419348906b163d39a, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4363339611886838609, guid: 3fc956b64fdcf10419348906b163d39a, type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4363339611886838609, guid: 3fc956b64fdcf10419348906b163d39a, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4363339611886838609, guid: 3fc956b64fdcf10419348906b163d39a, type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4363339611886838609, guid: 3fc956b64fdcf10419348906b163d39a, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4363339611886838609, guid: 3fc956b64fdcf10419348906b163d39a, type: 3}
       propertyPath: m_AnchoredPosition.y
       value: 0
       objectReference: {fileID: 0}
@@ -1095,6 +1167,30 @@ PrefabInstance:
       propertyPath: m_AnchoredPosition.y
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 9130864094523344899, guid: 3fc956b64fdcf10419348906b163d39a, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9130864094523344899, guid: 3fc956b64fdcf10419348906b163d39a, type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9130864094523344899, guid: 3fc956b64fdcf10419348906b163d39a, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9130864094523344899, guid: 3fc956b64fdcf10419348906b163d39a, type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9130864094523344899, guid: 3fc956b64fdcf10419348906b163d39a, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9130864094523344899, guid: 3fc956b64fdcf10419348906b163d39a, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects:
     - {fileID: 1947646059244623256, guid: 3fc956b64fdcf10419348906b163d39a, type: 3}
@@ -1170,6 +1266,12 @@ MonoBehaviour:
   - {fileID: 169069596}
   - {fileID: 169069595}
   useKey: 114
+  dropKey: 113
+  dropSound: {fileID: 0}
+  drinkSound: {fileID: 0}
+  defaultSlotCount: 5
+  expandedSlotCount: 9
+  backpackUnlockSound: {fileID: 0}
   enable3DItemPreview: 1
   default3DPrefabs: []
   previewDistance: 0.35
@@ -1180,6 +1282,9 @@ MonoBehaviour:
   questProgressText: {fileID: 0}
   totalQuestItemsNeeded: 3
   heldItems: []
+  heldItemObjects: []
+  heldItemSprites: []
+  heldItemTypes: 
 --- !u!1 &217706288
 GameObject:
   m_ObjectHideFlags: 0
@@ -4276,6 +4381,23 @@ MonoBehaviour:
   reloadBatteryClip: {fileID: 0}
   soundVolume: 1
   toggleCooldown: 0.4
+  enableAutoDimming: 1
+  dimmingMaxDistance: 3.5
+  dimmingMinDistance: 0.5
+  minDimmingMultiplier: 0.3
+  dimmingSmoothSpeed: 10
+  dimmingLayerMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  enableFlashBurst: 1
+  cameraFlashSound: {fileID: 0}
+  flashBurstCooldown: 1.5
+  flashBurstDistance: 25
+  flashBurstAngle: 90
+  flashBatteryCost: 2
+  flashObstacleMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
 --- !u!114 &819538840
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10326,6 +10448,20 @@ MonoBehaviour:
   item3DPrefab: {fileID: 0}
   addToInventory: 1
   batteryRechargeAmount: 50
+  showDialogueWhenFull: 1
+  fullInventoryDialogue: "T\xFAi \u0111\u1ED3 c\u1EE7a m\xECnh \u0111\xE3 \u0111\u1EA7y
+    r\u1ED3i... Kh\xF4ng th\u1EC3 mang th\xEAm \u0111\u01B0\u1EE3c n\u1EEFa."
+  fullDialogueDuration: 3.2
+  showBackpackDialogue: 1
+  backpackPickupDialogue: "M\u1ED9t chi\u1EBFc balo c\u0169... c\xF3 v\u1EBB v\u1EABn
+    c\xF2n d\xF9ng t\u1ED1t, m\xECnh c\xF3 th\u1EC3 mang theo nhi\u1EC1u \u0111\u1ED3
+    h\u01A1n r\u1ED3i."
+  backpackDialogueDuration: 3.5
+  subtitleTextUI: {fileID: 0}
+  dialogueSound: {fileID: 0}
+  onPickup:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!65 &1235148227167262536
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -10396,8 +10532,8 @@ GameObject:
   - component: {fileID: 5284719582656935872}
   - component: {fileID: 3634095713948240744}
   - component: {fileID: 6479380075904686147}
-  - component: {fileID: 6479380075904686148}
   - component: {fileID: 6479380075904686150}
+  - component: {fileID: 6479380075904686151}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -12463,22 +12599,6 @@ MonoBehaviour:
   interactCooldown: 1
   interactionUI: {fileID: 0}
   interactText: {fileID: 0}
---- !u!114 &6479380075904686148
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1401232884403952295}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d65110f569fb7d54d921dd66e5840c07, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerInteraction
-  interactRange: 1
-  interactableLayer:
-    serializedVersion: 2
-    m_Bits: 512
 --- !u!114 &6479380075904686150
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -12492,6 +12612,41 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SimpleCameraOverlay
   cameraOverlayCanvas: {fileID: 0}
+--- !u!114 &6479380075904686151
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1401232884403952295}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cc62bfde842ffda498525d8147105c6d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NightVisionCamera
+  toggleKey: 102
+  requireCameraEquipped: 0
+  nvPostExposure: 3.2
+  nvColorFilter: {r: 0.15686275, g: 0.78431374, b: 0.3137255, a: 1}
+  nvAmbientColor: {r: 0.15686275, g: 0.78431374, b: 0.3137255, a: 1}
+  nvSaturation: -30
+  nvContrast: 20
+  nvVignetteIntensity: 0.45
+  nvVignetteColor: {r: 0, g: 0.254717, b: 0, a: 1}
+  nvFilmGrainIntensity: 0.5
+  nvBloomIntensity: 1
+  nvChromaticAberration: 0.12
+  nvFogEnd: 55
+  nvFogStart: 12
+  irLight: {fileID: 0}
+  irIntensity: 1.5
+  irRange: 18
+  irColor: {r: 0.15686275, g: 0.78431374, b: 0.3137255, a: 1}
+  nvOnSound: {fileID: 0}
+  nvOffSound: {fileID: 0}
+  soundVolume: 0.7
+  enableMonsterGlitch: 1
+  monsterDetectRadius: 12
 --- !u!1 &6484154086274381681
 GameObject:
   m_ObjectHideFlags: 0
@@ -12545,6 +12700,14 @@ MonoBehaviour:
   sprintSpeed: 0.8
   jumpHeight: 0
   gravity: -100
+  maxSprintDuration: 5
+  pantingStartDuration: 4
+  sprintCooldown: 10
+  heavyBreathingSound: {fileID: 0}
+  drinkSound: {fileID: 0}
+  currentSprintTime: 0
+  currentCooldownTime: 0
+  isExhausted: 0
   cameraTransform: {fileID: 482138625982386437}
   mouseSensitivity: 50
   enableSmoothLook: 1

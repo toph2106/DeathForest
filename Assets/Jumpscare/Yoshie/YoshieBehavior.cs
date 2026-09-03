@@ -16,6 +16,7 @@ public class YoshieBehavior : MonoBehaviour
     public enum YoshieState
     {
         Chasing,            // Đang săn đuổi Player
+        Stunned,            // Bị choáng do đèn pin chớp sáng (Flash Burst Stun)
         StaringAtSafeZone,  // Đứng nhìn chằm chằm Player ở ngoài ranh giới SafeZone
         RetreatingHome,     // Đang bay bỏ đi về vị trí mặc định
         IdleAtHome          // Đã về đến chỗ mặc định, đứng chờ
@@ -55,7 +56,20 @@ public class YoshieBehavior : MonoBehaviour
     public AudioClip retreatSound;
     [Range(0f, 1f)] public float soundVolume = 0.85f;
 
-    [Header("4. Trạng Thái Hiện Tại (State)")]
+    [Header("4. Cơ Chế Bị Choáng Do Đèn Pin (Flashlight Stun)")]
+    [Tooltip("Bật tính năng bị chói mắt/làm choáng khi người chơi bấm Chuột Phải chớp đèn pin")]
+    public bool enableFlashlightStun = true;
+
+    [Tooltip("Thời gian Yoshie bị choáng bất động khi bị chớp đèn (giây - Mặc định: 3.5s)")]
+    public float stunDuration = 3.5f;
+
+    [Tooltip("Khoảng cách Yoshie bị giật lùi ra sau khi trúng flash (mét - Mặc định: 2.5m)")]
+    public float stunPushbackDistance = 2.5f;
+
+    [Tooltip("Âm thanh gầm thét/đau đớn khi bị chớp đèn pin")]
+    public AudioClip stunSound;
+
+    [Header("5. Trạng Thái Hiện Tại (State)")]
     public YoshieState currentState = YoshieState.Chasing;
     public bool isPlayerInSafeZone = false;
 
@@ -64,6 +78,7 @@ public class YoshieBehavior : MonoBehaviour
     private Vector3 homePosition;
     private Quaternion homeRotation;
     private float stareTimer = 0f;
+    private float stunTimer = 0f;
     private Collider activeSafeZoneCollider;
 
     void Awake()
@@ -128,6 +143,10 @@ public class YoshieBehavior : MonoBehaviour
                 UpdateChasing();
                 break;
 
+            case YoshieState.Stunned:
+                UpdateStunned();
+                break;
+
             case YoshieState.StaringAtSafeZone:
                 UpdateStaring();
                 break;
@@ -139,6 +158,62 @@ public class YoshieBehavior : MonoBehaviour
             case YoshieState.IdleAtHome:
                 UpdateIdleAtHome();
                 break;
+        }
+    }
+
+    // =========================================================================
+    // 0. TRẠNG THÁI BỊ CHOÁNG / CHÓI MẮT (STUNNED)
+    // =========================================================================
+
+    /// <summary>
+    /// Được gọi từ FlashlightToggle khi người chơi bấm Chuột Phải chớp đèn pin làm chói quái
+    /// </summary>
+    public void OnCameraFlashStunned()
+    {
+        if (!enableFlashlightStun) return;
+
+        // Nếu đang trong SafeZone thì không cần stun
+        if (currentState == YoshieState.StaringAtSafeZone || currentState == YoshieState.RetreatingHome)
+        {
+            return;
+        }
+
+        currentState = YoshieState.Stunned;
+        stunTimer = stunDuration;
+
+        Debug.Log($"<color=yellow><b>[YoshieBehavior] ⚡ Yoshie bị CHỚP ĐÈN PIN LÀM CHÓI MẮT! Bị choáng {stunDuration}s!</b></color>");
+
+        if (stunSound != null && audioSource != null)
+        {
+            audioSource.PlayOneShot(stunSound, soundVolume);
+        }
+        else if (stareSound != null && audioSource != null)
+        {
+            audioSource.PlayOneShot(stareSound, soundVolume);
+        }
+
+        // Đẩy lùi Yoshie ra xa Player một chút
+        if (player != null && stunPushbackDistance > 0.1f)
+        {
+            Vector3 pushDir = (transform.position - player.position);
+            pushDir.y = 0f;
+            if (pushDir.sqrMagnitude > 0.001f)
+            {
+                transform.position += pushDir.normalized * stunPushbackDistance;
+            }
+        }
+    }
+
+    private void UpdateStunned()
+    {
+        // Xoay nhẹ nhìn Player trong lúc choáng
+        RotateTowardsPlayer();
+
+        stunTimer -= Time.deltaTime;
+        if (stunTimer <= 0f)
+        {
+            Debug.Log("[YoshieBehavior] 👹 Yoshie đã hết choáng -> Tiếp tục lao tới săn đuổi!");
+            currentState = YoshieState.Chasing;
         }
     }
 

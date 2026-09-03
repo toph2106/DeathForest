@@ -21,11 +21,20 @@ public class StrangerMinigameManager : MonoBehaviour
     public Transform playerTransform;
 
     [Header("2. Chế Độ Vùng Kích Hoạt (Zone Settings)")]
-    [Tooltip("Nếu tích chọn: Zone sẽ bị KHÓA ban đầu, Player đi vào thoải mái không có gì xảy ra cho đến khi mở khóa (ví dụ: mổ xác lấy đồ)")]
-    public bool requireUnlock = false;
+    [Tooltip("Zone bắt buộc phải thỏa mãn 2 điều kiện mới được kích hoạt: 1. Đã mổ xác lấy Gore + 2. Đã nhận Gore vào túi đồ")]
+    public bool requireUnlock = true;
 
-    [Tooltip("Trạng thái Zone đã được kích hoạt/mở khóa chưa (Có thể bật/tắt từ UnityEvent hoặc code)")]
+    [Tooltip("Trạng thái Zone đã được kích hoạt/mở khóa chưa (True = Quái hoạt động khi vào Zone)")]
     public bool isZoneUnlocked = false;
+
+    [Tooltip("Kiểm tra bắt buộc trong túi đồ (Inventory) phải đang sở hữu vật phẩm Gore/Nội Tạng")]
+    public bool requireGoreInInventory = true;
+
+    [Tooltip("Tên vật phẩm Gore cần kiểm tra trong túi đồ (Mặc định: 'Nội Tạng')")]
+    public string requiredGoreItemName = "Nội Tạng";
+
+    [Tooltip("Kéo GameObject Cái Xác (chứa CorpseGoreHarvest) vào đây. Nếu để trống code tự tìm trong Scene!")]
+    public CorpseGoreHarvest corpseHarvestSource;
 
     [Tooltip("Chế độ Zone Vô Tận: Ở trong vùng thì spawn liên tục không giới hạn, ra khỏi vùng là dừng ngay")]
     public bool isZoneEndlessMode = true;
@@ -141,7 +150,59 @@ public class StrangerMinigameManager : MonoBehaviour
         }
     }
 
-    // ==================== ZONE TRIGGER ====================
+    // ==================== ZONE TRIGGER & UNLOCK CONDITIONS ====================
+
+    /// <summary>
+    /// Kiểm tra 2 điều kiện để kích hoạt Zone:
+    /// 1. Tương tác LẤY được Gore từ cái xác (CorpseGoreHarvest.HasHarvested / IsGoreHarvested).
+    /// 2. Đã nhận được Gore vào trong túi đồ (InventoryManager.HasItem).
+    /// </summary>
+    public bool CheckUnlockConditions()
+    {
+        if (!requireUnlock) return true;
+        if (isZoneUnlocked) return true;
+
+        // ĐIỀU KIỆN 1: Đã tương tác mổ xác lấy Gore thành công
+        bool condition1_Harvested = CorpseGoreHarvest.IsGoreHarvested;
+        if (corpseHarvestSource == null)
+        {
+            corpseHarvestSource = Object.FindFirstObjectByType<CorpseGoreHarvest>();
+        }
+        if (corpseHarvestSource != null && corpseHarvestSource.HasHarvested)
+        {
+            condition1_Harvested = true;
+        }
+
+        // ĐIỀU KIỆN 2: Người chơi đã thực sự nhận được Gore và đang sở hữu trong túi đồ (Inventory)
+        bool condition2_HasGore = false;
+        if (requireGoreInInventory)
+        {
+            if (InventoryManager.Instance != null)
+            {
+                condition2_HasGore = InventoryManager.Instance.HasItem(requiredGoreItemName)
+                                  || InventoryManager.Instance.HasItem("Nội Tạng")
+                                  || InventoryManager.Instance.HasItem("Gore")
+                                  || InventoryManager.Instance.HasItem("noi tang");
+            }
+            else
+            {
+                condition2_HasGore = condition1_Harvested;
+            }
+        }
+        else
+        {
+            condition2_HasGore = true;
+        }
+
+        // ĐỦ CẢ 2 ĐIỀU KIỆN -> MỞ KHÓA ZONE THÀNH CÔNG!
+        if (condition1_Harvested && condition2_HasGore)
+        {
+            isZoneUnlocked = true;
+            return true;
+        }
+
+        return false;
+    }
 
     private void OnTriggerEnter(Collider other)
     {
@@ -149,11 +210,19 @@ public class StrangerMinigameManager : MonoBehaviour
         {
             if (requireUnlock && !isZoneUnlocked)
             {
-                Debug.Log("[StrangerMinigameManager] 🔒 Zone đang trong trạng thái Khóa (cần mổ xác lấy đồ trước). Player đi lại an toàn.");
-                return;
+                if (!CheckUnlockConditions())
+                {
+                    Debug.Log("[StrangerMinigameManager] 🔒 Zone Stranger đang KHÓA. Cần đủ 2 điều kiện: (1) Mổ xác lấy Gore + (2) Nhận được Gore trong túi đồ. Player đi lại an toàn 100%.");
+                    return;
+                }
+                else
+                {
+                    isZoneUnlocked = true;
+                    Debug.Log("[StrangerMinigameManager] 🔓 Đã đủ 2 điều kiện (Đã mổ xác + Đang có Gore trong túi đồ) -> Mở khóa Zone Stranger thành công!");
+                }
             }
 
-            Debug.Log($"[StrangerMinigameManager] ⚠️ Player đã bước vào Zone Mini-game -> Chờ {enterZoneDelay}s rồi kích hoạt dồn dập!");
+            Debug.Log($"[StrangerMinigameManager] ⚠️ Đã đủ điều kiện & Player bước vào Zone Stranger -> Chờ {enterZoneDelay}s rồi kích hoạt Minigame!");
             StartMinigame(enterZoneDelay);
         }
     }
@@ -172,8 +241,14 @@ public class StrangerMinigameManager : MonoBehaviour
     /// </summary>
     public void UnlockAndActivateZone()
     {
+        if (!CheckUnlockConditions())
+        {
+            Debug.LogWarning("[StrangerMinigameManager] ⚠️ Chưa đủ 2 điều kiện (Cần cả mổ xác và nhận Gore vào túi đồ) -> Chưa mở khóa Zone.");
+            return;
+        }
+
         isZoneUnlocked = true;
-        Debug.Log("[StrangerMinigameManager] 🔓 ZONE STRANGER ĐÃ ĐƯỢC MỞ KHÓA!");
+        Debug.Log("[StrangerMinigameManager] 🔓 ZONE STRANGER ĐÃ ĐƯỢC MỞ KHÓA THÀNH CÔNG!");
 
         // Nếu Player đang đứng bên trong Zone khi vừa mổ xác xong -> Bắt đầu Minigame ngay!
         if (IsPlayerInsideZone())

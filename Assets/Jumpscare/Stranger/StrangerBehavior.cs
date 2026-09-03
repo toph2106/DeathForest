@@ -1,17 +1,21 @@
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 /// <summary>
 /// Quản lý hành vi quái 'Stranger' (Người Lạ) trong Map 03:
-/// 1. Cơ chế Weeping Angel: Khi bị nhìn -> Freeze, khi quay lưng -> Lướt siêu nhanh.
+/// 1. Cơ chế Đèn Pin: Khi bị chớp flash Chuột Phải -> Bất động hóa đá vĩnh viễn và spawn con tiếp theo.
 /// 2. Context Steering AI (Bản đồ hứng thú/nguy hiểm 360°):
 ///    Quét 16 hướng xung quanh, tính điểm hứng thú (gần Player) và nguy hiểm (gần vật cản),
 ///    chọn hướng tối ưu nhất để lách qua mọi địa hình phức tạp.
 /// 3. Anti-Stuck cưỡng chế: Kẹt > 0.3s -> Quét 360° tìm hướng thoáng nhất, thoát kẹt rồi mới quay lại đuổi.
+/// 4. Jumpscare In-Camera: Khi bắt được Player -> Bật mô hình Stranger trong Camera + Rung lắc + GodMode Check.
 /// </summary>
 public class StrangerBehavior : MonoBehaviour
 {
     [Header("1. Cấu Hình Tốc Độ & Bắt Người Chơi")]
-    [Tooltip("Tốc độ trượt siêu nhanh khi bị khuất tầm nhìn (Mặc định: 60 - 80)")]
+    [Tooltip("Tốc độ trượt siêu nhanh khi săn đuổi (Mặc định: 60 - 80)")]
     public float fastSpeed = 70f;
 
     [Tooltip("Khoảng cách kích hoạt bắt / Game Over khi áp sát người chơi")]
@@ -57,11 +61,36 @@ public class StrangerBehavior : MonoBehaviour
     [Tooltip("Thời gian Stranger đứng nhìn theo Player khi Player rời Zone trước khi quay về chỗ cũ (giây - Mặc định: 1.5s)")]
     public float stareDurationBeforeReset = 1.5f;
 
-    [Header("6. Chế Độ Mini-game (Phong Ấn Vĩnh Viễn)")]
-    [Tooltip("Bật nếu muốn Stranger hóa đá vĩnh viễn ngay khi bị nhìn trúng lần đầu")]
-    public bool permanentFreezeOnLook = false;
+    [Header("6. Chế Độ Bất Động Do Đèn Nháy Flash (Flashlight Stun)")]
+    [Tooltip("Bật nếu muốn Stranger bị làm choáng hóa đá vĩnh viễn khi bị chớp đèn pin Chuột Phải")]
+    public bool freezeOnFlashlightStun = true;
     public bool isPermanentlyFrozen = false;
     [HideInInspector] public StrangerMinigameManager minigameManager;
+
+    public bool permanentFreezeOnLook
+    {
+        get => freezeOnFlashlightStun;
+        set => freezeOnFlashlightStun = value;
+    }
+
+    [Header("7. Jumpscare Trong Camera (In-Camera Jumpscare)")]
+    [Tooltip("GameObject Stranger nằm trong Main Camera > Jumpscare > Stranger")]
+    public GameObject strangerInCameraObject;
+    public AnimationClip jumpscareClip;
+
+    [Tooltip("Thời điểm animation chạy tới đoạn há mồm rùng rợn và dừng lại (giây - Mặc định: 4.8s tương ứng frame 288)")]
+    public float animMouthOpenStopTime = 4.8f;
+
+    [Tooltip("Thời gian đứng đơ giữ nguyên tư thế há mồm trước khi bắt đầu Fade đen (giây - Mặc định: 1.0s)")]
+    public float holdMouthOpenDuration = 1.0f;
+
+    [Tooltip("Thời gian màn hình Fade chuyển dần sang màu đen (giây - Mặc định: 1.0s)")]
+    public float fadeToBlackDuration = 1.0f;
+
+    [Tooltip("Cường độ rung lắc Camera khi bị jumpscare")]
+    public float cameraShakeIntensity = 0.25f;
+
+    public bool hideUIOnAttack = true;
 
     // --- Private ---
     private Transform player;
@@ -74,6 +103,7 @@ public class StrangerBehavior : MonoBehaviour
     private Vector3 initialSpawnPosition;
     private Quaternion initialSpawnRotation;
     private bool isFrozen = false;
+    public bool IsFrozen => isFrozen;
     private bool hasCaughtPlayer = false;
 
     private bool isWaitingToReset = false;
@@ -115,13 +145,27 @@ public class StrangerBehavior : MonoBehaviour
             float angle = i * (360f / NUM_DIRECTIONS);
             directionVectors[i] = Quaternion.Euler(0f, angle, 0f) * Vector3.forward;
         }
+
+        SetupChildTouchDetectors();
     }
 
     void Start()
     {
         FindMainCamera();
         FindPlayer();
-        Freeze();
+        FindStrangerInCameraObject();
+        Unfreeze();
+    }
+
+    private void SetupChildTouchDetectors()
+    {
+        Collider[] childCols = GetComponentsInChildren<Collider>(true);
+        foreach (var col in childCols)
+        {
+            StrangerTouchDetector st = col.GetComponent<StrangerTouchDetector>();
+            if (st == null) st = col.gameObject.AddComponent<StrangerTouchDetector>();
+            st.Init(this);
+        }
     }
 
     void FindMainCamera()
@@ -200,23 +244,16 @@ public class StrangerBehavior : MonoBehaviour
             return;
         }
 
-        if (isPermanentlyFrozen) return;
+        if (isPermanentlyFrozen)
+        {
+            Freeze();
+            return;
+        }
+
         if (!isPlayerInZone || player == null) return;
 
-        if (mainCam == null || !mainCam.enabled || !mainCam.gameObject.activeInHierarchy)
-        {
-            FindMainCamera();
-            if (mainCam == null) return;
-        }
-
-        CheckIfBeingLookedAt();
-
-        if (!isFrozen && !isPermanentlyFrozen)
-        {
-            UpdateStuckDetection();
-            ChasePlayer();
-        }
-
+        UpdateStuckDetection();
+        ChasePlayer();
         CheckCatch();
     }
 
@@ -234,6 +271,7 @@ public class StrangerBehavior : MonoBehaviour
         stuckTimer = 0f;
         stuckEscapeTimer = 0f;
         FindMainCamera();
+        if (!isPermanentlyFrozen) Unfreeze();
         Debug.Log("[StrangerBehavior] 👁️ Stranger đã thức tỉnh!");
     }
 
@@ -260,78 +298,31 @@ public class StrangerBehavior : MonoBehaviour
         Freeze();
     }
 
-    // ==================== WEEPING ANGEL: NHÌN = ĐÔNG CỨNG ====================
+    // ==================== CHỚP SÁNG ĐÈN PIN (FLASH BURST STUN) ====================
 
-    private void CheckIfBeingLookedAt()
+    /// <summary>
+    /// Được gọi từ FlashlightToggle khi người chơi bấm Chuột Phải chớp đèn pin làm chói quái
+    /// </summary>
+    public void OnCameraFlashStunned()
     {
-        if (isPermanentlyFrozen) return;
+        if (isPermanentlyFrozen || hasCaughtPlayer) return;
 
-        if (mainCam == null || !mainCam.enabled || !mainCam.gameObject.activeInHierarchy)
+        isPermanentlyFrozen = true;
+        isFrozen = true;
+        Freeze();
+
+        Debug.Log($"<color=yellow><b>[StrangerBehavior] ⚡ {gameObject.name} ĐÃ BỊ CHỚP ĐÈN PIN LÀM CHÓI MẮT! HÓA ĐÁ BẤT ĐỘNG VĨNH VIỄN!</b></color>");
+
+        if (creepSound != null && audioSource != null)
         {
-            FindMainCamera();
-            if (mainCam == null) return;
+            audioSource.PlayOneShot(creepSound, 0.9f);
         }
 
-        Vector3 camPos = mainCam.transform.position;
-
-        // Quét 3 điểm: Đầu, Ngực, và Thân
-        Vector3 headPoint = transform.position + Vector3.up * 1.8f;
-        Vector3 chestPoint = transform.position + Vector3.up * 1.0f;
-        Vector3 centerPoint = transform.position + Vector3.up * 0.4f;
-
-        bool isSeen = IsPointVisible(headPoint, camPos) ||
-                      IsPointVisible(chestPoint, camPos) ||
-                      IsPointVisible(centerPoint, camPos);
-
-        if (isSeen)
+        // Báo cho StrangerMinigameManager tăng số lượng tượng đã phong ấn & spawn con tiếp theo
+        if (minigameManager != null)
         {
-            Freeze();
-
-            // NẾU ĐANG Ở CHẾ ĐỘ MINIGAME: HÓA ĐÁ VĨNH VIỄN VÀ BÁO CHO MANAGER
-            if (permanentFreezeOnLook && !isPermanentlyFrozen)
-            {
-                isPermanentlyFrozen = true;
-                Debug.Log($"[StrangerBehavior] 🗿 {gameObject.name} ĐÃ BỊ NHÌN TRÚNG! HÓA ĐÁ VĨNH VIỄN TẠI CHỖ!");
-                if (minigameManager != null)
-                {
-                    minigameManager.OnStrangerFrozen(this);
-                }
-            }
+            minigameManager.OnStrangerFrozen(this);
         }
-        else
-        {
-            Unfreeze();
-        }
-    }
-
-    private bool IsPointVisible(Vector3 point, Vector3 camPos)
-    {
-        Vector3 viewportPoint = mainCam.WorldToViewportPoint(point);
-
-        bool onScreen = viewportPoint.z > 0 &&
-                        viewportPoint.x > -0.05f && viewportPoint.x < 1.05f &&
-                        viewportPoint.y > -0.05f && viewportPoint.y < 1.05f;
-
-        if (!onScreen) return false;
-
-        Vector3 dir = (point - camPos);
-        float dist = dir.magnitude;
-
-        if (Physics.Raycast(camPos, dir.normalized, out RaycastHit hit, dist))
-        {
-            // Nếu tia đụng trúng tường cứng (không phải Stranger, không phải Player, và không phải Hàng rào Fence)
-            int fenceLayer = LayerMask.NameToLayer("Fence");
-            if (hit.collider.gameObject != gameObject &&
-                !hit.collider.transform.IsChildOf(transform) &&
-                !hit.collider.CompareTag("Player") &&
-                (fenceLayer == -1 || hit.collider.gameObject.layer != fenceLayer) &&
-                (player == null || (!hit.collider.transform.IsChildOf(player) && hit.collider.gameObject != player.gameObject)))
-            {
-                return false;
-            }
-        }
-
-        return true;
     }
 
     private void Freeze()
@@ -593,52 +584,338 @@ public class StrangerBehavior : MonoBehaviour
         Unfreeze();
     }
 
-    // ==================== BẮT NGƯỜI CHƠI ====================
+    // ==================== BẮT NGƯỜI CHƠI (CATCH & IN-CAMERA JUMPSCARE) ====================
 
     private void CheckCatch()
     {
         if (isPermanentlyFrozen || hasCaughtPlayer) return;
         if (player == null) return;
 
-        float distance = Vector3.Distance(transform.position, player.position);
-        if (distance <= killDistance)
+        // Dùng cả khoảng cách 2D phẳng XZ và 3D
+        Vector2 strangerFlat = new Vector2(transform.position.x, transform.position.z);
+        Vector2 playerFlat = new Vector2(player.position.x, player.position.z);
+        float flatDist = Vector2.Distance(strangerFlat, playerFlat);
+        float realDist = Vector3.Distance(transform.position, player.position);
+
+        if (flatDist <= killDistance || realDist <= killDistance + groundOffset)
         {
             CatchPlayer();
         }
     }
 
-    private void CatchPlayer()
+    private void OnTriggerEnter(Collider other)
     {
         if (hasCaughtPlayer || isPermanentlyFrozen) return;
-
-        // Nếu đang trong Minigame và tắt Game Over (Chế độ Test Demo)
-        if (minigameManager != null && !minigameManager.enableGameOver)
+        if (other.CompareTag("Player") || other.GetComponentInParent<MovePl>() != null)
         {
-            isPermanentlyFrozen = true;
-            Freeze();
-            minigameManager.OnPlayerCaught(this);
-            return;
+            CatchPlayer();
         }
+    }
 
+    private void OnCollisionEnter(Collision collision)
+    {
+        if (hasCaughtPlayer || isPermanentlyFrozen) return;
+        if (collision.collider.CompareTag("Player") || collision.collider.GetComponentInParent<MovePl>() != null)
+        {
+            CatchPlayer();
+        }
+    }
+
+    public void CatchPlayer()
+    {
+        if (hasCaughtPlayer || isPermanentlyFrozen) return;
         hasCaughtPlayer = true;
 
-        Debug.Log("💀 STRANGER ĐÃ BẮT ĐƯỢC BẠN TỪ PHÍA SAU!");
-        Freeze();
+        Debug.Log("<color=red><b>[StrangerBehavior] 💀 Stranger đã tóm trúng người chơi -> Kích hoạt In-Camera Jumpscare!</b></color>");
 
-        if (catchJumpscareSound != null && audioSource != null)
+        // 1. Ẩn con Stranger ngoài thế giới
+        Renderer[] rends = GetComponentsInChildren<Renderer>(true);
+        foreach (var r in rends) r.enabled = false;
+
+        Collider[] cols = GetComponentsInChildren<Collider>(true);
+        foreach (var c in cols) c.enabled = false;
+
+        if (characterController != null) characterController.enabled = false;
+
+        // 2. Chạy Coroutine Jumpscare trong Camera
+        StartCoroutine(StrangerCameraJumpscareRoutine());
+    }
+
+    private IEnumerator CameraShakeRoutine(Transform camTrans, float duration, float intensity)
+    {
+        if (camTrans == null) yield break;
+
+        Vector3 originalLocalPos = camTrans.localPosition;
+        float elapsed = 0f;
+
+        while (elapsed < duration)
         {
-            audioSource.PlayOneShot(catchJumpscareSound, 1.0f);
+            elapsed += Time.deltaTime;
+            float currentIntensity = Mathf.Lerp(intensity, 0.02f, elapsed / duration);
+            Vector3 randomOffset = Random.insideUnitSphere * currentIntensity;
+            camTrans.localPosition = originalLocalPos + randomOffset;
+            yield return null;
         }
 
-        if (minigameManager != null)
+        camTrans.localPosition = originalLocalPos;
+    }
+
+    private IEnumerator StrangerCameraJumpscareRoutine()
+    {
+        if (strangerInCameraObject == null) FindStrangerInCameraObject();
+
+        // 1. Khóa di chuyển và góc xoay của người chơi
+        MovePl playerMove = Object.FindFirstObjectByType<MovePl>();
+        if (playerMove != null)
         {
-            minigameManager.OnPlayerCaught(this);
-            return;
+            playerMove.isCameraLocked = true;
+            playerMove.enabled = false;
         }
 
-        if (GameOverJumpscareManager.Instance != null)
+        // 2. Ẩn toàn bộ UI / HUD trong lúc bị jumpscare
+        List<Canvas> hiddenCanvases = new List<Canvas>();
+        if (hideUIOnAttack)
         {
-            GameOverJumpscareManager.Instance.TriggerGameOver();
+            Canvas[] allCanvases = Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None);
+            foreach (var c in allCanvases)
+            {
+                if (c != null && c.enabled && !c.name.Contains("Fade") && !c.name.Contains("GameOver") && !c.name.Contains("Jumpscare"))
+                {
+                    c.enabled = false;
+                    hiddenCanvases.Add(c);
+                }
+            }
+        }
+
+        Transform camToShake = null;
+        if (Camera.main != null) camToShake = Camera.main.transform;
+        else
+        {
+            Camera anyCam = Object.FindFirstObjectByType<Camera>();
+            if (anyCam != null) camToShake = anyCam.transform;
+        }
+
+        if (strangerInCameraObject != null)
+        {
+            strangerInCameraObject.SetActive(true);
+
+            // Bật renderer trên Stranger in-camera
+            Renderer[] rends = strangerInCameraObject.GetComponentsInChildren<Renderer>(true);
+            foreach (var r in rends) r.enabled = true;
+
+            // Bật Animator trên Stranger in-camera
+            Animator inCamAnim = strangerInCameraObject.GetComponent<Animator>() ?? strangerInCameraObject.GetComponentInChildren<Animator>();
+            if (inCamAnim != null)
+            {
+                inCamAnim.enabled = true;
+                inCamAnim.speed = 1.0f;
+                inCamAnim.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+                if (inCamAnim.runtimeAnimatorController != null)
+                {
+                    inCamAnim.Play(0, 0, 0f);
+                }
+            }
+
+            // Phát âm thanh jumpscare
+            AudioClip soundToPlay = catchJumpscareSound;
+            if (soundToPlay != null)
+            {
+                AudioSource camAudio = strangerInCameraObject.GetComponent<AudioSource>();
+                if (camAudio == null) camAudio = strangerInCameraObject.AddComponent<AudioSource>();
+                camAudio.spatialBlend = 0f;
+                camAudio.PlayOneShot(soundToPlay, 1.0f);
+            }
+
+            // 1. Cho animation chạy đúng tới đoạn há mồm (animMouthOpenStopTime = 4.8s / frame 288)
+            float runDuration = animMouthOpenStopTime;
+            if (camToShake != null && cameraShakeIntensity > 0.001f)
+            {
+                StartCoroutine(CameraShakeRoutine(camToShake, runDuration, cameraShakeIntensity));
+            }
+
+            // Chờ animation chạy đến đoạn há mồm
+            yield return new WaitForSeconds(runDuration);
+
+            // 2. DỪNG ĐỨNG YÊN ANIMATION (speed = 0) ĐỂ KHÓA DÁNG HÁ MỒM HÙ DỌA RÙNG RỢN
+            if (inCamAnim != null)
+            {
+                inCamAnim.speed = 0f;
+            }
+
+            // 3. GIỮ NGUYÊN DÁNG HÁ MỒM ĐÓ TRONG 1.0 GIÂY
+            if (holdMouthOpenDuration > 0f)
+            {
+                yield return new WaitForSeconds(holdMouthOpenDuration);
+            }
+
+            // KIỂM TRA CHẾ ĐỘ BẤT TỬ (GOD MODE PHÍM M)
+            if (GodModeManager.IsGodModeActive)
+            {
+                Debug.Log("<color=cyan><b>[StrangerBehavior] 👑 GodMode đang BẬT -> Tự động thả tự do di chuyển cho Player đi tiếp!</b></color>");
+
+                // Tắt Stranger trong Camera
+                if (strangerInCameraObject != null)
+                {
+                    strangerInCameraObject.SetActive(false);
+                }
+
+                // 1. Mở lại điều khiển Player
+                if (playerMove != null)
+                {
+                    playerMove.isCameraLocked = false;
+                    playerMove.enabled = true;
+                    playerMove.SetMovementState(true);
+                }
+
+                Cursor.lockState = CursorLockMode.Locked;
+                Cursor.visible = false;
+
+                // 2. Mở lại toàn bộ UI / HUD
+                foreach (var c in hiddenCanvases)
+                {
+                    if (c != null) c.enabled = true;
+                }
+
+                // 3. Nếu đang trong minigame, thông báo cho manager
+                if (minigameManager != null)
+                {
+                    minigameManager.OnStrangerFrozen(this);
+                }
+
+                Destroy(gameObject);
+                yield break;
+            }
+
+            // 4. SAU 1S -> BẮT ĐẦU FADE ĐEN TOÀN MÀN HÌNH (STRANGER VẪN HÁ MỒM CHÌM DẦN VÀO BÓNG TỐI)
+            yield return StartCoroutine(FadeToBlackRoutine(fadeToBlackDuration));
+
+            // Tắt Stranger sau khi màn hình đã đen hoàn toàn
+            if (strangerInCameraObject != null)
+            {
+                strangerInCameraObject.SetActive(false);
+            }
+        }
+        else
+        {
+            if (catchJumpscareSound != null && audioSource != null)
+            {
+                audioSource.PlayOneShot(catchJumpscareSound, 1.0f);
+            }
+            yield return new WaitForSeconds(1.0f);
+
+            if (GodModeManager.IsGodModeActive)
+            {
+                if (playerMove != null)
+                {
+                    playerMove.isCameraLocked = false;
+                    playerMove.enabled = true;
+                    playerMove.SetMovementState(true);
+                }
+                Cursor.lockState = CursorLockMode.Locked;
+                Cursor.visible = false;
+
+                if (minigameManager != null)
+                {
+                    minigameManager.OnStrangerFrozen(this);
+                }
+
+                Destroy(gameObject);
+                yield break;
+            }
+
+            yield return StartCoroutine(FadeToBlackRoutine(1.0f));
+        }
+
+        // 6. MÀN HÌNH ĐEN HOÀN TOÀN -> NHẬN PHÍM/CHUỘT BẤT KỲ ĐỂ QUAY VỀ MENU
+        yield return StartCoroutine(WaitForClickAndReturnToMenuRoutine());
+
+        gameObject.SetActive(false);
+    }
+
+    private IEnumerator FadeToBlackRoutine(float duration)
+    {
+        GameObject canvasObj = new GameObject("GameOverFadeCanvas");
+        Canvas canvas = canvasObj.AddComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.overrideSorting = true;
+        canvas.sortingOrder = 999999;
+
+        UnityEngine.UI.CanvasScaler scaler = canvasObj.AddComponent<UnityEngine.UI.CanvasScaler>();
+        scaler.uiScaleMode = UnityEngine.UI.CanvasScaler.ScaleMode.ScaleWithScreenSize;
+
+        GameObject imgObj = new GameObject("BlackOverlay");
+        imgObj.transform.SetParent(canvasObj.transform, false);
+
+        UnityEngine.UI.Image blackImg = imgObj.AddComponent<UnityEngine.UI.Image>();
+        blackImg.color = new Color(0f, 0f, 0f, 0f);
+        blackImg.raycastTarget = false;
+
+        RectTransform rt = blackImg.rectTransform;
+        rt.anchorMin = Vector2.zero;
+        rt.anchorMax = Vector2.one;
+        rt.offsetMin = Vector2.zero;
+        rt.offsetMax = Vector2.zero;
+
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / duration);
+            blackImg.color = new Color(0f, 0f, 0f, t);
+            yield return null;
+        }
+
+        blackImg.color = Color.black;
+    }
+
+    private IEnumerator WaitForClickAndReturnToMenuRoutine()
+    {
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+
+        bool hasClicked = false;
+        while (!hasClicked)
+        {
+            if (Input.GetMouseButtonDown(0) || Input.GetMouseButtonDown(1) || Input.anyKeyDown)
+            {
+                hasClicked = true;
+            }
+            yield return null;
+        }
+
+        Debug.Log("[StrangerBehavior] 🔄 Đã nhấn nút -> Quay trở về MainMenu...");
+        SceneManager.LoadScene("MainMenu");
+    }
+
+    private void FindStrangerInCameraObject()
+    {
+        if (strangerInCameraObject != null) return;
+
+        // 1. Tìm trong Jumpscare parent
+        GameObject jumpscareParent = GameObject.Find("Jumpscare");
+        if (jumpscareParent != null)
+        {
+            Transform sTrans = jumpscareParent.transform.Find("Stranger");
+            if (sTrans != null)
+            {
+                strangerInCameraObject = sTrans.gameObject;
+                return;
+            }
+        }
+
+        // 2. Tìm trong con của bất kỳ Camera nào
+        Camera[] cams = Object.FindObjectsByType<Camera>(FindObjectsSortMode.None);
+        foreach (var cam in cams)
+        {
+            Transform[] children = cam.GetComponentsInChildren<Transform>(true);
+            foreach (var t in children)
+            {
+                if (t.name == "Stranger" && t != transform && !t.IsChildOf(transform))
+                {
+                    strangerInCameraObject = t.gameObject;
+                    return;
+                }
+            }
         }
     }
 
@@ -674,5 +951,36 @@ public class StrangerBehavior : MonoBehaviour
         Gizmos.color = Color.cyan;
         Vector3 moveDir = (currentMoveDirection != Vector3.zero) ? currentMoveDirection : transform.forward;
         Gizmos.DrawRay(origin, moveDir * sensorDistance * 1.2f);
+    }
+}
+
+/// <summary>
+/// Component tự động gắn vào tất cả các collider con của Stranger để phát hiện va chạm với người chơi
+/// </summary>
+public class StrangerTouchDetector : MonoBehaviour
+{
+    private StrangerBehavior stranger;
+
+    public void Init(StrangerBehavior owner)
+    {
+        stranger = owner;
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if (stranger == null) return;
+        if (other.CompareTag("Player") || other.GetComponentInParent<MovePl>() != null)
+        {
+            stranger.CatchPlayer();
+        }
+    }
+
+    private void OnCollisionEnter(Collision collision)
+    {
+        if (stranger == null) return;
+        if (collision.collider.CompareTag("Player") || collision.collider.GetComponentInParent<MovePl>() != null)
+        {
+            stranger.CatchPlayer();
+        }
     }
 }

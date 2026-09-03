@@ -446,15 +446,10 @@ public class CockroachNightmareWakeUp : MonoBehaviour
         // TỰ ĐỘNG LƯU TIẾN TRÌNH: Mở khóa Map 02
         GameSaveManager.UnlockLevel(2);
         GameSaveManager.SetCurrentLevel(2);
+        PlayerPrefs.SetInt("Global_Has_Camera", 0);
+        PlayerPrefs.Save();
 
-        if (SceneLoader.Instance != null)
-        {
-            SceneLoader.Instance.LoadSceneAsync(nextSceneName);
-        }
-        else
-        {
-            UnityEngine.SceneManagement.SceneManager.LoadScene(nextSceneName);
-        }
+        UnityEngine.SceneManagement.SceneManager.LoadScene(nextSceneName);
     }
 
     void HandleCockroachNightmareEnded()

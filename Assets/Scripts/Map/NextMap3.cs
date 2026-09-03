@@ -104,9 +104,24 @@ public class NextMap3 : MonoBehaviour
         // 4. GIỮ MÀN HÌNH TỐI ĐEN HOÀN TOÀN TRONG 2.0 GIÂY HỒI HỘP
         yield return new WaitForSecondsRealtime(darkDelay);
 
-        // 5. TỰ ĐỘNG LƯU TIẾN TRÌNH: Mở khóa Map 03 khi qua màn Map 02
+        // 5. TỰ ĐỘNG LƯU TIẾN TRÌNH: Lưu túi đồ, % pin đèn pin, máy quay và mở khóa Map 03
+        if (InventoryManager.Instance != null)
+        {
+            InventoryManager.Instance.SaveInventoryData();
+        }
+        if (FlashlightToggle.Instance != null)
+        {
+            FlashlightToggle.Instance.hasFlashlight = true;
+            FlashlightToggle.Instance.SaveFlashlightData();
+        }
+        PlayerPrefs.SetInt("Global_Has_Camera", 1);
+        PlayerPrefs.SetInt("Global_Has_Flashlight", 1);
+        PlayerPrefs.Save();
+
         GameSaveManager.UnlockLevel(3);
         GameSaveManager.SetCurrentLevel(3);
+        GameSaveManager.SaveMap02Checkpoint();
+        Debug.Log("[NextMap3] 💾 Đã lưu checkpoint Map 02 (túi đồ, % Pin, Máy Quay) trước khi sang Map 03!");
 
         // 6. CHUYỂN SANG MAP 03
         if (SceneLoader.Instance != null)

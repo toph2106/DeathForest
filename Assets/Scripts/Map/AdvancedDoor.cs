@@ -214,6 +214,20 @@ public class AdvancedDoor : MonoBehaviour, IInteractable
         {
             subtitleTextUI = FindSubtitleTextUI();
         }
+
+        // Đảm bảo có sẵn thoại mặc định nếu Inspector để trống
+        if (lockedDialogues == null || lockedDialogues.Length == 0)
+        {
+            lockedDialogues = new DialogueLine[]
+            {
+                new DialogueLine
+                {
+                    vietnameseDialogue = "Cánh cửa này đã bị khóa chặt... Mình cần tìm chìa khóa để mở nó.",
+                    englishDialogue = "This door is locked tightly... I need to find the key to open it.",
+                    holdDuration = 3.2f
+                }
+            };
+        }
     }
 
     void Update()
@@ -263,10 +277,32 @@ public class AdvancedDoor : MonoBehaviour, IInteractable
         // 3. CỬA KHÓA CHÌA (KEY ITEM)
         if (lockType == DoorLockType.KeyItem)
         {
-            InventoryManager inventory = InventoryManager.Instance ?? Object.FindFirstObjectByType<InventoryManager>();
+            InventoryManager inventory = GetValidInventory();
+
+            bool hasKey = false;
+            if (inventory != null && inventory.HasItem(requiredKeyName))
+            {
+                hasKey = true;
+            }
+            else if (InventoryManager.SavedHeldItems != null)
+            {
+                string target = requiredKeyName.Trim().ToLower();
+                foreach (string it in InventoryManager.SavedHeldItems)
+                {
+                    if (!string.IsNullOrEmpty(it))
+                    {
+                        string cur = it.Trim().ToLower();
+                        if (cur == target || cur.Contains(target) || target.Contains(cur))
+                        {
+                            hasKey = true;
+                            break;
+                        }
+                    }
+                }
+            }
 
             // NẾU ĐÃ CÓ CHÌA KHÓA TRONG TÚI ĐỒ
-            if (inventory != null && inventory.HasItem(requiredKeyName))
+            if (hasKey)
             {
                 if (keyUnlockStyle == KeyUnlockStyle.CinematicFadeChain)
                 {
@@ -294,6 +330,27 @@ public class AdvancedDoor : MonoBehaviour, IInteractable
         }
     }
 
+    private InventoryManager GetValidInventory()
+    {
+        InventoryManager inventory = InventoryManager.Instance;
+        if (inventory != null && (inventory.GetComponent<RectTransform>() != null || inventory.GetComponentInParent<Canvas>() != null))
+        {
+            return inventory;
+        }
+
+        InventoryManager[] allInvs = Object.FindObjectsByType<InventoryManager>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        foreach (var inv in allInvs)
+        {
+            if (inv.GetComponent<RectTransform>() != null || inv.GetComponentInParent<Canvas>() != null)
+            {
+                InventoryManager.Instance = inv;
+                return inv;
+            }
+        }
+
+        return inventory ?? (allInvs.Length > 0 ? allInvs[0] : null);
+    }
+
     /// <summary>
     /// Mở khóa trực tiếp: Tiêu hao chìa khóa (nếu bật), phát tiếng mở khóa và mở bung cánh cửa ra luôn không cần Fade đen màn hình!
     /// </summary>
@@ -309,7 +366,7 @@ public class AdvancedDoor : MonoBehaviour, IInteractable
         // 2. Trừ chìa khóa khỏi túi đồ
         if (removeKeyOnUse)
         {
-            InventoryManager inventory = InventoryManager.Instance ?? Object.FindFirstObjectByType<InventoryManager>();
+            InventoryManager inventory = GetValidInventory();
             if (inventory != null)
             {
                 inventory.RemoveItem(requiredKeyName);
@@ -404,7 +461,7 @@ public class AdvancedDoor : MonoBehaviour, IInteractable
         // Trừ chìa khóa khỏi túi đồ
         if (removeKeyOnUse)
         {
-            InventoryManager inventory = InventoryManager.Instance ?? Object.FindFirstObjectByType<InventoryManager>();
+            InventoryManager inventory = GetValidInventory();
             if (inventory != null)
             {
                 inventory.RemoveItem(requiredKeyName);
@@ -537,10 +594,7 @@ public class AdvancedDoor : MonoBehaviour, IInteractable
 
         if (subtitleTextUI != null)
         {
-            if (subtitleTextUI.transform.parent != null && !subtitleTextUI.transform.parent.gameObject.activeSelf)
-            {
-                subtitleTextUI.transform.parent.gameObject.SetActive(true);
-            }
+            EnsureParentsActive(subtitleTextUI);
             subtitleTextUI.gameObject.SetActive(true);
 
             Color sc = subtitleTextUI.color;
@@ -681,22 +735,50 @@ public class AdvancedDoor : MonoBehaviour, IInteractable
 
     TextMeshProUGUI FindSubtitleTextUI()
     {
+        if (Map03IntroSequence.Instance != null && Map03IntroSequence.Instance.subtitleTextUI != null)
+            return Map03IntroSequence.Instance.subtitleTextUI;
+
         if (Map02IntroSequence.Instance != null && Map02IntroSequence.Instance.subtitleTextUI != null)
             return Map02IntroSequence.Instance.subtitleTextUI;
+
+        GameIntroManager gim = Object.FindFirstObjectByType<GameIntroManager>();
+        if (gim != null && gim.subtitleTextUI != null)
+            return gim.subtitleTextUI;
 
         SmartInteractionDialogue sid = Object.FindFirstObjectByType<SmartInteractionDialogue>(FindObjectsInactive.Include);
         if (sid != null && sid.subtitleTextUI != null) return sid.subtitleTextUI;
 
-        GameObject subObj = GameObject.Find("SubtitlesText") ?? GameObject.Find("Subtitle Text") ?? GameObject.Find("SubtitleText") ?? GameObject.Find("Subtitle") ?? GameObject.Find("DialogueText");
-        if (subObj != null) return subObj.GetComponent<TextMeshProUGUI>();
+        GameObject subObj = GameObject.Find("SubtitleText") ?? GameObject.Find("Subtitle_Text") ?? GameObject.Find("SubtitlesText") ?? GameObject.Find("Subtitle Text") ?? GameObject.Find("Subtitle") ?? GameObject.Find("DialogueText");
+        if (subObj != null)
+        {
+            TextMeshProUGUI tmp = subObj.GetComponent<TextMeshProUGUI>();
+            if (tmp != null) return tmp;
+        }
 
         TextMeshProUGUI[] tmps = Object.FindObjectsByType<TextMeshProUGUI>(FindObjectsInactive.Include, FindObjectsSortMode.None);
         foreach (var tmp in tmps)
         {
-            if (tmp.gameObject.name.ToLower().Contains("sub")) return tmp;
+            if (tmp.gameObject.name.ToLower().Contains("sub") || tmp.gameObject.name.ToLower().Contains("dialogue") || tmp.gameObject.name.ToLower().Contains("thoai"))
+            {
+                return tmp;
+            }
         }
 
         return null;
+    }
+
+    private void EnsureParentsActive(Component comp)
+    {
+        if (comp == null) return;
+        Transform curr = comp.transform.parent;
+        while (curr != null)
+        {
+            if (!curr.gameObject.activeSelf)
+            {
+                curr.gameObject.SetActive(true);
+            }
+            curr = curr.parent;
+        }
     }
 
     public void UnlockDoor()

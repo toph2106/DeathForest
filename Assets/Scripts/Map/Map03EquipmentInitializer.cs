@@ -41,7 +41,15 @@ public class Map03EquipmentInitializer : MonoBehaviour
 
         yield return new WaitForSeconds(0.1f);
 
-        // 2. KHÔI PHỤC ĐÈN PIN (GIỮ NGUYÊN % PIN TỪ MAP 02 SANG)
+        // 2. KHÔI PHỤC TÚI ĐỒ (INVENTORY) TỪ MAP 02 SANG
+        InventoryManager inv = InventoryManager.Instance ?? Object.FindFirstObjectByType<InventoryManager>(FindObjectsInactive.Include);
+        if (inv != null)
+        {
+            inv.RestoreInventoryState();
+            Debug.Log($"[Map03EquipmentInitializer] 🎒 Đã khôi phục Hotbar Inventory ({inv.CurrentCapacity} ô, {inv.GetItemCount()} món) trong Map 03!");
+        }
+
+        // 3. KHÔI PHỤC ĐÈN PIN (GIỮ NGUYÊN % PIN TỪ MAP 02 SANG)
         if (autoEquipFlashlight)
         {
             FlashlightToggle ft = FlashlightToggle.Instance ?? Object.FindFirstObjectByType<FlashlightToggle>(FindObjectsInactive.Include);
@@ -49,6 +57,8 @@ public class Map03EquipmentInitializer : MonoBehaviour
             {
                 ft.gameObject.SetActive(true);
                 ft.hasFlashlight = true;
+                ft.RestoreFlashlightState();
+                ft.UpdateUI();
 
                 // Chỉ bật đèn nếu đèn còn pin
                 if (turnFlashlightOnAfterIntro && ft.currentBattery > 0f)
@@ -64,13 +74,16 @@ public class Map03EquipmentInitializer : MonoBehaviour
         {
             CamcorderUI.MarkCameraPickedUp();
 
-            GameObject camObj = GameObject.Find("Camcorder");
-            if (camObj != null) camObj.SetActive(true);
-
             CamcorderUI[] camUIs = Object.FindObjectsByType<CamcorderUI>(FindObjectsInactive.Include, FindObjectsSortMode.None);
             foreach (var c in camUIs)
             {
                 c.gameObject.SetActive(true);
+                Transform p = c.transform.parent;
+                while (p != null)
+                {
+                    p.gameObject.SetActive(true);
+                    p = p.parent;
+                }
             }
 
             Debug.Log("[Map03EquipmentInitializer] 📹 Đã kích hoạt Giao diện Máy Quay Camcorder sau khi hết Fade!");
