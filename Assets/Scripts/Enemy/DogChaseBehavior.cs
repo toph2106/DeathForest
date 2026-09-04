@@ -126,6 +126,12 @@ public class DogChaseBehavior : MonoBehaviour
     [Tooltip("Kéo GameObject 'DogPoint' (trong Main Camera > Jumpscare > DogPoint) vào đây")]
     public GameObject dogInCameraObject;
 
+    [Tooltip("Kéo GameObject 'EndG' (trong Canvas UI > EndG) vào đây (Để trống tự động tìm)")]
+    public GameObject endScreenObject;
+
+    [Tooltip("Kéo Sprite ảnh tử nạn 'End' (trong Assets/UI/End) vào đây (Để trống tự động tìm)")]
+    public Sprite endScreenSprite;
+
     [Tooltip("Kéo AnimationClip 'ENM_DOG hyokkori' vào đây")]
     public AnimationClip hyokkoriClip;
 
@@ -1109,8 +1115,10 @@ public class DogChaseBehavior : MonoBehaviour
                 yield break; // Kết thúc tại đây, KHÔNG về Menu!
             }
 
-            // NẾU KHÔNG BẬT GOD MODE -> BẮT ĐẦU FADE ĐEN TOÀN MÀN HÌNH VÀ VỀ MENU
-            yield return StartCoroutine(FadeToBlackRoutine(1.0f));
+            // NẾU KHÔNG BẬT GOD MODE -> KÍCH HOẠT CHUỖI GAMEOVER (FADE ĐEN -> BẬT EndG -> FADE IN MỞ ẢNH -> CLICK -> FADE ĐEN VỀ MENU)
+            CleanupGraphs();
+            GameOverJumpscareManager.Instance.TriggerGameOverDeathScreen(dogInCameraObject, 1.0f, "MainMenu", endScreenObject, endScreenSprite);
+            yield break;
         }
         else
         {
@@ -1133,16 +1141,10 @@ public class DogChaseBehavior : MonoBehaviour
                 yield break;
             }
 
-            yield return StartCoroutine(FadeToBlackRoutine(1.0f));
+            CleanupGraphs();
+            GameOverJumpscareManager.Instance.TriggerGameOverDeathScreen(null, 1.0f, "MainMenu", endScreenObject, endScreenSprite);
+            yield break;
         }
-
-        CleanupGraphs();
-
-        // 6. MÀN HÌNH ĐEN HOÀN TOÀN -> NHẬN PHÍM/CHUỘT BẤT KỲ ĐỂ QUAY VỀ MENU
-        yield return StartCoroutine(WaitForClickAndReturnToMenuRoutine());
-
-        // Tắt hẳn GameObject con chó ngoài map
-        gameObject.SetActive(false);
     }
 
     private IEnumerator FadeToBlackRoutine(float duration)

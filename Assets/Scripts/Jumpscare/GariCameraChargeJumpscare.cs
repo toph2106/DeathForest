@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.Playables;
 using UnityEngine.Animations;
 using System.Collections;
@@ -53,10 +53,6 @@ public class GariCameraChargeJumpscare : MonoBehaviour
     public AudioClip jumpscareSound;
 
     [Range(0f, 1f)] public float soundVolume = 1.0f;
-
-    [Header("6. Tùy Chọn Sau Khi Lao Xong")]
-    [Tooltip("Có gây Game Over không? (Mặc định: False - chỉ hù dọa rồi biến mất)")]
-    public bool triggerGameOver = false;
 
     private bool isTriggered = false;
     private bool hasPlayerTouched = false;
@@ -228,14 +224,8 @@ public class GariCameraChargeJumpscare : MonoBehaviour
             yield return null;
         }
 
-        // 5. CHẠM VÀO LÀ BIẾN MẤT LUÔN NGAY LẬP TỨC
+        // 5. CHẠM VÀO LÀ BIẾN MẤT LUÔN NGAY LẬP TỨC (CHỈ HÙ DỌA, KHÔNG GAME OVER)
         CleanupGraphs();
-
-        if (triggerGameOver)
-        {
-            GameOverJumpscareManager goMgr = Object.FindFirstObjectByType<GameOverJumpscareManager>();
-            if (goMgr != null) goMgr.TriggerGameOver(0.1f);
-        }
 
         if (gariObject != null)
         {

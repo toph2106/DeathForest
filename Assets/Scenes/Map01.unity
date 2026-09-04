@@ -10534,6 +10534,7 @@ GameObject:
   - component: {fileID: 6479380075904686147}
   - component: {fileID: 6479380075904686150}
   - component: {fileID: 6479380075904686151}
+  - component: {fileID: 6479380075904686152}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -12647,6 +12648,52 @@ MonoBehaviour:
   soundVolume: 0.7
   enableMonsterGlitch: 1
   monsterDetectRadius: 12
+--- !u!114 &6479380075904686152
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1401232884403952295}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f8040ce7f718ee84cb8bd35f7d5e40c5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FlashlightToggle
+  hasFlashlight: 1
+  spotHotspot: {fileID: 0}
+  spotMidRing: {fileID: 0}
+  spotAmbient: {fileID: 0}
+  maxBattery: 100
+  currentBattery: 100
+  drainRate: 1.5
+  lowBatteryThreshold: 20
+  batterySliderUI: {fileID: 0}
+  batteryFillImage: {fileID: 0}
+  batteryTextUI: {fileID: 0}
+  turnOnClip: {fileID: 0}
+  turnOffClip: {fileID: 0}
+  clickClip: {fileID: 8300000, guid: 76bcda0234451b94a8d9cd8866177443, type: 3}
+  reloadBatteryClip: {fileID: 0}
+  soundVolume: 1
+  toggleCooldown: 0.4
+  enableAutoDimming: 1
+  dimmingMaxDistance: 3.5
+  dimmingMinDistance: 0.5
+  minDimmingMultiplier: 0.3
+  dimmingSmoothSpeed: 10
+  dimmingLayerMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  enableFlashBurst: 1
+  cameraFlashSound: {fileID: 8300000, guid: fa0c0b3b292b56844a6cccd647602d6d, type: 3}
+  flashBurstCooldown: 1.5
+  flashBurstDistance: 25
+  flashBurstAngle: 90
+  flashBatteryCost: 2
+  flashObstacleMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
 --- !u!1 &6484154086274381681
 GameObject:
   m_ObjectHideFlags: 0
