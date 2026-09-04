@@ -161,9 +161,9 @@ public class NightVisionCamera : MonoBehaviour
             return true;
         }
 
-        // 4. Các scene mặc định đã có máy quay (Map03, Map04, Map05)
+        // 4. Các scene mặc định đã có máy quay (Map03, Map04)
         string sceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
-        if (sceneName == "Map03" || sceneName == "Map04" || sceneName == "Map05")
+        if (sceneName == "Map03" || sceneName == "Map04")
         {
             return true;
         }

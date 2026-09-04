@@ -79,6 +79,8 @@ public class RoomLightSwitch : MonoBehaviour, IInteractable
     [Tooltip("Kéo BedSleepCutscene vào đây. Nếu để trống sẽ tự động tìm")]
     public BedSleepCutscene bedCutscene;
 
+    public static RoomLightSwitch Instance { get; private set; }
+
     private AudioSource audioSource;
     private InteractPrompt interactPrompt;
     private BoxCollider col;
@@ -86,6 +88,8 @@ public class RoomLightSwitch : MonoBehaviour, IInteractable
 
     void Awake()
     {
+        Instance = this;
+
         col = GetComponent<Collider>() as BoxCollider;
         if (col == null)
         {
@@ -219,6 +223,23 @@ public class RoomLightSwitch : MonoBehaviour, IInteractable
 
         // Cập nhật chữ nhắc
         UpdatePromptText();
+
+        // CẬP NHẬT RIÊNG CHO MAP 05: Bật đèn phòng mới mở khóa cửa chính và kích hoạt sự kiện
+        string currentScene = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+        if (currentScene == "Map05" && isLightOn)
+        {
+            DoorExit door = Object.FindFirstObjectByType<DoorExit>(FindObjectsInactive.Include);
+            if (door != null)
+            {
+                door.UnlockDoor();
+            }
+
+            Map05Manager map05 = Map05Manager.Instance ?? Object.FindFirstObjectByType<Map05Manager>(FindObjectsInactive.Include);
+            if (map05 != null)
+            {
+                map05.OnRoomLightTurnedOn();
+            }
+        }
 
         Debug.Log($"[RoomLightSwitch] 💡 Đã chuyển sang chế độ: {(isLightOn ? "ĐÈN CHÍNH (Sáng rõ)" : "ĐÈN NGỦ (Spot đỏ dịu)")}");
     }

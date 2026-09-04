@@ -227,6 +227,27 @@ public class Truck : MonoBehaviour
         // 3. GIỮ NGHỈ 1.0s TRONG BÓNG TỐI
         yield return new WaitForSecondsRealtime(1.0f);
 
+        // 3.5. XÓA SẠCH TÚI ĐỒ VÀ VÔ HIỆU HÓA TRANG BỊ TRƯỚC KHI VÀO MAP 05
+        InventoryManager.ResetInventoryData();
+        if (InventoryManager.Instance != null)
+        {
+            InventoryManager.Instance.ClearInventory();
+        }
+
+        FlashlightToggle.ResetFlashlightData();
+        CamcorderUI.ResetPickedUpCameraState();
+
+        SimpleCameraOverlay overlay = Object.FindFirstObjectByType<SimpleCameraOverlay>(FindObjectsInactive.Include);
+        if (overlay != null)
+        {
+            overlay.ResetCameraView();
+        }
+
+        if (NightVisionCamera.Instance != null)
+        {
+            NightVisionCamera.Instance.SetNightVision(false);
+        }
+
         // 4. CHUYỂN SANG SCENE TIẾP THEO (MAP05)
         Debug.Log($"[Truck] 🚀 BẮT ĐẦU CHUYỂN SANG SCENE '{nextSceneAfterRitual}'...");
 

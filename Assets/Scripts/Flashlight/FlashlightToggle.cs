@@ -191,7 +191,7 @@ public class FlashlightToggle : MonoBehaviour
     public void RestoreFlashlightState()
     {
         string sceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
-        if (sceneName == "Map01" || sceneName == "Map02")
+        if (sceneName == "Map01" || sceneName == "Map02" || sceneName == "Map05")
         {
             ResetFlashlightData();
             currentBattery = maxBattery;
@@ -203,8 +203,8 @@ public class FlashlightToggle : MonoBehaviour
             return;
         }
 
-        // Với Map 03, Map 04, Map 05: Nhân vật mặc định ĐÃ CÓ ĐÈN PIN nhặt từ Map 02
-        bool isMapWithFlashlight = (sceneName == "Map03" || sceneName == "Map04" || sceneName == "Map05");
+        // Với Map 03, Map 04: Nhân vật mặc định ĐÃ CÓ ĐÈN PIN nhặt từ Map 02
+        bool isMapWithFlashlight = (sceneName == "Map03" || sceneName == "Map04");
         if (isMapWithFlashlight)
         {
             hasFlashlight = true;
@@ -711,6 +711,48 @@ public class FlashlightToggle : MonoBehaviour
                 }
             }
         }
+
+        // 5. LÀM CHOÁNG WMAN (NGƯỜI ĐÀN BÀ TRẮNG)
+        WmanBehavior[] wmanEnemies = Object.FindObjectsByType<WmanBehavior>(FindObjectsSortMode.None);
+        if (wmanEnemies != null)
+        {
+            foreach (var wman in wmanEnemies)
+            {
+                if (wman == null || !wman.enabled || !wman.gameObject.activeInHierarchy) continue;
+
+                Vector3 wmanCenter = wman.transform.position + Vector3.up * 1.2f;
+                Vector3 dirToWman = wmanCenter - camTrans.position;
+                float dist = dirToWman.magnitude;
+
+                if (dist <= flashBurstDistance)
+                {
+                    float angle = Vector3.Angle(camTrans.forward, dirToWman.normalized);
+                    bool inCone = (angle <= flashBurstAngle * 0.5f);
+
+                    bool inScreen = false;
+                    if (activeCam != null)
+                    {
+                        Vector3 vp = activeCam.WorldToViewportPoint(wmanCenter);
+                        inScreen = (vp.z > 0 && vp.x >= -0.25f && vp.x <= 1.25f && vp.y >= -0.25f && vp.y <= 1.25f);
+                    }
+
+                    if (inCone || inScreen)
+                    {
+                        if (Physics.Linecast(camTrans.position, wmanCenter, out RaycastHit hit, flashObstacleMask, QueryTriggerInteraction.Ignore))
+                        {
+                            if (hit.collider == null || hit.collider.transform.root == wman.transform.root || hit.collider.transform.IsChildOf(wman.transform) || hit.distance >= dist - 1.5f)
+                            {
+                                wman.OnCameraFlashStunned();
+                            }
+                        }
+                        else
+                        {
+                            wman.OnCameraFlashStunned();
+                        }
+                    }
+                }
+            }
+        }
     }
 
     public void ToggleFlashlight()
@@ -893,9 +935,9 @@ public class FlashlightToggle : MonoBehaviour
     public static void ResetFlashlightData()
     {
         savedBattery = 100f;
-        savedHasFlashlight = -1;
+        savedHasFlashlight = 0;
+        PlayerPrefs.SetInt("Global_Has_Flashlight", 0);
         PlayerPrefs.DeleteKey("Global_Flashlight_Battery");
-        PlayerPrefs.DeleteKey("Global_Has_Flashlight");
         PlayerPrefs.Save();
         if (Instance != null)
         {

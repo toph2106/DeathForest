@@ -1,12 +1,16 @@
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 using System.Collections;
 using TMPro;
 
 /// <summary>
 /// Script quản lý tổng thể Map 05:
-/// 1. Tự động thiết lập trạng thái phòng khi vừa vào Scene (Đóng sẵn cửa sổ, hạ âm thanh thành phố, tắt sẵn đèn sang đèn ngủ, đóng cửa chính).
+/// 1. Tự động thiết lập trạng thái phòng khi vừa vào Scene (Đóng sẵn cửa sổ, hạ âm thanh thành phố, tắt sẵn đèn sang đèn ngủ, đóng cửa chính, dọn sạch túi đồ và vô hiệu hóa thiết bị).
 /// 2. Kích hoạt chuỗi cắt cảnh bừng tỉnh dậy trên đệm sau cơn ác mộng bị xe tải đâm (Map 04).
+/// 3. Sau khi tỉnh dậy liền có tiếng gõ cửa liên tục (Continuous Door Knocking).
+/// 4. Người chơi bật đèn phòng -> Mở khóa tương tác với cửa chính.
+/// 5. Người chơi tương tác với cửa -> Dừng tiếng gõ, mở cửa, màn hình đen dần và hiển thị kết thúc game (Endgame Fade & Typewriter Ending), bấm phím bất kỳ quay về Menu chính.
 /// </summary>
 public class Map05Manager : MonoBehaviour
 {
@@ -101,6 +105,59 @@ public class Map05Manager : MonoBehaviour
     public Image fadeScreenImage;
     public float typewriterSpeed = 0.03f;
 
+    [Header("=== 7. TIẾNG GÕ CỬA LIÊN TỤC (CONTINUOUS DOOR KNOCK) ===")]
+    [Tooltip("Kéo ContinuousDoorKnocker vào đây (để trống sẽ tự động tìm trong Scene)")]
+    public ContinuousDoorKnocker doorKnocker;
+
+    [Tooltip("Tự động kích hoạt tiếng gõ cửa liên tục ngay sau khi tỉnh dậy (Mặc định: BẬT)")]
+    public bool startKnockingAfterWakeUp = true;
+
+    [Tooltip("Thời gian trễ (giây) trước khi bắt đầu đợt gõ cửa đầu tiên sau khi đứng dậy")]
+    public float delayBeforeKnock = 0.5f;
+
+    [Header("=== 8. MỞ KHÓA CỬA KHI BẬT ĐÈN PHÒNG ===")]
+    [Tooltip("Kéo RoomLightSwitch vào đây (để trống sẽ tự động tìm)")]
+    public RoomLightSwitch roomLightSwitch;
+
+    [Tooltip("Kéo DoorExit vào đây (để trống sẽ tự động tìm)")]
+    public DoorExit roomDoor;
+
+    [Tooltip("Thoại phát khi người chơi BẬT ĐÈN PHÒNG (nghe thấy tiếng gõ cửa)")]
+    public DialogueLine[] lightOnDialogues = new DialogueLine[]
+    {
+        new DialogueLine
+        {
+            vietnameseDialogue = "Ai lại gõ cửa vào giờ này nhỉ?",
+            englishDialogue = "Who could be knocking at this hour?",
+            holdDuration = 3.0f
+        }
+    };
+
+    [Header("=== 9. CẮT CẢNH KẾT THÚC GAME (ENDGAME SEQUENCE) ===")]
+    [Tooltip("Thời gian Fade màn hình từ từ tối đen khi mở cửa (giây, Mặc định: 2.5s)")]
+    public float endgameFadeDuration = 2.5f;
+
+    [Tooltip("Panel UI hiển thị chữ kết thúc game (để trống sẽ tự động tìm/tạo)")]
+    public GameObject endgamePanel;
+
+    [Tooltip("Text hiển thị nội dung kết thúc game")]
+    public TextMeshProUGUI endgameTextUI;
+
+    [TextArea(4, 10)]
+    public string endgameTextVI = "Ác mộng đã kết thúc... hay chỉ vừa mới bắt đầu?\n\nCẢM ƠN BẠN ĐÃ TRẢI NGHIỆM DEATH FOREST!\n\n[ Nhấn phím bất kỳ hoặc Click chuột để quay về Menu Chính ]";
+
+    [TextArea(4, 10)]
+    public string endgameTextEN = "The nightmare is over... or has it just begun?\n\nTHANK YOU FOR PLAYING DEATH FOREST!\n\n[ Press any key or Click to return to Main Menu ]";
+
+    [Tooltip("Tốc độ gõ chữ kết thúc game (giây/ký tự)")]
+    public float endgameTypewriterSpeed = 0.035f;
+
+    [Tooltip("Âm thanh ma mị / kết thúc khi màn hình tối đen (Tùy chọn)")]
+    public AudioClip endgameMusicOrAmbience;
+
+    [Tooltip("Tên Scene Menu chính để chuyển về (Mặc định: 'MainMenu')")]
+    public string mainMenuSceneName = "MainMenu";
+
     // --- Private Fields ---
     private AudioSource audioSource;
     private bool isWakingUp = false;
@@ -112,6 +169,11 @@ public class Map05Manager : MonoBehaviour
     private Coroutine cursorBlinkCoroutine;
     private Vector3 originalCameraLocalPos = Vector3.zero;
 
+    private bool hasTriggeredLightOnDialogue = false;
+    private bool isEnding = false;
+    private bool isEndingFinished = false;
+    private bool isReturningToMenu = false;
+
     void Awake()
     {
         if (Instance != null && Instance != this)
@@ -121,7 +183,6 @@ public class Map05Manager : MonoBehaviour
         }
         Instance = this;
 
-        // Tự động sửa lại nếu Inspector đang bị kẹt giá trị 2.5 cũ
         if (standingCameraLocalY > 1.5f)
         {
             standingCameraLocalY = 0.8f;
@@ -155,17 +216,18 @@ public class Map05Manager : MonoBehaviour
 
     void Update()
     {
-        if (!isWakingUp) return;
-
-        if (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.E))
+        if (isWakingUp)
         {
-            if (isTyping)
+            if (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.E) || Input.GetKeyDown(KeyCode.F))
             {
-                skipRequested = true;
-            }
-            else if (isWaitingForNextLine)
-            {
-                skipWaitRequested = true;
+                if (isTyping)
+                {
+                    skipRequested = true;
+                }
+                else if (isWaitingForNextLine)
+                {
+                    skipWaitRequested = true;
+                }
             }
         }
     }
@@ -176,27 +238,46 @@ public class Map05Manager : MonoBehaviour
 
     public void ApplyDefaultRoomState()
     {
+        AutoFindReferences();
+
         // 1. Tự động tắt đèn chính sang chế độ đèn ngủ
         if (autoTurnOffRoomLight)
         {
-            RoomLightSwitch roomLight = Object.FindFirstObjectByType<RoomLightSwitch>(FindObjectsInactive.Include);
-            if (roomLight != null)
+            if (roomLightSwitch != null)
             {
-                roomLight.SetLightState(false);
+                roomLightSwitch.SetLightState(false);
+            }
+            else
+            {
+                RoomLightSwitch lightSwitch = Object.FindFirstObjectByType<RoomLightSwitch>(FindObjectsInactive.Include);
+                if (lightSwitch != null) lightSwitch.SetLightState(false);
             }
         }
 
-        // 3. Tự động đóng cửa chính
+        // 2. Tự động đóng cửa chính & khóa ban đầu (chờ bật đèn mới mở khóa)
         if (autoCloseDoor)
         {
-            DoorExit door = Object.FindFirstObjectByType<DoorExit>(FindObjectsInactive.Include);
-            if (door != null)
+            if (roomDoor != null)
             {
-                door.CloseDoor(true);
+                roomDoor.lockOnStart = true;
+                roomDoor.EnsurePositionsInitialized();
+                roomDoor.CloseDoor(true);
+            }
+            else
+            {
+                DoorExit door = Object.FindFirstObjectByType<DoorExit>(FindObjectsInactive.Include);
+                if (door != null)
+                {
+                    door.lockOnStart = true;
+                    door.EnsurePositionsInitialized();
+                    door.CloseDoor(true);
+                }
             }
         }
 
-        // 4. Tắt các GameObjects cần tắt
+        // 3. Tắt các GameObjects cần tắt của Map 01 cũ (Cockroach, TWNpc, Johnson, Camera10sDoorEvent...)
+        DisableUnusedMap01Objects();
+
         if (objectsToDisableOnStart != null)
         {
             foreach (var obj in objectsToDisableOnStart)
@@ -205,7 +286,7 @@ public class Map05Manager : MonoBehaviour
             }
         }
 
-        // 5. Bật các GameObjects cần bật
+        // 4. Bật các GameObjects cần bật
         if (objectsToEnableOnStart != null)
         {
             foreach (var obj in objectsToEnableOnStart)
@@ -214,7 +295,78 @@ public class Map05Manager : MonoBehaviour
             }
         }
 
-        Debug.Log("[Map05Manager] 🏠 Đã thiết lập trạng thái phòng mặc định (Cửa sổ đóng, Âm thanh thành phố nhỏ, Đèn ngủ bật, Cửa chính đóng)!");
+        // 5. Đảm bảo dừng tiếng gõ cửa ban đầu trước khi tỉnh dậy
+        if (doorKnocker != null)
+        {
+            doorKnocker.StopKnocking();
+        }
+
+        // 6. Xóa toàn bộ túi đồ và vô hiệu hóa Camera UI, Đèn pin, Flash stun, Night Vision
+        ResetAllEquipmentAndInventoryForMap05();
+
+        Debug.Log("[Map05Manager] 🏠 Đã thiết lập trạng thái phòng mặc định (Cửa đóng khóa, Đèn ngủ bật, Đồ đạc và thiết bị đã làm sạch)!");
+    }
+
+    private void DisableUnusedMap01Objects()
+    {
+        string[] disableNames = new string[] {
+            "Cockroach", "CockroachNightmareWakeUp", "CockroachManager", "CockroachWR",
+            "Camera10sDoorEvent", "TWNpc", "Johnson", "TriggerMeow"
+        };
+
+        foreach (string n in disableNames)
+        {
+            GameObject found = GameObject.Find(n);
+            if (found != null)
+            {
+                found.SetActive(false);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Vô hiệu hóa toàn bộ thiết bị (Camera UI, Flashlight, Night Vision, Flash Stun) và xóa sạch túi đồ khi ở Map 05
+    /// </summary>
+    public void ResetAllEquipmentAndInventoryForMap05()
+    {
+        // 1. Xóa sạch túi đồ và reset dữ liệu balo
+        InventoryManager.ResetInventoryData();
+        if (InventoryManager.Instance != null)
+        {
+            InventoryManager.Instance.ClearInventory();
+        }
+
+        // 2. Vô hiệu hóa và ẩn giao diện máy quay (Camcorder UI & CameraOverlay)
+        CamcorderUI.ResetPickedUpCameraState();
+        CamcorderUI[] camUIs = Object.FindObjectsByType<CamcorderUI>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        foreach (var c in camUIs)
+        {
+            if (c != null) c.gameObject.SetActive(false);
+        }
+
+        SimpleCameraOverlay overlay = Object.FindFirstObjectByType<SimpleCameraOverlay>(FindObjectsInactive.Include);
+        if (overlay != null)
+        {
+            overlay.ResetCameraView();
+        }
+
+        // 3. Vô hiệu hóa đèn pin & đèn chói (Flash burst)
+        FlashlightToggle.ResetFlashlightData();
+        FlashlightToggle ft = FlashlightToggle.Instance ?? Object.FindFirstObjectByType<FlashlightToggle>(FindObjectsInactive.Include);
+        if (ft != null)
+        {
+            ft.hasFlashlight = false;
+            ft.SetFlashlightState(false, false);
+            ft.UpdateUI();
+        }
+
+        // 4. Vô hiệu hóa đèn nhìn trong đêm (Night Vision)
+        if (NightVisionCamera.Instance != null)
+        {
+            NightVisionCamera.Instance.SetNightVision(false);
+        }
+
+        Debug.Log("[Map05Manager] 🚫 ĐÃ XÓA TÚI ĐỒ VÀ VÔ HIỆU HÓA TOÀN BỘ THIẾT BỊ (Camera UI, Flashlight, Night Vision, Flash Stun) CHO MAP 05!");
     }
 
     // =========================================================================
@@ -443,7 +595,7 @@ public class Map05Manager : MonoBehaviour
             camTrans.localRotation = Quaternion.identity;
         }
 
-        // 7. TRẢ LẠI QUYỀN ĐIỀU KHIỂN
+        // 7. TRẢ LẠI QUYỀN ĐIỀU KHIỂN CHO NGƯỜI CHƠI
         if (player != null)
         {
             player.SetStandingCamY(finalStandY);
@@ -467,10 +619,338 @@ public class Map05Manager : MonoBehaviour
         SmartInteractionDialogue.isAnyDialoguePlaying = false;
 
         Debug.Log("[Map05Manager] 🎮 CẮT CẢNH HOÀN TẤT! ĐÃ TRẢ DI CHUYỂN TỰ DO CHO NGƯỜI CHƠI TRONG MAP 05.");
+
+        // 8. KÍCH HOẠT TIẾNG GÕ CỬA LIÊN TỤC (CONTINUOUS DOOR KNOCKING)
+        if (startKnockingAfterWakeUp)
+        {
+            StartCoroutine(StartKnockingAfterDelayRoutine());
+        }
+    }
+
+    private IEnumerator StartKnockingAfterDelayRoutine()
+    {
+        if (delayBeforeKnock > 0f)
+        {
+            yield return new WaitForSeconds(delayBeforeKnock);
+        }
+
+        if (doorKnocker == null)
+        {
+            doorKnocker = Object.FindFirstObjectByType<ContinuousDoorKnocker>();
+        }
+
+        if (doorKnocker != null)
+        {
+            doorKnocker.StartKnocking();
+            Debug.Log("[Map05Manager] 🚪 ĐÃ BẮT ĐẦU TIẾNG GÕ CỬA LIÊN TỤC SAU KHI TỈNH DẬY!");
+        }
+        else
+        {
+            Debug.LogWarning("[Map05Manager] ⚠️ Không tìm thấy ContinuousDoorKnocker trong Scene để phát tiếng gõ cửa!");
+        }
     }
 
     // =========================================================================
-    // 3. DIALOGUE TYPEWRITER & CLICK SKIP
+    // 3. SỰ KIỆN BẬT ĐÈN PHÒNG (MỞ KHÓA CỬA CHÍNH)
+    // =========================================================================
+
+    /// <summary>
+    /// Được gọi từ RoomLightSwitch khi người chơi gạt công tắc BẬT đèn chính
+    /// </summary>
+    public void OnRoomLightTurnedOn()
+    {
+        // 1. Mở khóa tương tác cho cửa chính
+        if (roomDoor == null)
+        {
+            roomDoor = Object.FindFirstObjectByType<DoorExit>();
+        }
+
+        if (roomDoor != null)
+        {
+            roomDoor.UnlockDoor();
+            Debug.Log("[Map05Manager] 🔓 ĐÃ MỞ KHÓA CỬA CHÍNH SAU KHI BẬT ĐÈN!");
+        }
+
+        // 2. Phát câu thoại nghi vấn tiếng gõ cửa (nếu chưa từng phát)
+        if (!hasTriggeredLightOnDialogue && lightOnDialogues != null && lightOnDialogues.Length > 0)
+        {
+            hasTriggeredLightOnDialogue = true;
+            StartCoroutine(PlayLightOnDialogueRoutine());
+        }
+    }
+
+    private IEnumerator PlayLightOnDialogueRoutine()
+    {
+        yield return new WaitForSeconds(0.3f);
+        foreach (var line in lightOnDialogues)
+        {
+            if (line != null)
+            {
+                yield return StartCoroutine(PlaySingleLineRoutine(line));
+            }
+        }
+        ClearSubtitleUI();
+    }
+
+    // =========================================================================
+    // 4. CHUỖI CẮT CẢNH KẾT THÚC GAME (ENDGAME SEQUENCE)
+    // =========================================================================
+
+    /// <summary>
+    /// Được gọi từ DoorExit khi người chơi tương tác với cánh cửa đã mở khóa
+    /// </summary>
+    public void TriggerEndGameSequence()
+    {
+        if (isEnding) return;
+        StartCoroutine(EndGameSequenceRoutine());
+    }
+
+    private IEnumerator EndGameSequenceRoutine()
+    {
+        isEnding = true;
+        SmartInteractionDialogue.isAnyDialoguePlaying = true;
+        Debug.Log("[Map05Manager] 🎬 BẮT ĐẦU CHUỖI KẾT THÚC GAME (ENDGAME SEQUENCE)...");
+
+        // 1. DỪNG TIẾNG GÕ CỬA NGAY LẬP TỨC
+        if (doorKnocker != null)
+        {
+            doorKnocker.StopKnocking();
+        }
+        else
+        {
+            ContinuousDoorKnocker knk = Object.FindFirstObjectByType<ContinuousDoorKnocker>();
+            if (knk != null) knk.StopKnocking();
+        }
+
+        // 2. KHÓA DI CHUYỂN VÀ GÓC NHÌN NGƯỜI CHƠI
+        MovePl player = Object.FindFirstObjectByType<MovePl>();
+        CharacterController cc = (player != null) ? player.GetComponent<CharacterController>() : Object.FindFirstObjectByType<CharacterController>();
+        if (player != null)
+        {
+            player.SetMovementState(false);
+            player.isCameraLocked = true;
+        }
+        if (cc != null) cc.enabled = false;
+
+        // 3. ẨN TẤT CẢ UI TƯƠNG TÁC, CHẤM TRÒN VÀ HUD
+        InteractPro interactPro = Object.FindFirstObjectByType<InteractPro>();
+        if (interactPro != null && interactPro.dotObject != null)
+        {
+            interactPro.dotObject.SetActive(false);
+        }
+
+        PauseMenuManager.SetInGameHUDActive(false);
+
+        // 4. MỞ CỬA CHÍNH (TRƯỢT MỞ)
+        if (roomDoor == null)
+        {
+            roomDoor = Object.FindFirstObjectByType<DoorExit>();
+        }
+        if (roomDoor != null)
+        {
+            roomDoor.ToggleDoor();
+        }
+
+        // 5. HIỆU ỨNG FADE MÀN HÌNH TỐI ĐEN DẦN DẦN (FADE OUT TO BLACK)
+        EnsureFadeImage();
+        if (fadeScreenImage != null)
+        {
+            EnsureParentsActive(fadeScreenImage);
+            fadeScreenImage.transform.SetAsLastSibling();
+            fadeScreenImage.gameObject.SetActive(true);
+            fadeScreenImage.raycastTarget = true;
+
+            float fadeElapsed = 0f;
+            Color fadeColor = Color.black;
+            while (fadeElapsed < endgameFadeDuration)
+            {
+                fadeElapsed += Time.deltaTime;
+                fadeColor.a = Mathf.Clamp01(fadeElapsed / endgameFadeDuration);
+                fadeScreenImage.color = fadeColor;
+                yield return null;
+            }
+            fadeColor.a = 1f;
+            fadeScreenImage.color = fadeColor;
+        }
+        else
+        {
+            yield return new WaitForSeconds(endgameFadeDuration);
+        }
+
+        // Giữ bóng tối 0.8s
+        yield return new WaitForSeconds(0.8f);
+
+        // Phát âm thanh ma mị kết thúc nếu có
+        if (endgameMusicOrAmbience != null && audioSource != null)
+        {
+            audioSource.clip = endgameMusicOrAmbience;
+            audioSource.volume = soundVolume;
+            audioSource.loop = false;
+            audioSource.Play();
+        }
+
+        // 6. HIỂN THỊ CHỮ KẾT THÚC GAME VỚI TYPEWRITER
+        yield return StartCoroutine(PlayEndgameTextRoutine());
+
+        // 7. CHỜ NGƯỜI CHƠI NHẤN PHÍM BẤT KỲ HOẶC CLICK CHUỘT ĐỂ QUAY VỀ MENU CHÍNH
+        isEndingFinished = true;
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+
+        while (!isReturningToMenu)
+        {
+            if (Input.GetMouseButtonDown(0) || Input.GetMouseButtonDown(1) || Input.anyKeyDown)
+            {
+                isReturningToMenu = true;
+                break;
+            }
+            yield return null;
+        }
+
+        // 8. FADE OUT CHỮ VÀ CHUYỂN VỀ MAIN MENU
+        yield return StartCoroutine(ReturnToMainMenuRoutine());
+    }
+
+    private IEnumerator PlayEndgameTextRoutine()
+    {
+        EnsureEndgameUI();
+
+        if (endgamePanel != null)
+        {
+            EnsureParentsActive(endgamePanel.GetComponent<Image>() ?? fadeScreenImage);
+            endgamePanel.SetActive(true);
+        }
+
+        string lang = SettingsManager.currentLanguage;
+        string fullContent = (lang == "VI") ? endgameTextVI : endgameTextEN;
+        if (string.IsNullOrEmpty(fullContent)) fullContent = endgameTextVI;
+
+        if (endgameTextUI != null)
+        {
+            if (endgameTextUI.transform.parent != null) endgameTextUI.transform.parent.gameObject.SetActive(true);
+            endgameTextUI.gameObject.SetActive(true);
+            endgameTextUI.color = Color.white;
+            endgameTextUI.text = "";
+
+            if (dialogueSound != null && audioSource != null)
+            {
+                audioSource.clip = dialogueSound;
+                audioSource.volume = soundVolume;
+                audioSource.loop = true;
+                audioSource.time = 0f;
+                audioSource.Play();
+            }
+
+            bool skipEndgameTypewriter = false;
+            for (int i = 1; i <= fullContent.Length; i++)
+            {
+                if (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return))
+                {
+                    skipEndgameTypewriter = true;
+                    endgameTextUI.text = fullContent;
+                    break;
+                }
+
+                endgameTextUI.text = fullContent.Substring(0, i);
+                yield return new WaitForSeconds(endgameTypewriterSpeed);
+            }
+
+            if (audioSource != null && audioSource.isPlaying && audioSource.clip == dialogueSound)
+            {
+                audioSource.Stop();
+            }
+
+            if (!skipEndgameTypewriter)
+            {
+                endgameTextUI.text = fullContent;
+            }
+        }
+        else
+        {
+            Debug.LogWarning("[Map05Manager] ⚠️ Không tìm thấy endgameTextUI!");
+        }
+
+        yield return new WaitForSeconds(0.5f);
+    }
+
+    private IEnumerator ReturnToMainMenuRoutine()
+    {
+        Debug.Log($"[Map05Manager] 🎬 Đang chuyển về Scene Menu Chính: '{mainMenuSceneName}'...");
+
+        // Dọn dẹp toàn bộ dữ liệu gameplay
+        CamcorderUI.ResetTimer();
+        GameSaveManager.ResetAllGameplayRuntimeData();
+
+        // Fade out đen mượt mà
+        if (fadeScreenImage != null)
+        {
+            float elapsed = 0f;
+            Color c = fadeScreenImage.color;
+            while (elapsed < 1.0f)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                c.a = Mathf.Clamp01(elapsed / 1.0f);
+                fadeScreenImage.color = c;
+                yield return null;
+            }
+        }
+
+        yield return new WaitForSecondsRealtime(0.2f);
+
+        if (SceneLoader.Instance != null)
+        {
+            SceneLoader.Instance.LoadSceneAsync(mainMenuSceneName);
+        }
+        else
+        {
+            SceneManager.LoadScene(mainMenuSceneName);
+        }
+    }
+
+    private void EnsureEndgameUI()
+    {
+        if (endgameTextUI != null) return;
+
+        // Thử tìm EndingText đã có trong Canvas
+        GameObject found = GameObject.Find("EndgameText") ?? GameObject.Find("EndingText") ?? GameObject.Find("WaterEndingText");
+        if (found != null)
+        {
+            endgameTextUI = found.GetComponent<TextMeshProUGUI>();
+            if (endgameTextUI != null) return;
+        }
+
+        // Nếu chưa có, sử dụng SubtitleText nhưng chỉnh canh giữa màn hình đẹp mắt
+        if (subtitleTextUI != null)
+        {
+            endgameTextUI = subtitleTextUI;
+            endgameTextUI.alignment = TextAlignmentOptions.Center;
+            endgameTextUI.fontSize = 24;
+            return;
+        }
+
+        // Hoặc tạo mới một TextMeshProUGUI trên FadeCanvas
+        Canvas canvas = Object.FindFirstObjectByType<Canvas>();
+        if (canvas != null)
+        {
+            GameObject txtObj = new GameObject("EndgameTextUI");
+            txtObj.transform.SetParent(canvas.transform, false);
+            RectTransform rt = txtObj.AddComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0.1f, 0.1f);
+            rt.anchorMax = new Vector2(0.9f, 0.9f);
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+
+            endgameTextUI = txtObj.AddComponent<TextMeshProUGUI>();
+            endgameTextUI.alignment = TextAlignmentOptions.Center;
+            endgameTextUI.fontSize = 26;
+            endgameTextUI.color = Color.white;
+            endgameTextUI.lineSpacing = 15;
+            endgameTextUI.gameObject.SetActive(false);
+        }
+    }
+
+    // =========================================================================
+    // 5. DIALOGUE TYPEWRITER & CLICK SKIP
     // =========================================================================
 
     private IEnumerator PlaySingleLineRoutine(DialogueLine line)
@@ -592,7 +1072,7 @@ public class Map05Manager : MonoBehaviour
     }
 
     // =========================================================================
-    // 4. AUTO FIND HELPERS
+    // 6. AUTO FIND HELPERS
     // =========================================================================
 
     private void AutoFindReferences()
@@ -607,6 +1087,21 @@ public class Map05Manager : MonoBehaviour
         {
             GameObject pillowObj = GameObject.Find("PillowCameraPoint");
             if (pillowObj != null) pillowCameraPoint = pillowObj.transform;
+        }
+
+        if (doorKnocker == null)
+        {
+            doorKnocker = Object.FindFirstObjectByType<ContinuousDoorKnocker>();
+        }
+
+        if (roomLightSwitch == null)
+        {
+            roomLightSwitch = Object.FindFirstObjectByType<RoomLightSwitch>();
+        }
+
+        if (roomDoor == null)
+        {
+            roomDoor = Object.FindFirstObjectByType<DoorExit>();
         }
 
         if (wakeUpGaspAudio == null)
@@ -676,4 +1171,16 @@ public class Map05Manager : MonoBehaviour
             }
         }
     }
+
+    private void EnsureParentsActive(Image img)
+    {
+        if (img == null) return;
+        Transform curr = img.transform.parent;
+        while (curr != null)
+        {
+            curr.gameObject.SetActive(true);
+            curr = curr.parent;
+        }
+    }
 }
+
