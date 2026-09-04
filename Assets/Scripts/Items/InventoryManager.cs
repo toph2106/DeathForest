@@ -622,13 +622,81 @@ public class InventoryManager : MonoBehaviour
         return null;
     }
 
+    void OnEnable()
+    {
+        RefreshInventoryVisuals();
+    }
+
     void OnDisable()
     {
         if (heldItems != null && heldItems.Length > 0)
         {
             SaveInventoryData();
         }
-        DestroyAll3DPreviews();
+
+        // Tạm ẩn các model 3D preview thay vì Destroy để khi Resume mở lại ngay lập tức
+        if (slot3DModels != null)
+        {
+            for (int i = 0; i < slot3DModels.Length; i++)
+            {
+                if (slot3DModels[i] != null)
+                {
+                    slot3DModels[i].SetActive(false);
+                }
+            }
+        }
+    }
+
+    public void RefreshInventoryVisuals()
+    {
+        SetupStandardResponsiveUI();
+
+        if (heldItems != null && heldItems.Length > 0)
+        {
+            int activeCap = CurrentCapacity;
+            if (enable3DItemPreview)
+            {
+                if (slot3DModels == null || slot3DModels.Length != heldItems.Length)
+                {
+                    slot3DModels = new GameObject[heldItems.Length];
+                    slotBaseScales = new Vector3[heldItems.Length];
+                }
+
+                for (int i = 0; i < activeCap && i < heldItems.Length; i++)
+                {
+                    if (!string.IsNullOrEmpty(heldItems[i]))
+                    {
+                        if (slot3DModels[i] == null)
+                        {
+                            Create3DPreviewForSlot(i, heldItems[i], (heldItemObjects != null && i < heldItemObjects.Length) ? heldItemObjects[i] : null);
+                        }
+                        else
+                        {
+                            slot3DModels[i].SetActive(true);
+                        }
+                    }
+                }
+            }
+
+            // Đảm bảo selectedIndex trỏ vào ô hợp lệ nếu có đồ
+            if (selectedIndex < 0 || selectedIndex >= activeCap || (heldItems != null && string.IsNullOrEmpty(heldItems[selectedIndex])))
+            {
+                for (int i = 0; i < activeCap && i < heldItems.Length; i++)
+                {
+                    if (!string.IsNullOrEmpty(heldItems[i]))
+                    {
+                        selectedIndex = i;
+                        break;
+                    }
+                }
+            }
+
+            UpdateUISlots();
+        }
+        else
+        {
+            RestoreInventoryState();
+        }
     }
 
     void Update()

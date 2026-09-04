@@ -76,6 +76,12 @@ public class StrangerBehavior : MonoBehaviour
     [Header("7. Jumpscare Trong Camera (In-Camera Jumpscare)")]
     [Tooltip("GameObject Stranger nằm trong Main Camera > Jumpscare > Stranger")]
     public GameObject strangerInCameraObject;
+
+    [Tooltip("Kéo GameObject 'EndG' (trong Canvas UI > EndG) vào đây (Để trống tự động tìm)")]
+    public GameObject endScreenObject;
+
+    [Tooltip("Kéo Sprite ảnh tử nạn 'End' (trong Assets/UI/End) vào đây (Để trống tự động tìm)")]
+    public Sprite endScreenSprite;
     public AnimationClip jumpscareClip;
 
     [Tooltip("Thời điểm animation chạy tới đoạn há mồm rùng rợn và dừng lại (giây - Mặc định: 4.8s tương ứng frame 288)")]
@@ -786,14 +792,9 @@ public class StrangerBehavior : MonoBehaviour
                 yield break;
             }
 
-            // 4. SAU 1S -> BẮT ĐẦU FADE ĐEN TOÀN MÀN HÌNH (STRANGER VẪN HÁ MỒM CHÌM DẦN VÀO BÓNG TỐI)
-            yield return StartCoroutine(FadeToBlackRoutine(fadeToBlackDuration));
-
-            // Tắt Stranger sau khi màn hình đã đen hoàn toàn
-            if (strangerInCameraObject != null)
-            {
-                strangerInCameraObject.SetActive(false);
-            }
+            // 4. SAU 1S -> KÍCH HOẠT CHUỖI GAMEOVER (FADE ĐEN -> BẬT EndG -> FADE IN MỞ ẢNH -> CLICK -> FADE ĐEN VỀ MENU)
+            GameOverJumpscareManager.Instance.TriggerGameOverDeathScreen(strangerInCameraObject, fadeToBlackDuration, "MainMenu", endScreenObject, endScreenSprite);
+            yield break;
         }
         else
         {
@@ -823,13 +824,9 @@ public class StrangerBehavior : MonoBehaviour
                 yield break;
             }
 
-            yield return StartCoroutine(FadeToBlackRoutine(1.0f));
+            GameOverJumpscareManager.Instance.TriggerGameOverDeathScreen(null, 1.0f, "MainMenu", endScreenObject, endScreenSprite);
+            yield break;
         }
-
-        // 6. MÀN HÌNH ĐEN HOÀN TOÀN -> NHẬN PHÍM/CHUỘT BẤT KỲ ĐỂ QUAY VỀ MENU
-        yield return StartCoroutine(WaitForClickAndReturnToMenuRoutine());
-
-        gameObject.SetActive(false);
     }
 
     private IEnumerator FadeToBlackRoutine(float duration)

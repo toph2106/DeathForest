@@ -215,7 +215,6 @@ public class StalkerBehavior : MonoBehaviour
         float distance = Vector3.Distance(transform.position, player.position);
         if (distance <= killDistance)
         {
-            Debug.Log("💀 STALKER ĐÃ XÉ XÁC BẠN VÌ TỘI CHẠY LỚN TIẾNG!");
             this.enabled = false;
         }
     }

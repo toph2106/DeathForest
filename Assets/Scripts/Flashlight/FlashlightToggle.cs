@@ -129,17 +129,28 @@ public class FlashlightToggle : MonoBehaviour
         audioSource.playOnAwake = false;
         audioSource.spatialBlend = 0f;
 
-        // Tự động tìm âm thanh camera_flash nếu chưa được gán
-        if (cameraFlashSound == null)
+        // Tự động tìm âm thanh camera_flash và tiếng click đèn pin nếu chưa được gán
+        AudioClip[] clips = Resources.FindObjectsOfTypeAll<AudioClip>();
+        foreach (var c in clips)
         {
-            AudioClip[] clips = Resources.FindObjectsOfTypeAll<AudioClip>();
-            foreach (var c in clips)
+            if (c == null) continue;
+            string n = c.name.ToLower();
+
+            if (cameraFlashSound == null && (n.Contains("camera_flash") || n.Contains("flash_burst")))
             {
-                if (c != null && c.name.ToLower().Contains("camera_flash"))
-                {
-                    cameraFlashSound = c;
-                    break;
-                }
+                cameraFlashSound = c;
+            }
+            if (clickClip == null && (n.Contains("flashlight-click") || n.Contains("switch-light") || n.Contains("click")))
+            {
+                clickClip = c;
+            }
+            if (turnOnClip == null && (n.Contains("flashlight-click") || n.Contains("switch-light")))
+            {
+                turnOnClip = c;
+            }
+            if (turnOffClip == null && (n.Contains("flashlight-click") || n.Contains("switch-light")))
+            {
+                turnOffClip = c;
             }
         }
 
@@ -657,6 +668,45 @@ public class FlashlightToggle : MonoBehaviour
                     else
                     {
                         yoshie.OnCameraFlashStunned();
+                    }
+                }
+            }
+        }
+
+        // 4. LÀM CHOÁNG & BIẾN MẤT MA NỮ TÓC DÀI (LONG HAIR WOMEN)
+        LongHairWomenBehavior[] lhws = Object.FindObjectsByType<LongHairWomenBehavior>(FindObjectsSortMode.None);
+        foreach (var lhw in lhws)
+        {
+            if (lhw == null || !lhw.gameObject.activeInHierarchy) continue;
+
+            Vector3 lhwCenter = lhw.transform.position + Vector3.up * 1.0f;
+            Vector3 dirToLhw = lhwCenter - camTrans.position;
+            float dist = dirToLhw.magnitude;
+
+            if (dist <= flashBurstDistance)
+            {
+                float angle = Vector3.Angle(camTrans.forward, dirToLhw.normalized);
+                bool inCone = (angle <= flashBurstAngle * 0.5f);
+
+                bool inScreen = false;
+                if (activeCam != null)
+                {
+                    Vector3 vp = activeCam.WorldToViewportPoint(lhwCenter);
+                    inScreen = (vp.z > 0 && vp.x >= -0.25f && vp.x <= 1.25f && vp.y >= -0.25f && vp.y <= 1.25f);
+                }
+
+                if (inCone || inScreen)
+                {
+                    if (Physics.Linecast(camTrans.position, lhwCenter, out RaycastHit hit, flashObstacleMask, QueryTriggerInteraction.Ignore))
+                    {
+                        if (hit.collider == null || hit.collider.transform.root == lhw.transform.root || hit.collider.transform.IsChildOf(lhw.transform) || hit.distance >= dist - 1.5f)
+                        {
+                            lhw.OnCameraFlashStunned();
+                        }
+                    }
+                    else
+                    {
+                        lhw.OnCameraFlashStunned();
                     }
                 }
             }

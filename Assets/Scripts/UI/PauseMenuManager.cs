@@ -243,6 +243,12 @@ public class PauseMenuManager : MonoBehaviour
             previouslyActiveUI.Clear();
         }
 
+        if (InventoryManager.Instance != null)
+        {
+            InventoryManager.Instance.gameObject.SetActive(true);
+            InventoryManager.Instance.RefreshInventoryVisuals();
+        }
+
         StartCoroutine(AnimateResume());
     }
 
@@ -411,7 +417,17 @@ public class PauseMenuManager : MonoBehaviour
             }
         }
 
-        // 2. Tắt/bật các Canvas UI In-Game (LootItem, ItemUI, CameraOverlayCanvas)
+        // 2. Tắt/bật InventoryManager
+        if (InventoryManager.Instance != null)
+        {
+            InventoryManager.Instance.gameObject.SetActive(active);
+            if (active)
+            {
+                InventoryManager.Instance.RefreshInventoryVisuals();
+            }
+        }
+
+        // 3. Tắt/bật các Canvas UI In-Game (LootItem, ItemUI, CameraOverlayCanvas)
         Canvas[] canvases = FindObjectsByType<Canvas>(FindObjectsInactive.Include, FindObjectsSortMode.None);
         foreach (Canvas c in canvases)
         {

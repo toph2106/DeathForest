@@ -2,51 +2,70 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using System.Collections;
-using TMPro;
 
 /// <summary>
-/// Quản lý Màn Hình Game Over Sau Jumpscare:
-/// 1. Làm mờ đen toàn màn hình (Fade To Black)
-/// 2. Khóa âm thanh / mở khóa chuột
-/// 3. Hiện màn hình tối đen + chữ hướng dẫn "Nhấp chuột bất kỳ để quay về Menu"
-/// 4. Nhận phím/chuột bất kỳ để chuyển mượt về MainMenu
+/// Quản lý chuyển cảnh Game Over Điện Ảnh (Cinematic Death Screen):
+/// 1. Fade Out màn hình sang Đen (Dedicated Canvas che 100% toàn màn hình).
+/// 2. Khi đen hoàn toàn: Tắt quái in-camera, BẬT ảnh tử nạn (EndG / Image).
+/// 3. Fade In mở dần màn hình để hé lộ bức ảnh tử nạn End.
+/// 4. Chờ người chơi nhấp chuột hoặc bấm phím bất kỳ (Khóa phím bấm nhầm / giữ phím lúc chạy).
+/// 5. Fade Out sang Đen lần 2 để kết thúc và chuyển mượt về MainMenu.
 /// </summary>
 public class GameOverJumpscareManager : MonoBehaviour
 {
-    public static GameOverJumpscareManager Instance { get; private set; }
+    private static GameOverJumpscareManager _instance;
+    public static GameOverJumpscareManager Instance
+    {
+        get
+        {
+            if (_instance == null)
+            {
+                _instance = Object.FindFirstObjectByType<GameOverJumpscareManager>();
+                if (_instance == null)
+                {
+                    GameObject go = new GameObject("GameOverJumpscareManager");
+                    _instance = go.AddComponent<GameOverJumpscareManager>();
+                }
+            }
+            return _instance;
+        }
+    }
 
-    [Header("1. UI Màn Hình Đen & Text")]
-    [Tooltip("Kéo FadePanel (Image đen toàn màn hình) vào đây. Nếu để trống code tự tìm trong Scene!")]
+    [Header("1. UI Tử Nạn & Màn Hình Fade")]
+    [Tooltip("Kéo GameObject 'EndG' hoặc 'Image' (trong Canvas UI > EndG) vào đây")]
+    public GameObject endScreenObject;
+
+    [Tooltip("Kéo Sprite 'End' (trong Assets/UI/End) vào đây làm ảnh tử nạn dự phòng")]
+    public Sprite endScreenSprite;
+
+    [Tooltip("Kéo FadePanel vào đây (Nếu để trống code tự tạo Canvas Fade 100% riêng biệt)")]
     public Image fadePanel;
 
-    [Tooltip("(Tùy chọn) Text hướng dẫn 'Bấm phím bất kỳ để quay về Menu'")]
-    public Text promptText;
+    [Header("2. Thời Gian Đóng Mở Fade (Cinematic Timings)")]
+    [Tooltip("Thời gian màn hình tối đen dần sau jumpscare (giây)")]
+    public float fadeOutToBlackDuration = 1.2f;
 
-    [Tooltip("(Tùy chọn nếu dùng TextMeshPro) TextMeshProUGUI hướng dẫn")]
-    public TextMeshProUGUI promptTextTMP;
+    [Tooltip("Thời gian mở màn hình hé lộ bức ảnh End (giây)")]
+    public float fadeInToDeathScreenDuration = 1.0f;
 
-    [Header("2. Cấu Hình Chuyển Cảnh")]
-    [Tooltip("Thời gian màn hình mờ đen hoàn toàn (giây)")]
-    public float fadeToBlackDuration = 1.2f;
-
-    [Tooltip("Khoảng dừng tối đen trước khi cho phép bấm (giây)")]
-    public float delayBeforeCanClick = 0.5f;
+    [Tooltip("Thời gian tối đen lại sau khi bấm phím trước khi load Menu (giây)")]
+    public float fadeOutToMenuDuration = 0.8f;
 
     [Tooltip("Tên Scene Menu chính (Mặc định: MainMenu)")]
     public string mainMenuSceneName = "MainMenu";
 
-    [Header("3. Âm Thanh (Tùy Chọn)")]
-    [Tooltip("Âm thanh u ám lúc màn hình đen")]
+    [Header("3. Âm Thanh Tử Nạn (Tùy Chọn)")]
+    [Tooltip("Âm thanh u ám lúc hiện ảnh chết chóc")]
     public AudioClip deathAmbienceSound;
 
     private bool isGameOverTriggered = false;
-    private bool canClickToReturn = false;
     private AudioSource audioSource;
+    private Canvas dedicatedFadeCanvas;
 
     void Awake()
     {
-        if (Instance == null) Instance = this;
-        else if (Instance != this)
+        if (_instance == null) _instance = this;
+        else if (_instance != this)
         {
             Destroy(gameObject);
             return;
@@ -55,93 +74,120 @@ public class GameOverJumpscareManager : MonoBehaviour
         audioSource = GetComponent<AudioSource>();
         if (audioSource == null) audioSource = gameObject.AddComponent<AudioSource>();
 
+        EnsureDedicatedFadeCanvas();
         EnsureUIReferences();
     }
 
     void Start()
     {
-        // Ẩn Text hướng dẫn lúc đầu
-        if (promptText != null) promptText.gameObject.SetActive(false);
-        if (promptTextTMP != null) promptTextTMP.gameObject.SetActive(false);
-    }
-
-    void Update()
-    {
-        if (!canClickToReturn) return;
-
-        // Lắng nghe người chơi nhấp chuột hoặc bấm bất kỳ phím nào
-        if (Input.anyKeyDown || Input.GetMouseButtonDown(0) || Input.GetMouseButtonDown(1))
+        EnsureDedicatedFadeCanvas();
+        EnsureUIReferences();
+        if (endScreenObject != null)
         {
-            canClickToReturn = false;
-            StartCoroutine(ReturnToMenuRoutine());
+            endScreenObject.SetActive(false);
         }
     }
 
-    private void EnsureUIReferences()
+    public void EnsureDedicatedFadeCanvas()
     {
-        if (fadePanel == null)
+        if (dedicatedFadeCanvas == null)
         {
-            GameObject fadeObj = GameObject.Find("FadePanel");
-            if (fadeObj == null) fadeObj = GameObject.Find("FadeScreen");
-            if (fadeObj == null) fadeObj = GameObject.Find("FadeImage");
-            if (fadeObj == null) fadeObj = GameObject.Find("BlackScreen");
-
-            if (fadeObj != null)
+            GameObject canvasObj = GameObject.Find("DedicatedGameOverFadeCanvas");
+            if (canvasObj == null)
             {
-                fadePanel = fadeObj.GetComponent<Image>();
+                canvasObj = new GameObject("DedicatedGameOverFadeCanvas");
+            }
+            dedicatedFadeCanvas = canvasObj.GetComponent<Canvas>();
+            if (dedicatedFadeCanvas == null) dedicatedFadeCanvas = canvasObj.AddComponent<Canvas>();
+            dedicatedFadeCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            dedicatedFadeCanvas.overrideSorting = true;
+            dedicatedFadeCanvas.sortingOrder = 999999; // Lớp cao nhất tuyệt đối
+
+            CanvasScaler scaler = canvasObj.GetComponent<CanvasScaler>();
+            if (scaler == null) scaler = canvasObj.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1920, 1080);
+
+            GraphicRaycaster gr = canvasObj.GetComponent<GraphicRaycaster>();
+            if (gr == null) gr = canvasObj.AddComponent<GraphicRaycaster>();
+
+            Transform existingPanel = canvasObj.transform.Find("DedicatedFadePanel");
+            if (existingPanel != null)
+            {
+                fadePanel = existingPanel.GetComponent<Image>();
+            }
+            else
+            {
+                GameObject panelObj = new GameObject("DedicatedFadePanel");
+                panelObj.transform.SetParent(canvasObj.transform, false);
+                fadePanel = panelObj.AddComponent<Image>();
+                fadePanel.color = new Color(0f, 0f, 0f, 0f);
+                fadePanel.raycastTarget = false;
+
+                RectTransform rt = fadePanel.rectTransform;
+                rt.anchorMin = Vector2.zero;
+                rt.anchorMax = Vector2.one;
+                rt.offsetMin = Vector2.zero;
+                rt.offsetMax = Vector2.zero;
+            }
+        }
+    }
+
+    public void EnsureUIReferences()
+    {
+        // 1. Tìm GameObject EndG trong Scene nếu chưa được gán
+        if (endScreenObject == null)
+        {
+            GameObject[] allObjs = Resources.FindObjectsOfTypeAll<GameObject>();
+            foreach (var obj in allObjs)
+            {
+                if (obj != null && (obj.name == "EndG" || obj.name == "EndScreen" || obj.name == "GameOverScreen"))
+                {
+                    endScreenObject = obj;
+                    break;
+                }
             }
         }
 
-        // Nếu trong Scene vẫn chưa có FadePanel, tự động tạo 1 Canvas che đen
-        if (fadePanel == null)
+        // 2. Tìm Sprite End nếu chưa có
+        if (endScreenSprite == null)
         {
-            Canvas canvas = Object.FindFirstObjectByType<Canvas>();
-            if (canvas == null)
+            Sprite[] allSprites = Resources.FindObjectsOfTypeAll<Sprite>();
+            foreach (var s in allSprites)
             {
-                GameObject canvasObj = new GameObject("GameOverCanvas");
-                canvas = canvasObj.AddComponent<Canvas>();
-                canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-                canvas.sortingOrder = 99999;
-                canvasObj.AddComponent<CanvasScaler>();
-                canvasObj.AddComponent<GraphicRaycaster>();
+                if (s != null && s.name == "End")
+                {
+                    endScreenSprite = s;
+                    break;
+                }
             }
-
-            GameObject newPanel = new GameObject("FadePanel");
-            newPanel.transform.SetParent(canvas.transform, false);
-            fadePanel = newPanel.AddComponent<Image>();
-            fadePanel.color = new Color(0f, 0f, 0f, 0f);
-
-            RectTransform rt = fadePanel.rectTransform;
-            rt.anchorMin = Vector2.zero;
-            rt.anchorMax = Vector2.one;
-            rt.offsetMin = Vector2.zero;
-            rt.offsetMax = Vector2.zero;
-
-            newPanel.SetActive(false);
         }
     }
 
     /// <summary>
-    /// API: Kích hoạt chuỗi Game Over sau khi quái vật vồ xong
+    /// API: Kích hoạt chuỗi Game Over toàn diện (cho cả Yoshie, Chó, Stranger, Uma, Gari...)
     /// </summary>
-    public void TriggerGameOver(float customFadeDuration = -1f)
+    public void TriggerGameOverDeathScreen(GameObject inCamMonster = null, float customFadeOutTime = -1f, string customMenuScene = null, GameObject customEndScreen = null, Sprite customEndSprite = null)
     {
         if (isGameOverTriggered) return;
         isGameOverTriggered = true;
 
-        // Tắt toàn bộ âm thanh và UI không liên quan ngay lập tức
-        MuteAllUnrelatedAudioAndHideUI(audioSource);
+        if (customEndScreen != null) endScreenObject = customEndScreen;
+        if (customEndSprite != null) endScreenSprite = customEndSprite;
 
-        float duration = (customFadeDuration > 0f) ? customFadeDuration : fadeToBlackDuration;
-        StartCoroutine(GameOverSequenceRoutine(duration));
+        float fOutTime = (customFadeOutTime > 0f) ? customFadeOutTime : fadeOutToBlackDuration;
+        string mScene = !string.IsNullOrEmpty(customMenuScene) ? customMenuScene : mainMenuSceneName;
+
+        StartCoroutine(PlayGameOverDeathScreenRoutine(inCamMonster, fOutTime, fadeInToDeathScreenDuration, fadeOutToMenuDuration, mScene));
     }
 
-    /// <summary>
-    /// Tắt toàn bộ âm thanh và ẩn toàn bộ UI không liên quan khi bị quái vật tóm (Jumpscare / Game Over)
-    /// </summary>
+    public void TriggerGameOver(float customFadeDuration = -1f)
+    {
+        TriggerGameOverDeathScreen(null, customFadeDuration);
+    }
+
     public static void MuteAllUnrelatedAudioAndHideUI(AudioSource audioToKeep = null)
     {
-        // 1. TẮT TẤT CẢ ÂM THANH NGOẠI CẢNH / BƯỚC CHÂN / TIẾNG QUÁI KHÁC
         AudioSource[] allAudio = Object.FindObjectsByType<AudioSource>(FindObjectsSortMode.None);
         if (allAudio != null)
         {
@@ -149,7 +195,7 @@ public class GameOverJumpscareManager : MonoBehaviour
             {
                 if (a == null) continue;
                 if (audioToKeep != null && a == audioToKeep) continue;
-                if (Instance != null && a == Instance.audioSource) continue;
+                if (_instance != null && a == _instance.audioSource) continue;
 
                 try
                 {
@@ -159,7 +205,6 @@ public class GameOverJumpscareManager : MonoBehaviour
             }
         }
 
-        // 2. TẮT TẤT CẢ UI KHÔNG LIÊN QUAN (HUD, Inventory, Camcorder, Crosshair, Subtitle, Note...)
         string[] uiNamesToDisable = new string[] 
         { 
             "ItemUI", "InventoryPanel", "Inventory", "Camcorder", "CameraOverlayCanvas", 
@@ -172,9 +217,16 @@ public class GameOverJumpscareManager : MonoBehaviour
             GameObject obj = GameObject.Find(name);
             if (obj != null)
             {
-                if (Instance != null && Instance.fadePanel != null)
+                if (_instance != null && _instance.fadePanel != null)
                 {
-                    if (obj == Instance.fadePanel.gameObject || Instance.fadePanel.transform.IsChildOf(obj.transform))
+                    if (obj == _instance.fadePanel.gameObject || _instance.fadePanel.transform.IsChildOf(obj.transform))
+                    {
+                        continue;
+                    }
+                }
+                if (_instance != null && _instance.endScreenObject != null)
+                {
+                    if (obj == _instance.endScreenObject || _instance.endScreenObject.transform.IsChildOf(obj.transform))
                     {
                         continue;
                     }
@@ -184,12 +236,12 @@ public class GameOverJumpscareManager : MonoBehaviour
         }
     }
 
-    private IEnumerator GameOverSequenceRoutine(float duration)
+    public IEnumerator PlayGameOverDeathScreenRoutine(GameObject inCamMonsterToHide, float fadeToBlackTime, float fadeInEndTime, float fadeOutToMenuTime, string menuScene)
     {
+        EnsureDedicatedFadeCanvas();
         EnsureUIReferences();
         MuteAllUnrelatedAudioAndHideUI(audioSource);
 
-        // 1. Khóa di chuyển Player
         MovePl player = Object.FindFirstObjectByType<MovePl>();
         if (player != null)
         {
@@ -197,86 +249,187 @@ public class GameOverJumpscareManager : MonoBehaviour
             player.isCameraLocked = true;
         }
 
-        // 2. Mở Panel Đen & Bắt đầu Fade từ 0 lên 1
+        // Đảm bảo FadePanel active và render ở layer cao nhất
+        if (dedicatedFadeCanvas != null) dedicatedFadeCanvas.gameObject.SetActive(true);
         if (fadePanel != null)
         {
             fadePanel.gameObject.SetActive(true);
-            Color c = fadePanel.color;
-            c.a = 0f;
-            fadePanel.color = c;
-
-            // Đảm bảo sorting order cao nhất đè lên tất cả HUD khác
-            Canvas parentCanvas = fadePanel.GetComponentInParent<Canvas>();
-            if (parentCanvas != null)
-            {
-                parentCanvas.overrideSorting = true;
-                parentCanvas.sortingOrder = 99999;
-            }
-
-            float elapsed = 0f;
-            while (elapsed < duration)
-            {
-                elapsed += Time.deltaTime;
-                float t = Mathf.Clamp01(elapsed / duration);
-
-                c.a = t;
-                fadePanel.color = c;
-
-                yield return null;
-            }
-
-            c.a = 1f;
-            fadePanel.color = c;
+            fadePanel.color = new Color(0f, 0f, 0f, 0f);
         }
 
-        // 3. Phát âm thanh u ám lúc chết (nếu có)
+        // ==================== GIAI ĐOẠN 1: FADE OUT SANG ĐEN (0 -> 1) ====================
+        float elapsed = 0f;
+        while (elapsed < fadeToBlackTime)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / fadeToBlackTime);
+            if (fadePanel != null)
+            {
+                fadePanel.color = new Color(0f, 0f, 0f, t);
+            }
+            yield return null;
+        }
+
+        if (fadePanel != null) fadePanel.color = Color.black;
+
+        // TẮT QUÁI IN-CAMERA (khi màn hình đã đen 100%)
+        if (inCamMonsterToHide != null)
+        {
+            inCamMonsterToHide.SetActive(false);
+        }
+
+        // BẬT BỨC ẢNH TỬ NẠN EndG
+        ShowDeathScreenImage();
+
+        // Phát âm thanh tử nạn nếu có
         if (deathAmbienceSound != null && audioSource != null)
         {
             audioSource.PlayOneShot(deathAmbienceSound);
         }
 
-        // 4. Mở khóa chuột để người chơi tương tác
+        // ==================== GIAI ĐOẠN 2: FADE IN MỞ MÀN HÌNH (1 -> 0) HÉ LỘ ẢNH EndG ====================
+        elapsed = 0f;
+        while (elapsed < fadeInEndTime)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / fadeInEndTime);
+            if (fadePanel != null)
+            {
+                fadePanel.color = new Color(0f, 0f, 0f, 1f - t);
+            }
+            yield return null;
+        }
+
+        if (fadePanel != null) fadePanel.color = new Color(0f, 0f, 0f, 0f);
+
+        // MỞ KHÓA CHUỘT
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
-        // 5. Đợi 1 nhịp ngắn
-        yield return new WaitForSeconds(delayBeforeCanClick);
-
-        // 6. Hiện dòng chữ gợi ý nhấp chuột
-        if (promptText != null)
+        // ==================== GIAI ĐOẠN 3: ĐỢI NGƯỜI CHƠI NHẤP CHUỘT VÀO BẤT KỲ CHỖ NÀO TRÊN MÀN HÌNH ====================
+        // 1. Xả sạch nút chuột nếu đang bị đè
+        while (Input.GetMouseButton(0) || Input.GetMouseButton(1) || Input.GetMouseButton(2))
         {
-            promptText.gameObject.SetActive(true);
-            promptText.text = "NHẤP CHUỘT BẤT KỲ ĐỂ VỀ MENU...";
-        }
-        if (promptTextTMP != null)
-        {
-            promptTextTMP.gameObject.SetActive(true);
-            promptTextTMP.text = "NHẤP CHUỘT BẤT KỲ ĐỂ VỀ MENU...";
+            yield return null;
         }
 
-        // Bật cờ cho phép bấm
-        canClickToReturn = true;
-        Debug.Log("[GameOverJumpscareManager] 🌑 Màn hình đen hoàn tất. Nhấp chuột hoặc phím bất kỳ để quay về Menu!");
-    }
+        // 2. Chờ nhịp ngắn 0.3s để người chơi ổn định thao tác
+        yield return new WaitForSeconds(0.3f);
 
-    private IEnumerator ReturnToMenuRoutine()
-    {
-        Debug.Log($"[GameOverJumpscareManager] 🚪 Đang chuyển về Scene: {mainMenuSceneName}...");
+        // 3. Chờ cú NHẤP CHUỘT bất kỳ vào màn hình (Chuột trái, Chuột phải hoặc Chuột giữa)
+        while (!Input.GetMouseButtonDown(0) && !Input.GetMouseButtonDown(1) && !Input.GetMouseButtonDown(2))
+        {
+            yield return null;
+        }
 
-        // Khôi phục timeScale đề phòng pause
+        // ==================== GIAI ĐOẠN 4: FADE OUT ĐÓNG MÀN HÌNH ĐEN LẦN 2 (0 -> 1) ====================
+        elapsed = 0f;
+        while (elapsed < fadeOutToMenuTime)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / fadeOutToMenuTime);
+            if (fadePanel != null)
+            {
+                fadePanel.color = new Color(0f, 0f, 0f, t);
+            }
+            yield return null;
+        }
+
+        if (fadePanel != null) fadePanel.color = Color.black;
+
+        // CHUYỂN MƯỢT VỀ MENU CHÍNH
         Time.timeScale = 1f;
         GameSaveManager.ResetAllGameplayRuntimeData();
 
-        // Nếu SceneLoader tồn tại, dùng SceneLoader để load mượt
+        string sceneToLoad = !string.IsNullOrEmpty(menuScene) ? menuScene : mainMenuSceneName;
         if (SceneLoader.Instance != null)
         {
-            SceneLoader.Instance.LoadSceneAsync(mainMenuSceneName);
+            SceneLoader.Instance.LoadSceneAsync(sceneToLoad);
         }
         else
         {
-            SceneManager.LoadScene(mainMenuSceneName);
+            SceneManager.LoadScene(sceneToLoad);
+        }
+    }
+
+    private void ShowDeathScreenImage()
+    {
+        bool showedEndG = false;
+
+        if (endScreenObject != null)
+        {
+            // Bật toàn bộ cha mẹ của EndG (Canvas UI)
+            Transform cur = endScreenObject.transform;
+            while (cur != null)
+            {
+                cur.gameObject.SetActive(true);
+                Canvas c = cur.GetComponent<Canvas>();
+                if (c != null)
+                {
+                    c.enabled = true;
+                    c.overrideSorting = true;
+                    c.sortingOrder = 999990; // Dưới FadePanel (999999) nhưng trên toàn bộ HUD khác
+                }
+                cur = cur.parent;
+            }
+
+            endScreenObject.SetActive(true);
+
+            // Bật toàn bộ children & Image trong EndG
+            foreach (Transform child in endScreenObject.GetComponentsInChildren<Transform>(true))
+            {
+                child.gameObject.SetActive(true);
+            }
+
+            foreach (var img in endScreenObject.GetComponentsInChildren<Image>(true))
+            {
+                img.gameObject.SetActive(true);
+                img.enabled = true;
+                img.color = Color.white;
+            }
+
+            showedEndG = true;
         }
 
-        yield return null;
+        // Nếu EndG chưa có hoặc không hiển thị, tạo 1 Canvas hiển thị Sprite End trực tiếp
+        if (!showedEndG || endScreenSprite != null)
+        {
+            GameObject dynCanvas = GameObject.Find("DynamicDeathScreenCanvas");
+            if (dynCanvas == null)
+            {
+                dynCanvas = new GameObject("DynamicDeathScreenCanvas");
+                Canvas dCanvas = dynCanvas.AddComponent<Canvas>();
+                dCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
+                dCanvas.overrideSorting = true;
+                dCanvas.sortingOrder = 999990; // Nằm dưới FadePanel (999999)
+
+                CanvasScaler scaler = dynCanvas.AddComponent<CanvasScaler>();
+                scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+                scaler.referenceResolution = new Vector2(1920, 1080);
+
+                GameObject imgObj = new GameObject("DeathImage");
+                imgObj.transform.SetParent(dynCanvas.transform, false);
+                Image dImg = imgObj.AddComponent<Image>();
+
+                if (endScreenSprite != null)
+                {
+                    dImg.sprite = endScreenSprite;
+                }
+                else
+                {
+                    Sprite s = Resources.Load<Sprite>("UI/End");
+                    if (s != null) dImg.sprite = s;
+                }
+
+                dImg.color = Color.white;
+                RectTransform rt = dImg.rectTransform;
+                rt.anchorMin = Vector2.zero;
+                rt.anchorMax = Vector2.one;
+                rt.offsetMin = Vector2.zero;
+                rt.offsetMax = Vector2.zero;
+            }
+
+            dynCanvas.SetActive(true);
+        }
     }
 }
