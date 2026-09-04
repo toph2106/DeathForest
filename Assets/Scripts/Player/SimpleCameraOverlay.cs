@@ -27,7 +27,7 @@ public class SimpleCameraOverlay : MonoBehaviour
 
     void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        if (scene.name == "MainMenu" || scene.name == "Map01" || scene.name == "Map02")
+        if (scene.name == "MainMenu" || scene.name == "Map01" || scene.name == "Map02" || scene.name == "Map05")
         {
             ResetCameraView();
         }
@@ -36,7 +36,7 @@ public class SimpleCameraOverlay : MonoBehaviour
     void Start()
     {
         string sceneName = SceneManager.GetActiveScene().name;
-        if (sceneName == "MainMenu" || sceneName == "Map01" || sceneName == "Map02")
+        if (sceneName == "MainMenu" || sceneName == "Map01" || sceneName == "Map02" || sceneName == "Map05")
         {
             ResetCameraView();
             return;

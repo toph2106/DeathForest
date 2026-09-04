@@ -69,12 +69,12 @@ public class GlobalEquipmentPersistence : MonoBehaviour
         string currentScene = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
         if (currentScene == "MainMenu") yield break;
 
-        // Nếu ở Map01 hoặc Map02: Tuyệt đối không tự động nạp đồ đạc, đèn pin hay máy quay của Map03!
-        // Người chơi bắt đầu nguyên bản (nhặt đèn pin trên bàn cúng, túi đồ sạch sẽ).
-        if (currentScene == "Map01" || currentScene == "Map02")
+        // Nếu ở Map01, Map02 hoặc Map05: Tuyệt đối không tự động nạp đồ đạc, đèn pin hay máy quay của Map03/Map04!
+        // Người chơi bắt đầu nguyên bản (Map 05 vừa tỉnh dậy sau ác mộng, túi đồ sạch sẽ, không có thiết bị).
+        if (currentScene == "Map01" || currentScene == "Map02" || currentScene == "Map05")
         {
             GameSaveManager.isResettingData = false;
-            Debug.Log($"[GlobalEquipmentPersistence] 🎮 Bắt đầu {currentScene}: Chơi nguyên bản (không nạp đồ đạc hay thiết bị từ Map 03 sang).");
+            Debug.Log($"[GlobalEquipmentPersistence] 🎮 Bắt đầu {currentScene}: Chơi nguyên bản (không nạp đồ đạc hay thiết bị từ Map khác sang).");
             yield break;
         }
 
@@ -83,7 +83,7 @@ public class GlobalEquipmentPersistence : MonoBehaviour
         // 1. KHÔI PHỤC ĐÈN PIN & % PIN
         if (autoRestoreFlashlight)
         {
-            bool shouldHaveFlash = (PlayerPrefs.GetInt("Global_Has_Flashlight", 0) == 1) || (currentScene == "Map03" || currentScene == "Map04" || currentScene == "Map05");
+            bool shouldHaveFlash = (PlayerPrefs.GetInt("Global_Has_Flashlight", 0) == 1) || (currentScene == "Map03" || currentScene == "Map04");
             if (shouldHaveFlash)
             {
                 FlashlightToggle ft = FlashlightToggle.Instance ?? Object.FindFirstObjectByType<FlashlightToggle>(FindObjectsInactive.Include);
@@ -101,7 +101,7 @@ public class GlobalEquipmentPersistence : MonoBehaviour
         // 2. KHÔI PHỤC MÁY QUAY CAMCORDER
         if (autoRestoreCamcorder)
         {
-            bool shouldHaveCam = (PlayerPrefs.GetInt("Global_Has_Camera", 0) == 1) || (currentScene == "Map03" || currentScene == "Map04" || currentScene == "Map05");
+            bool shouldHaveCam = (PlayerPrefs.GetInt("Global_Has_Camera", 0) == 1) || (currentScene == "Map03" || currentScene == "Map04");
             if (shouldHaveCam)
             {
                 CamcorderUI.MarkCameraPickedUp();

@@ -5,16 +5,16 @@ using TMPro;
 using UnityEngine.Events;
 
 /// <summary>
-/// Script xử lý tương tác Dâng Vật Phẩm (Gore / Nội Tạng) lên Đền Thờ (Siramori Shrine):
-/// 1. Kế thừa IInteractable -> Tự động nhận diện tâm ngắm và hiện icon Tương Tác.
-/// 2. TH1 (Chưa có Gore/Nội Tạng): Hiện thoại nhân vật nhận xét đền thờ còn thiếu vật hiến tế.
-/// 3. TH2 (Đã có Gore trong túi): 
-///    - Fade đen màn hình mượt mà (Cinema Fade), khóa di chuyển, phát âm thanh dâng tế.
-///    - Bật Active cục Gore được setup sẵn trong đền thờ này (shrineGoreObject).
-///    - Trừ 1 vật phẩm Gore trong Inventory của người chơi.
-///    - Fade sáng trở lại, hiện thoại sau khi dâng tế.
-///    - Đếm số lượng đền đã hoàn thành (Ví dụ: 1/2, 2/2) -> Khi đủ tất cả đền sẽ kích hoạt sự kiện onAllShrinesCompleted!
-/// 4. TH3 (Đã đặt rồi): Báo đền thờ này đã được dâng tế.
+/// Quản lý tương tác Dâng Vật Phẩm (Gore / Nội Tạng) lên 2 Đền Thờ (Siramori Shrine) trong Map 04:
+/// 1. TƯƠNG TÁC GỌN GÀNG, KHÔNG THOẠI THỪA:
+///    - Fade đen mượt mà (0.5s) -> Phát âm thanh đặt tế phẩm -> Bật hiện Gore trong đền -> Trừ 1 Gore khỏi túi -> Fade sáng lại (0.5s).
+///    - Không bắt người chơi phải chờ đọc thoại rườm rà.
+/// 2. ĐẢM BẢO GORE LUÔN HIỆN RÕ RÀNG TRONG ĐỀN:
+///    - Tự động kích hoạt toàn bộ MeshRenderer & GameObject con (0_0_0) của cục Gore.
+///    - Khóa script nhặt đồ và collider trên Gore để người chơi không nhặt lại.
+/// 3. HÓA GIẢI WMAN KHI ĐỦ 2 ĐỀN:
+///    - Tự động tính đúng 2 đền (1/2, 2/2).
+///    - Khi đủ 2/2 đền -> Tự động hóa giải WmanBehavior (Wman không bao giờ săn đuổi nữa) và vô hiệu hóa ForbiddenDangerZone.
 /// </summary>
 public class ShrineOfferingInteraction : MonoBehaviour, IInteractable
 {
@@ -32,28 +32,36 @@ public class ShrineOfferingInteraction : MonoBehaviour, IInteractable
     [Tooltip("Tên vật phẩm cần có trong túi đồ để dâng lên đền (Mặc định: 'Nội Tạng' hoặc 'Gore')")]
     public string requiredItemName = "Nội Tạng";
 
-    [Tooltip("Các tên phụ có thể chấp nhận (phân cách bởi dấu phẩy, ví dụ: Gore, Core, Noi Tang, Organ)")]
-    public string alternateItemNames = "Gore,Core,Organ,Noi Tang,noi tang,gore,core";
+    [Tooltip("Các tên phụ có thể chấp nhận (phân cách bởi dấu phẩy)")]
+    public string alternateItemNames = "Gore,Core,Organ,Noi Tang,noi tang,gore,core,xac,ruot,thit,flesh";
 
     [Tooltip("Có xóa vật phẩm khỏi túi đồ sau khi dâng tế không? (Mặc định: BẬT)")]
     public bool consumeItem = true;
 
     [Header("2. Vật Thể Gore Hiển Thị Tại Đền (Gore in Shrine)")]
-    [Tooltip("Kéo GameObject cục Gore được bạn đặt sẵn bên trong ngôi đền này vào đây (Ban đầu script sẽ tự tắt, khi dâng đồ sẽ bật lên)")]
+    [Tooltip("Kéo GameObject cục Gore được setup bên trong ngôi đền này vào đây (Ban đầu tự tắt, khi dâng đồ sẽ bật lên)")]
     public GameObject shrineGoreObject;
 
-    [Header("3. Cấu Hình Fade Màn Hình (Cinema Fade)")]
+    [Header("3. Cấu Hình Tương Tác & Cooldown")]
+    [Tooltip("Thời gian hồi chiêu chống spam click tương tác (giây - Mặc định: 0.4s)")]
+    public float interactCooldown = 0.4f;
+
+    [Header("4. Cấu Hình Phụ Đề / Thoại")]
+    [Tooltip("Bật nếu muốn hiện phụ đề suy nghĩ khi chưa có đồ tế. Tắt nếu không muốn hiện thoại thừa (Mặc định: TẮT)")]
+    public bool enableDialogues = false;
+
+    [Header("5. Cấu Hình Fade Màn Hình (Cinema Fade)")]
     [Tooltip("Kéo UI Fade Image (hoặc để trống để code tự động tìm Canvas tạo màn che)")]
     public Image fadeImage;
     public Color fadeColor = Color.black;
     [Tooltip("Thời gian màn hình tối dần (giây)")]
-    public float fadeInDuration = 0.6f;
+    public float fadeInDuration = 0.5f;
     [Tooltip("Thời gian giữ màn hình đen trong lúc đặt đồ tế (giây)")]
-    public float blackScreenHoldDuration = 1.6f;
+    public float blackScreenHoldDuration = 1.0f;
     [Tooltip("Thời gian màn hình sáng lại (giây)")]
-    public float fadeOutDuration = 0.6f;
+    public float fadeOutDuration = 0.5f;
 
-    [Header("4. Âm Thanh (Audio Sfx)")]
+    [Header("6. Âm Thanh (Audio SFX)")]
     public AudioSource audioSource;
     [Tooltip("Âm thanh đặt vật hiến tế / rùng rợn")]
     public AudioClip placeSound;
@@ -61,32 +69,31 @@ public class ShrineOfferingInteraction : MonoBehaviour, IInteractable
     public AudioClip dialogueSound;
     [Range(0f, 1f)] public float soundVolume = 0.85f;
 
-    [Header("5. Thoại Khi CHƯA Có Vật Phẩm (No Offering Dialogue)")]
+    [Header("7. Thoại Nhắc Nhở Khi CHƯA Có Vật Phẩm (Chỉ hiện nếu enableDialogues = true)")]
     public DialogueLine[] noItemDialogues = new DialogueLine[]
     {
         new DialogueLine
         {
-            vietnameseDialogue = "Một ngôi đền thờ nhỏ bị phong ấn... Bên trong dường như còn thiếu một vật hiến tế bằng máu thịt.",
-            englishDialogue = "A small sealed shrine... It seems to be missing a flesh sacrifice.",
-            holdDuration = 4.0f
+            vietnameseDialogue = "Một ngôi đền thờ bị phong ấn... Cần một vật hiến tế bằng máu thịt.",
+            englishDialogue = "A sealed shrine... It requires a flesh sacrifice.",
+            holdDuration = 2.5f
         }
     };
 
-    [Header("6. Cấu Hình Phụ Đề (Subtitle Text UI)")]
-    [Tooltip("Kéo TextMeshPro Subtitle Text trên Canvas vào đây (Để trống sẽ tự tìm)")]
+    [Header("8. Cấu Hình Phụ Đề (Subtitle Text UI)")]
     public TextMeshProUGUI subtitleTextUI;
     public bool useTypewriter = true;
     public float typewriterSpeed = 0.035f;
 
-    [Header("7. Sự Kiện & Quản Lý Đa Đền Thờ (Multi-Shrine Events)")]
+    [Header("9. Sự Kiện & Quản Lý Đa Đền Thờ (Multi-Shrine Events)")]
     [Tooltip("Sự kiện kích hoạt khi đặt vật tế vào chính ngôi đền này")]
     public UnityEvent onThisShrineOffered;
 
-    [Tooltip("Sự kiện kích hoạt khi TẤT CẢ các đền thờ trong Scene đã được dâng tế đầy đủ (VD: Mở cửa, mở xích...)")]
+    [Tooltip("Sự kiện kích hoạt khi TẤT CẢ các đền thờ trong Scene đã được dâng tế đầy đủ")]
     public UnityEvent onAllShrinesCompleted;
 
-    [Header("8. Hóa Giải Vùng Cấm / Quái (Pacify Zones & Uma on All Shrines Completed)")]
-    [Tooltip("Tự động tìm và hóa giải toàn bộ ForbiddenDangerZone & Uma trong Scene khi cúng đủ 2 đền thờ (Mặc định: BẬT)")]
+    [Header("10. Hóa Giải Vùng Cấm / Wman / Uma (Pacify Zones & Wman on All Shrines Completed)")]
+    [Tooltip("Tự động tìm và hóa giải toàn bộ ForbiddenDangerZone, Wman & Uma trong Scene khi cúng đủ 2 đền thờ (Mặc định: BẬT)")]
     public bool autoPacifyZonesAndUma = true;
 
     [Tooltip("Kéo cụ thể các ForbiddenDangerZone cần tắt (nếu để trống và bật autoPacify thì script tự tìm)")]
@@ -104,33 +111,39 @@ public class ShrineOfferingInteraction : MonoBehaviour, IInteractable
     private bool skipRequested = false;
     private bool skipWaitRequested = false;
     private float interactStartTime = 0f;
+    private float lastInteractTimestamp = -10f;
     private string currentFullText = "";
     private Coroutine cursorBlinkCoroutine;
 
     void Awake()
     {
+        EnsureCollider();
         EnsureAudioSource();
         AutoFindDialogueSound();
         FindSubtitleUI();
         EnsureFadeImage();
+        AutoBindGoreObject();
 
-        // Đảm bảo ban đầu cục Gore trong đền chưa được bật
+        // Đảm bảo ban đầu cục Gore trong đền luôn được ẩn
         if (shrineGoreObject != null)
         {
             shrineGoreObject.SetActive(false);
+            DisableGorePickupScripts(shrineGoreObject);
         }
     }
 
     void Start()
     {
+        EnsureCollider();
         EnsureAudioSource();
         AutoFindDialogueSound();
         FindSubtitleUI();
         EnsureFadeImage();
+        AutoBindGoreObject();
 
-        // Đếm tổng số đền thờ có trong Scene
+        // Đếm chính xác tổng số đền thờ trong Scene
         ShrineOfferingInteraction[] allShrines = Object.FindObjectsByType<ShrineOfferingInteraction>(FindObjectsSortMode.None);
-        totalShrinesCount = (allShrines != null) ? allShrines.Length : 0;
+        totalShrinesCount = (allShrines != null) ? allShrines.Length : 2;
         totalOfferingsPlaced = 0; // Reset đếm khi bắt đầu scene
     }
 
@@ -138,21 +151,67 @@ public class ShrineOfferingInteraction : MonoBehaviour, IInteractable
     {
         if (!isInteracting) return;
 
-        // Tránh ăn nhầm click tương tác ban đầu trong 0.25s
         if (Time.unscaledTime - interactStartTime < 0.25f) return;
 
         if (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.E))
         {
             if (isTyping)
             {
-                // BẤM LẦN 1 KHI ĐANG GÕ -> HIỆN FULL CHỮ NGAY
                 skipRequested = true;
             }
             else if (isWaitingForNextLine)
             {
-                // BẤM LẦN 2 KHI CHỮ ĐÃ ĐẦY ĐỦ -> QUA CÂU TIẾP THEO
                 skipWaitRequested = true;
             }
+        }
+    }
+
+    private void AutoBindGoreObject()
+    {
+        if (shrineGoreObject != null) return;
+
+        // Tự động tìm cục Gore gần đền thờ nhất trong bán kính 4m
+        GameObject[] allGores = Object.FindObjectsByType<GameObject>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        float closestDist = float.MaxValue;
+        GameObject bestGore = null;
+
+        foreach (var g in allGores)
+        {
+            if (g != null && (g.name.Equals("Gore") || g.name.StartsWith("Gore (") || g.name.Equals("Gore (1)")))
+            {
+                if (g.transform.parent != null && g.transform.parent.name == "Gore")
+                {
+                    float d = Vector3.Distance(transform.position, g.transform.position);
+                    if (d < 4.0f && d < closestDist)
+                    {
+                        closestDist = d;
+                        bestGore = g;
+                    }
+                }
+            }
+        }
+
+        if (bestGore != null)
+        {
+            shrineGoreObject = bestGore;
+            Debug.Log($"[ShrineOffering] ⛩️ Tự động liên kết '{gameObject.name}' với cục Gore: '{bestGore.name}'");
+        }
+    }
+
+    private void DisableGorePickupScripts(GameObject gore)
+    {
+        if (gore == null) return;
+
+        InteractableItem[] goreItems = gore.GetComponentsInChildren<InteractableItem>(true);
+        foreach (var item in goreItems)
+        {
+            if (item != null) item.enabled = false;
+        }
+
+        Collider[] goreCols = gore.GetComponentsInChildren<Collider>(true);
+        foreach (var col in goreCols)
+        {
+            if (col != null) col.enabled = false;
         }
     }
 
@@ -160,47 +219,52 @@ public class ShrineOfferingInteraction : MonoBehaviour, IInteractable
 
     public void Interact()
     {
+        // 1. KIỂM TRA COOLDOWN CHỐNG SPAM CLICK
+        if (Time.time - lastInteractTimestamp < interactCooldown)
+        {
+            return;
+        }
+        lastInteractTimestamp = Time.time;
+
         if (isInteracting || SmartInteractionDialogue.isAnyDialoguePlaying)
         {
             return;
         }
 
-        // TH3: Đền này đã được dâng vật tế rồi -> Không làm gì cả
+        // 2. ĐỀN NÀY ĐÃ ĐƯỢC DÂNG VẬT TẾ RỒI
         if (hasBeenOffered)
         {
             return;
         }
 
-        // Kiểm tra xem người chơi có vật phẩm trong người không
+        // 3. KIỂM TRA XEM NGƯỜI CHƠI CÓ GORE TRONG TÚI KHÔNG
         string matchedItemName = FindMatchingGoreItemInInventory();
         bool hasGore = !string.IsNullOrEmpty(matchedItemName);
 
         if (hasGore)
         {
-            // TH2: ĐÃ CÓ GORE -> BẮT ĐẦU FADE ĐEN, ĐẶT ĐỒ TẾ VÀ TRỪ TRONG TÚI
+            // TH2: ĐÃ CÓ GORE -> BẮT ĐẦU FADE ĐEN, HIỆN GORE VÀ TRỪ TRONG TÚI
             StartCoroutine(OfferingSequenceRoutine(matchedItemName));
         }
         else
         {
-            // TH1: CHƯA CÓ GORE -> HIỆN THOẠI NHẬN XÉT
-            StartCoroutine(PlaySimpleDialogueSequence(noItemDialogues));
+            // TH1: CHƯA CÓ GORE
+            if (enableDialogues)
+            {
+                StartCoroutine(PlaySimpleDialogueSequence(noItemDialogues));
+            }
         }
     }
 
-    /// <summary>
-    /// Tìm xem trong túi đồ có món đồ Gore / Nội Tạng nào khớp không
-    /// </summary>
-    private string FindMatchingGoreItemInInventory()
+    public string FindMatchingGoreItemInInventory()
     {
         if (InventoryManager.Instance == null) return null;
 
-        // 1. Kiểm tra tên chính
         if (!string.IsNullOrEmpty(requiredItemName) && InventoryManager.Instance.HasItem(requiredItemName))
         {
             return requiredItemName;
         }
 
-        // 2. Kiểm tra các tên phụ (alternateItemNames)
         if (!string.IsNullOrEmpty(alternateItemNames))
         {
             string[] alternates = alternateItemNames.Split(',');
@@ -257,12 +321,32 @@ public class ShrineOfferingInteraction : MonoBehaviour, IInteractable
             audioSource.PlayOneShot(placeSound, soundVolume);
         }
 
-        // 3. BẬT CỤC GORE SETUP SẴN TRONG ĐỀN & TRỪ KHỎI TÚI ĐỒ
+        // 3. BẬT HIỆN CỤC GORE TRONG ĐỀN & ĐẢM BẢO 100% HIỂN THỊ MESH RENDERER
+        if (shrineGoreObject == null) AutoBindGoreObject();
+
         if (shrineGoreObject != null)
         {
             shrineGoreObject.SetActive(true);
+
+            // Bật toàn bộ GameObject con (ví dụ 0_0_0)
+            Transform[] allChildren = shrineGoreObject.GetComponentsInChildren<Transform>(true);
+            foreach (var t in allChildren)
+            {
+                if (t != null) t.gameObject.SetActive(true);
+            }
+
+            // Bật toàn bộ MeshRenderer
+            Renderer[] allRends = shrineGoreObject.GetComponentsInChildren<Renderer>(true);
+            foreach (var r in allRends)
+            {
+                if (r != null) r.enabled = true;
+            }
+
+            // Vô hiệu hóa script nhặt đồ và collider trên Gore
+            DisableGorePickupScripts(shrineGoreObject);
         }
 
+        // 4. TRỪ GORE TRONG TÚI ĐỒ
         if (consumeItem && InventoryManager.Instance != null && !string.IsNullOrEmpty(matchedItemName))
         {
             InventoryManager.Instance.RemoveItem(matchedItemName);
@@ -275,15 +359,16 @@ public class ShrineOfferingInteraction : MonoBehaviour, IInteractable
 
         onThisShrineOffered?.Invoke();
 
-        // Kiểm tra nếu tất cả các đền trong Scene đã được dâng tế đầy đủ
-        if (totalOfferingsPlaced >= totalShrinesCount && totalShrinesCount > 0)
+        bool isAllCompleted = (totalOfferingsPlaced >= totalShrinesCount && totalShrinesCount > 0);
+
+        // 5. NẾU ĐÃ ĐỦ TẤT CẢ CÁC ĐỀN -> HÓA GIẢI WMAN & DANGER ZONE
+        if (isAllCompleted)
         {
-            Debug.Log("[ShrineOffering] 🌟 TẤT CẢ CÁC ĐỀN THỜ ĐÃ ĐƯỢC HOÀN THÀNH! Hóa giải toàn bộ Danger Zone & Uma trong Scene.");
+            Debug.Log("<color=green><b>[ShrineOffering] 🌟 ĐÃ DÂNG ĐỦ 2 ĐỀN THỜ! Hóa giải toàn bộ Danger Zone & Wman trong Map.</b></color>");
             onAllShrinesCompleted?.Invoke();
 
             if (autoPacifyZonesAndUma)
             {
-                // 1. Tắt các zone được gán thủ công nếu có
                 if (dangerZonesToDeactivate != null && dangerZonesToDeactivate.Length > 0)
                 {
                     foreach (var z in dangerZonesToDeactivate)
@@ -293,7 +378,6 @@ public class ShrineOfferingInteraction : MonoBehaviour, IInteractable
                 }
                 else
                 {
-                    // Tự động tìm tất cả ForbiddenDangerZone trong Scene để hóa giải
                     ForbiddenDangerZone[] allZones = Object.FindObjectsByType<ForbiddenDangerZone>(FindObjectsSortMode.None);
                     if (allZones != null)
                     {
@@ -304,7 +388,15 @@ public class ShrineOfferingInteraction : MonoBehaviour, IInteractable
                     }
                 }
 
-                // 2. Tự động tìm tất cả Uma trong Scene để đưa về trạng thái hiền hòa
+                WmanBehavior[] allWmans = Object.FindObjectsByType<WmanBehavior>(FindObjectsSortMode.None);
+                if (allWmans != null)
+                {
+                    foreach (var wman in allWmans)
+                    {
+                        if (wman != null) wman.PacifyWman();
+                    }
+                }
+
                 UmaPatrolAI[] allUmas = Object.FindObjectsByType<UmaPatrolAI>(FindObjectsSortMode.None);
                 if (allUmas != null)
                 {
@@ -316,10 +408,10 @@ public class ShrineOfferingInteraction : MonoBehaviour, IInteractable
             }
         }
 
-        // Giữ màn hình đen một khoảng ngắn
+        // Giữ màn hình đen ngắn
         yield return new WaitForSeconds(blackScreenHoldDuration);
 
-        // 4. FADE SÁNG TRỞ LẠI
+        // 6. FADE SÁNG TRỞ LẠI
         if (fadeImage != null)
         {
             float elapsed = 0f;
@@ -340,7 +432,7 @@ public class ShrineOfferingInteraction : MonoBehaviour, IInteractable
 
         ClearSubtitleUI();
 
-        // 5. MỞ LẠI QUYỀN ĐIỀU KHIỂN CHO PLAYER
+        // 7. MỞ LẠI QUYỀN ĐIỀU KHIỂN CHO PLAYER NGAY LẬP TỨC (KHÔNG THOẠI THỪA)
         if (playerMovePl != null)
         {
             playerMovePl.isCameraLocked = false;
@@ -351,7 +443,7 @@ public class ShrineOfferingInteraction : MonoBehaviour, IInteractable
         isInteracting = false;
     }
 
-    // ==================== SEQUENCE HIỆN THOẠI ĐƠN GIẢN ====================
+    // ==================== SEQUENCE HIỆN THOẠI (NẾU BẬT) ====================
 
     private IEnumerator PlaySimpleDialogueSequence(DialogueLine[] dialogues)
     {
@@ -364,7 +456,6 @@ public class ShrineOfferingInteraction : MonoBehaviour, IInteractable
         skipRequested = false;
         skipWaitRequested = false;
 
-        // Chờ 1 frame để tiêu thụ click chuột ban đầu
         yield return null;
 
         foreach (DialogueLine line in dialogues)
@@ -376,9 +467,7 @@ public class ShrineOfferingInteraction : MonoBehaviour, IInteractable
         }
 
         ClearSubtitleUI();
-
-        // Cooldown 0.5s để chống spam click đè thoại
-        yield return new WaitForSeconds(0.5f);
+        yield return new WaitForSeconds(0.4f);
 
         SmartInteractionDialogue.isAnyDialoguePlaying = false;
         isInteracting = false;
@@ -409,7 +498,6 @@ public class ShrineOfferingInteraction : MonoBehaviour, IInteractable
         isTyping = true;
         skipRequested = false;
 
-        // Phát âm thanh gõ chữ looping trong suốt quá trình chạy chữ
         if (dialogueSound != null && audioSource != null)
         {
             audioSource.spatialBlend = 0f;
@@ -446,7 +534,6 @@ public class ShrineOfferingInteraction : MonoBehaviour, IInteractable
             subtitleTextUI.text = currentFullText;
         }
 
-        // Tắt âm thanh gõ chữ ngay khi hoàn thành câu
         if (audioSource != null && audioSource.isPlaying && audioSource.clip == dialogueSound)
         {
             audioSource.Stop();
@@ -455,18 +542,16 @@ public class ShrineOfferingInteraction : MonoBehaviour, IInteractable
         isTyping = false;
         skipRequested = false;
 
-        // Bật con trỏ nhấp nháy trong lúc chờ người chơi đọc
         if (subtitleTextUI != null)
         {
             if (cursorBlinkCoroutine != null) StopCoroutine(cursorBlinkCoroutine);
             cursorBlinkCoroutine = StartCoroutine(BlinkCursorRoutine(subtitleTextUI, currentFullText));
         }
 
-        // Chờ đọc xong hoặc bấm click lần 2 để qua nhanh
         isWaitingForNextLine = true;
         skipWaitRequested = false;
         float waitTimer = 0f;
-        float holdTime = (line.holdDuration > 0f) ? line.holdDuration : 3.5f;
+        float holdTime = (line.holdDuration > 0f) ? line.holdDuration : 2.5f;
 
         while (waitTimer < holdTime && !skipWaitRequested)
         {
@@ -508,6 +593,24 @@ public class ShrineOfferingInteraction : MonoBehaviour, IInteractable
     }
 
     // ==================== HELPER SETUP ====================
+
+    void EnsureCollider()
+    {
+        Collider col = GetComponent<Collider>();
+        if (col == null)
+        {
+            BoxCollider box = gameObject.AddComponent<BoxCollider>();
+            box.center = new Vector3(0f, 0.4f, 0f);
+            box.size = new Vector3(1.5f, 1.6f, 1.5f);
+        }
+        else if (col is BoxCollider box)
+        {
+            if (box.size.x < 0.8f || box.size.y < 0.8f || box.size.z < 0.8f)
+            {
+                box.size = new Vector3(Mathf.Max(box.size.x, 1.2f), Mathf.Max(box.size.y, 1.4f), Mathf.Max(box.size.z, 1.2f));
+            }
+        }
+    }
 
     void EnsureAudioSource()
     {

@@ -2,6 +2,8 @@ using UnityEngine;
 
 public class ContinuousDoorKnocker : MonoBehaviour
 {
+    public static ContinuousDoorKnocker Instance { get; private set; }
+
     [Header("Nguồn Âm Thanh Gõ Cửa 3D")]
     public AudioSource doorAudioSource;
     public AudioClip knockClip;
@@ -10,11 +12,14 @@ public class ContinuousDoorKnocker : MonoBehaviour
     [Tooltip("Khoảng cách thời gian giữa các đợt gõ cửa liên tục (giây, Mặc định: 3.5s)")]
     public float repeatInterval = 3.5f;
 
+    public bool IsKnocking => isKnocking;
+
     private bool isKnocking = false;
     private float timer = 0f;
 
     void Awake()
     {
+        Instance = this;
         EnsureAudioComponents();
     }
 
@@ -35,7 +40,7 @@ public class ContinuousDoorKnocker : MonoBehaviour
         }
     }
 
-    void EnsureAudioComponents()
+    public void EnsureAudioComponents()
     {
         // 1. Tự động lấy AudioSource trên chính Object này nếu ô đang trống
         if (doorAudioSource == null)
@@ -58,6 +63,14 @@ public class ContinuousDoorKnocker : MonoBehaviour
         {
             knockClip = doorAudioSource.clip;
         }
+
+        if (doorAudioSource != null)
+        {
+            doorAudioSource.spatialBlend = 1f;
+            doorAudioSource.minDistance = 1f;
+            doorAudioSource.maxDistance = 15f;
+            doorAudioSource.playOnAwake = false;
+        }
     }
 
     /// <summary>
@@ -68,6 +81,7 @@ public class ContinuousDoorKnocker : MonoBehaviour
         EnsureAudioComponents();
         isKnocking = true;
         timer = 0f;
+        PlayKnock();
         Debug.Log("[ContinuousDoorKnocker] 🚪 BẮT ĐẦU LẶP LẠI TIẾNG GÕ CỬA LIÊN TỤC! AudioSource: " + (doorAudioSource != null ? doorAudioSource.name : "Null") + ", Clip: " + (knockClip != null ? knockClip.name : "Null"));
     }
 

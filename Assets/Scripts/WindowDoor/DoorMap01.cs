@@ -162,11 +162,12 @@ public class DoorExit : MonoBehaviour, IInteractable
     }
 
     /// <summary>
-    /// GỌI HÀM NÀY ĐỂ MỞ KHÓA TƯƠNG TÁC CHO CỬA CHÍNH (Được gọi khi NGỦ DẬY)
+    /// GỌI HÀM NÀY ĐỂ MỞ KHÓA TƯƠNG TÁC CHO CỬA CHÍNH (Được gọi khi NGỦ DẬY hoặc khi BẬT ĐÈN)
     /// </summary>
     public void UnlockDoor()
     {
         isLocked = false;
+        isInteractionBlocked = false;
         Debug.Log("[DoorExit] 🔓 ĐÃ MỞ KHÓA TƯƠNG TÁC CHO CỬA CHÍNH!");
     }
 
@@ -180,10 +181,56 @@ public class DoorExit : MonoBehaviour, IInteractable
     }
 
     // ==========================================
-    // TƯƠNG TÁC BẤM [F] ĐỂ MỞ CỬA
+    // TƯƠNG TÁC BẤM [F] / CLICK CHUỘT ĐỂ MỞ CỬA
     // ==========================================
     public void Interact()
     {
+        string sceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+        bool isMap05 = (sceneName == "Map05");
+
+        // 1. NẾU Ở MAP 05:
+        if (isMap05)
+        {
+            // Kiểm tra trạng thái đèn phòng (nếu đã bật đèn chính thì tự động mở khóa cửa)
+            RoomLightSwitch lightSwitch = RoomLightSwitch.Instance ?? Object.FindFirstObjectByType<RoomLightSwitch>(FindObjectsInactive.Include);
+            if (lightSwitch != null && lightSwitch.isLightOn)
+            {
+                isLocked = false;
+                isInteractionBlocked = false;
+            }
+
+            // Nếu cửa vẫn đang khóa (đèn phòng chưa bật)
+            if (isLocked)
+            {
+                Debug.Log("[DoorExit] 🔒 [Map 05] Cửa đang khóa! Bạn cần bật đèn phòng trước.");
+                var map05Lines = (lockedDialogueLines != null && lockedDialogueLines.Length > 0) ? lockedDialogueLines : new SmartInteractionDialogue.DialogueLine[]
+                {
+                    new SmartInteractionDialogue.DialogueLine
+                    {
+                        vietnameseDialogue = "Tối quá... Có ai đó đang gõ cửa liên tục, mình nên bật công tắc đèn lên xem trước đã.",
+                        englishDialogue = "It's too dark... Someone is knocking continuously, I should turn on the light switch first.",
+                        holdDuration = 3.5f
+                    }
+                };
+                StartCoroutine(PlayDoorDialoguesRoutine(map05Lines, null));
+                return;
+            }
+
+            if (isInteractionBlocked) return;
+
+            // KÍCH HOẠT ENDGAME MAP 05!
+            Map05Manager map05 = Map05Manager.Instance ?? Object.FindFirstObjectByType<Map05Manager>(FindObjectsInactive.Include);
+            if (map05 != null)
+            {
+                isInteractionBlocked = true;
+                HidePrompt();
+                map05.TriggerEndGameSequence();
+                return;
+            }
+            return;
+        }
+
+        // 2. NẾU Ở MAP 01 HOẶC CÁC MAP KHÁC:
         if (isInteractionBlocked) return;
 
         // Nếu cửa vẫn đang bị khóa (chưa ngủ dậy) thì không cho mở & phát thoại Khóa
@@ -292,7 +339,6 @@ public class DoorExit : MonoBehaviour, IInteractable
     {
         EnsurePositionsInitialized();
         isDoorOpen = false;
-        isInteractionBlocked = true;
         HidePrompt();
 
         if (snapInstantly && doorBody != null)
@@ -359,8 +405,15 @@ public class DoorExit : MonoBehaviour, IInteractable
         }
 
         TMPro.TextMeshProUGUI subUI = null;
-        BedSleepCutscene bed = Object.FindFirstObjectByType<BedSleepCutscene>(FindObjectsInactive.Include);
-        if (bed != null && bed.subtitleTextUI != null) subUI = bed.subtitleTextUI;
+
+        Map05Manager map05Mgr = Map05Manager.Instance ?? Object.FindFirstObjectByType<Map05Manager>(FindObjectsInactive.Include);
+        if (map05Mgr != null && map05Mgr.subtitleTextUI != null) subUI = map05Mgr.subtitleTextUI;
+
+        if (subUI == null)
+        {
+            BedSleepCutscene bed = Object.FindFirstObjectByType<BedSleepCutscene>(FindObjectsInactive.Include);
+            if (bed != null && bed.subtitleTextUI != null) subUI = bed.subtitleTextUI;
+        }
         if (subUI == null)
         {
             GameIntroManager intro = Object.FindFirstObjectByType<GameIntroManager>(FindObjectsInactive.Include);
@@ -368,14 +421,32 @@ public class DoorExit : MonoBehaviour, IInteractable
         }
         if (subUI == null)
         {
-            GameObject subObj = GameObject.Find("SubtitleText") ?? GameObject.Find("Subtitle") ?? GameObject.Find("DialogueText");
-            if (subObj != null) subUI = subObj.GetComponent<TMPro.TextMeshProUGUI>();
+            SmartInteractionDialogue smart = Object.FindFirstObjectByType<SmartInteractionDialogue>(FindObjectsInactive.Include);
+            if (smart != null && smart.subtitleTextUI != null) subUI = smart.subtitleTextUI;
+        }
+        if (subUI == null)
+        {
+            GameObject subContainer = GameObject.Find("Subtitle");
+            if (subContainer != null) subUI = subContainer.GetComponentInChildren<TMPro.TextMeshProUGUI>(true);
+        }
+        if (subUI == null)
+        {
+            GameObject subObj = GameObject.Find("Subtitle Text") ?? GameObject.Find("SubtitleText") ?? GameObject.Find("DialogueText");
+            if (subObj != null) subUI = subObj.GetComponentInChildren<TMPro.TextMeshProUGUI>(true);
         }
 
         if (subUI == null)
         {
+            Debug.LogWarning("[DoorExit] ⚠️ Không tìm thấy UI Subtitle để hiển thị lời thoại!");
             onComplete?.Invoke();
             yield break;
+        }
+
+        if (dialogueSound == null)
+        {
+            SmartInteractionDialogue smart = Object.FindFirstObjectByType<SmartInteractionDialogue>(FindObjectsInactive.Include);
+            if (smart != null && smart.dialogueSound != null) dialogueSound = smart.dialogueSound;
+            else if (map05Mgr != null && map05Mgr.dialogueSound != null) dialogueSound = map05Mgr.dialogueSound;
         }
 
         SmartInteractionDialogue.isAnyDialoguePlaying = true;

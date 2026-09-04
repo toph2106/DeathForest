@@ -296,7 +296,7 @@ public class InventoryManager : MonoBehaviour
                 }
             }
         }
-        else if (sceneName == "Map04" || sceneName == "Map05")
+        else if (sceneName == "Map04")
         {
             hasUnlockedBackpack = true;
             PlayerPrefs.SetInt("Global_Has_Backpack", 1);
@@ -312,9 +312,18 @@ public class InventoryManager : MonoBehaviour
                 hasUnlockedBackpack = true;
             }
         }
+        else if (sceneName == "Map05")
+        {
+            // Map 05: Tỉnh dậy sau cơn ác mộng -> Xóa sạch hoàn toàn túi đồ!
+            ResetInventoryData();
+            hasUnlockedBackpack = false;
+            PlayerPrefs.SetInt("Global_Has_Backpack", 0);
+            savedHeldItems = null;
+            savedHeldItemTypes = null;
+        }
 
-        // Khi vào Map 04 hoặc Map 05: Bắt buộc đảm bảo có đủ 8 món theo yêu cầu qua cảnh (Bùa, 2 Tay, 2 Chân, Đầu, 2 Gore)
-        if (sceneName == "Map04" || sceneName == "Map05")
+        // Khi vào Map 04: Bắt buộc đảm bảo có đủ 8 món theo yêu cầu qua cảnh (Bùa, 2 Tay, 2 Chân, Đầu, 2 Gore)
+        if (sceneName == "Map04")
         {
             hasUnlockedBackpack = true;
             string[] required8 = new string[] { "Bua", "ArmsL", "ArmsR", "FeetL", "FeetR", "Head", "Gore", "Gore" };
@@ -1570,6 +1579,34 @@ public class InventoryManager : MonoBehaviour
         PlayerPrefs.DeleteKey("Global_Inventory_Types");
         PlayerPrefs.DeleteKey("Global_Has_Backpack");
         PlayerPrefs.Save();
+    }
+
+    /// <summary>
+    /// Xóa sạch toàn bộ vật phẩm trong túi đồ hiện tại, hủy các preview 3D và làm sạch giao diện Hotbar
+    /// </summary>
+    public void ClearInventory()
+    {
+        ResetInventoryData();
+
+        if (heldItems != null)
+        {
+            for (int i = 0; i < heldItems.Length; i++)
+            {
+                Destroy3DPreview(i);
+                heldItems[i] = "";
+                if (heldItemObjects != null && i < heldItemObjects.Length)
+                {
+                    if (heldItemObjects[i] != null) Destroy(heldItemObjects[i]);
+                    heldItemObjects[i] = null;
+                }
+                if (heldItemSprites != null && i < heldItemSprites.Length) heldItemSprites[i] = null;
+                if (heldItemTypes != null && i < heldItemTypes.Length) heldItemTypes[i] = InteractableItem.ItemType.Consumable;
+            }
+        }
+
+        selectedIndex = -1;
+        UpdateUISlots();
+        Debug.Log("[InventoryManager] 🗑️ Đã xóa sạch toàn bộ túi đồ (ClearInventory)!");
     }
 
     public bool HasItem(string itemName)

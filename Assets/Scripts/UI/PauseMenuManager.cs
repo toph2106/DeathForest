@@ -395,7 +395,7 @@ public class PauseMenuManager : MonoBehaviour
             if (active)
             {
                 string scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
-                bool isMapWithCamera = (scene == "Map03" || scene == "Map04" || scene == "Map05");
+                bool isMapWithCamera = (scene == "Map03" || scene == "Map04");
                 if (CamcorderUI.HasPickedUpCamera || isMapWithCamera)
                 {
                     CamcorderUI.Instance.gameObject.SetActive(true);

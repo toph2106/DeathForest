@@ -23,7 +23,13 @@ public class ForbiddenDangerZone : MonoBehaviour
     [Tooltip("Kéo con Uma đã đặt sẵn trên Scene cho vùng cấm này vào đây")]
     public UmaPatrolAI assignedUma;
 
+    [Tooltip("Kéo con Wman (Người Đàn Bà Trắng) đã đặt sẵn trên Scene cho vùng cấm này vào đây")]
+    public WmanBehavior assignedWman;
+
     [Header("2. Phụ Đề Thoại Cảnh Báo (Warning Dialogue)")]
+    [Tooltip("Bật/Tắt thoại cảnh báo khi bước vào vùng cấm (Bỏ tích nếu không muốn hiện thoại)")]
+    public bool enableWarningDialogue = true;
+
     [Tooltip("Thời gian chờ sau khi bước chân vào vùng cấm mới cất lời thoại cảnh báo (giây - Mặc định: 1.0s)")]
     public float delayBeforeWarningDialogue = 1.0f;
 
@@ -103,8 +109,8 @@ public class ForbiddenDangerZone : MonoBehaviour
         {
             timerInside += Time.deltaTime;
 
-            // Kiểm tra điều kiện chạy thoại: Đủ thời gian chờ + Chưa có thoại nào đang phát + Đã qua thời gian cooldown 2s
-            if (!hasScheduledDialogue && timerInside >= delayBeforeWarningDialogue)
+            // Kiểm tra điều kiện chạy thoại: Có bật thoại + Đủ thời gian chờ + Chưa có thoại nào đang phát + Đã qua thời gian cooldown 2s
+            if (enableWarningDialogue && !hasScheduledDialogue && timerInside >= delayBeforeWarningDialogue)
             {
                 if (!isAnyDialogueActive && Time.time >= lastDialogueEndTime + dialogueCooldown)
                 {
@@ -131,10 +137,14 @@ public class ForbiddenDangerZone : MonoBehaviour
 
             Debug.Log($"[ForbiddenDangerZone] ⚠️ Player bước vào '{zoneName}'! Đã kích hoạt Uma tuần tra!");
 
-            // Kích hoạt Uma tuần tra
+            // Kích hoạt quái vật tuần tra (Uma hoặc Wman)
             if (assignedUma != null)
             {
                 assignedUma.OnPlayerEnteredZone(other.transform);
+            }
+            if (assignedWman != null)
+            {
+                assignedWman.OnPlayerEnteredZone(other.transform);
             }
         }
     }
@@ -150,10 +160,14 @@ public class ForbiddenDangerZone : MonoBehaviour
 
             Debug.Log($"[ForbiddenDangerZone] 🟢 Player đã rời khỏi '{zoneName}'! Ra lệnh cho Uma quay về.");
 
-            // Ra lệnh cho Uma quay về
+            // Ra lệnh cho quái vật quay về (Uma hoặc Wman)
             if (assignedUma != null)
             {
                 assignedUma.OnPlayerExitedZone();
+            }
+            if (assignedWman != null)
+            {
+                assignedWman.OnPlayerExitedZone();
             }
         }
     }
@@ -185,7 +199,12 @@ public class ForbiddenDangerZone : MonoBehaviour
             assignedUma.PacifyUma();
         }
 
-        Debug.Log($"[ForbiddenDangerZone] 🕊️ Vùng '{zoneName}' đã được hóa giải! Uma sẽ không còn tấn công người chơi.");
+        if (assignedWman != null)
+        {
+            assignedWman.PacifyWman();
+        }
+
+        Debug.Log($"[ForbiddenDangerZone] 🕊️ Vùng '{zoneName}' đã được hóa giải! Quái vật sẽ không còn tấn công người chơi.");
     }
 
     private bool IsPlayer(Collider other)

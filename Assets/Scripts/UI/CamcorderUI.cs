@@ -43,7 +43,7 @@ public class CamcorderUI : MonoBehaviour
         AutoFindUIReferences();
 
         string sceneName = SceneManager.GetActiveScene().name;
-        if (sceneName == "MainMenu" || sceneName == "Map01" || sceneName == "Map02")
+        if (sceneName == "MainMenu" || sceneName == "Map01" || sceneName == "Map02" || sceneName == "Map05")
         {
             HasPickedUpCamera = false;
             PlayerPrefs.SetInt("Global_Has_Camera", 0);
@@ -52,7 +52,7 @@ public class CamcorderUI : MonoBehaviour
             return;
         }
 
-        if (sceneName == "Map03" || sceneName == "Map04" || sceneName == "Map05")
+        if (sceneName == "Map03" || sceneName == "Map04")
         {
             HasPickedUpCamera = true;
             PlayerPrefs.SetInt("Global_Has_Camera", 1);
@@ -71,14 +71,14 @@ public class CamcorderUI : MonoBehaviour
         AutoFindUIReferences();
 
         string sceneName = SceneManager.GetActiveScene().name;
-        if (sceneName == "MainMenu" || sceneName == "Map01" || sceneName == "Map02")
+        if (sceneName == "MainMenu" || sceneName == "Map01" || sceneName == "Map02" || sceneName == "Map05")
         {
             if (!HasPickedUpCamera)
             {
                 gameObject.SetActive(false);
             }
         }
-        else if (sceneName == "Map03" || sceneName == "Map04" || sceneName == "Map05")
+        else if (sceneName == "Map03" || sceneName == "Map04")
         {
             HasPickedUpCamera = true;
             gameObject.SetActive(true);
